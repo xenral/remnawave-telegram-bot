@@ -23,10 +23,11 @@ class TributePaymentMixin:
             raise ValueError('Tribute payments are disabled')
 
         try:
+            currency = settings.get_default_currency()
             # Сохраняем полезную информацию для метрик и отладки.
             payment_data = {
                 'amount': amount_kopeks,
-                'currency': 'RUB',
+                'currency': currency,
                 'description': description,
                 'user_id': user_id,
                 'callback_url': f'{settings.WEBHOOK_URL}/tribute/callback',
@@ -36,8 +37,9 @@ class TributePaymentMixin:
             payment_url = f'https://tribute.ru/pay?amount={amount_kopeks}&user={user_id}'
 
             logger.info(
-                'Создан Tribute платеж на %s₽ для пользователя %s',
+                'Создан Tribute платеж на %s %s для пользователя %s',
                 amount_kopeks / 100,
+                currency,
                 user_id,
             )
             return payment_url

@@ -17,6 +17,7 @@ from app.localization.texts import get_texts
 from app.services.payment_service import PaymentService
 from app.services.subscription_purchase_service import SubscriptionPurchaseService
 from app.states import SubscriptionStates
+from app.utils.cryptobot_helpers import compute_cryptobot_limits
 from app.utils.decorators import error_handler
 from app.utils.pricing_utils import compute_simple_subscription_price
 from app.utils.subscription_utils import (
@@ -1077,12 +1078,6 @@ async def handle_simple_subscription_payment_method(
                 return
 
             amount_rubles = price_kopeks / 100
-            if amount_rubles < 100 or amount_rubles > 100000:
-                await callback.answer(
-                    '❌ Сумма должна быть от 100 до 100 000 ₽ для оплаты через CryptoBot',
-                    show_alert=True,
-                )
-                return
 
             try:
                 from app.utils.currency_converter import currency_converter
@@ -1091,6 +1086,19 @@ async def handle_simple_subscription_payment_method(
             except Exception as rate_error:
                 logger.warning('Не удалось получить курс USD: %s', rate_error)
                 usd_rate = 95.0
+
+            min_amount_kopeks, max_amount_kopeks = compute_cryptobot_limits(usd_rate)
+            if price_kopeks < min_amount_kopeks or price_kopeks > max_amount_kopeks:
+                await callback.answer(
+                    (
+                        '❌ Сумма должна быть в диапазоне '
+                        f'от {settings.format_price(min_amount_kopeks)} '
+                        f'до {settings.format_price(max_amount_kopeks)} '
+                        'для оплаты через CryptoBot'
+                    ),
+                    show_alert=True,
+                )
+                return
 
             amount_usd = round(amount_rubles / usd_rate, 2)
             if amount_usd < 1:
@@ -1157,12 +1165,13 @@ async def handle_simple_subscription_payment_method(
                 ]
             )
 
+            base_currency = settings.get_default_currency()
             message_text = (
                 '🪙 <b>Оплата через CryptoBot</b>\n\n'
-                f'💰 Сумма к оплате: {amount_rubles:.0f} ₽\n'
+                f'💰 Сумма к оплате: {settings.format_price(price_kopeks)}\n'
                 f'💵 В долларах: {amount_usd:.2f} USD\n'
                 f'🪙 Актив: {crypto_result["asset"]}\n'
-                f'💱 Курс: 1 USD ≈ {usd_rate:.2f} ₽\n'
+                f'💱 Курс: 1 USD ≈ {usd_rate:.2f} {base_currency}\n'
                 f'🆔 ID платежа: {crypto_result["invoice_id"][:8]}...\n\n'
                 '📱 <b>Инструкция:</b>\n'
                 "1. Нажмите кнопку 'Оплатить через CryptoBot'\n"

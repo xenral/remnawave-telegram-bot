@@ -35,6 +35,7 @@ class Pal24Service:
         user_id: int,
         order_id: str,
         description: str,
+        currency_in: str = 'RUB',
         ttl_seconds: int | None = None,
         custom_payload: dict[str, Any] | None = None,
         payer_email: str | None = None,
@@ -69,6 +70,7 @@ class Pal24Service:
             shop_id=settings.PAL24_SHOP_ID,
             order_id=order_id,
             description=description,
+            currency_in=currency_in,
             type_='normal',
             **filtered_payload,
         )

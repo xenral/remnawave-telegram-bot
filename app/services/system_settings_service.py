@@ -259,6 +259,7 @@ class BotConfigurationService:
         'PAYMENT_SUBSCRIPTION_DESCRIPTION': 'PAYMENT',
         'PAYMENT_BALANCE_TEMPLATE': 'PAYMENT',
         'PAYMENT_SUBSCRIPTION_TEMPLATE': 'PAYMENT',
+        'BASE_CURRENCY': 'PAYMENT',
         'AUTO_PURCHASE_AFTER_TOPUP_ENABLED': 'PAYMENT',
         'SHOW_ACTIVATION_PROMPT_AFTER_TOPUP': 'PAYMENT',
         'SIMPLE_SUBSCRIPTION_ENABLED': 'SIMPLE_SUBSCRIPTION',
@@ -470,6 +471,13 @@ class BotConfigurationService:
             ChoiceOption('email', '📧 Отключён для Email'),
             ChoiceOption('telegram', '📱 Отключён для Telegram'),
             ChoiceOption('all', '🚫 Отключён для всех'),
+        ],
+        'BASE_CURRENCY': [
+            ChoiceOption('RUB', '₽ RUB'),
+            ChoiceOption('USD', '$ USD'),
+            ChoiceOption('EUR', '€ EUR'),
+            ChoiceOption('KZT', '₸ KZT'),
+            ChoiceOption('UAH', '₴ UAH'),
         ],
     }
 

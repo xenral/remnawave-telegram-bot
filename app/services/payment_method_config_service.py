@@ -12,6 +12,11 @@ from app.database.models import PaymentMethodConfig, PromoGroup
 
 logger = logging.getLogger(__name__)
 
+PAYMENT_METHOD_ALIASES: dict[str, str] = {
+    'stars': 'telegram_stars',
+    'yookassa_sbp': 'yookassa',
+}
+
 
 # ============ Default method definitions ============
 
@@ -26,6 +31,7 @@ def _get_method_defaults() -> dict:
             'default_min': 100,
             'default_max': 1000000,
             'available_sub_options': None,
+            'default_currency': 'RUB',
         },
         'tribute': {
             'default_display_name': 'Tribute',
@@ -33,6 +39,7 @@ def _get_method_defaults() -> dict:
             'default_min': 10000,
             'default_max': 10000000,
             'available_sub_options': None,
+            'default_currency': 'RUB',
         },
         'cryptobot': {
             'default_display_name': settings.get_cryptobot_display_name(),
@@ -40,6 +47,7 @@ def _get_method_defaults() -> dict:
             'default_min': 1000,
             'default_max': 10000000,
             'available_sub_options': None,
+            'default_currency': 'RUB',
         },
         'heleket': {
             'default_display_name': settings.get_heleket_display_name(),
@@ -47,6 +55,7 @@ def _get_method_defaults() -> dict:
             'default_min': 1000,
             'default_max': 10000000,
             'available_sub_options': None,
+            'default_currency': 'RUB',
         },
         'yookassa': {
             'default_display_name': settings.get_yookassa_display_name(),
@@ -57,6 +66,7 @@ def _get_method_defaults() -> dict:
                 {'id': 'card', 'name': 'Карта'},
                 {'id': 'sbp', 'name': 'СБП'},
             ],
+            'default_currency': 'RUB',
         },
         'mulenpay': {
             'default_display_name': settings.get_mulenpay_display_name(),
@@ -64,6 +74,7 @@ def _get_method_defaults() -> dict:
             'default_min': settings.MULENPAY_MIN_AMOUNT_KOPEKS,
             'default_max': settings.MULENPAY_MAX_AMOUNT_KOPEKS,
             'available_sub_options': None,
+            'default_currency': 'RUB',
         },
         'pal24': {
             'default_display_name': settings.get_pal24_display_name(),
@@ -74,6 +85,7 @@ def _get_method_defaults() -> dict:
                 {'id': 'sbp', 'name': 'СБП'},
                 {'id': 'card', 'name': 'Карта'},
             ],
+            'default_currency': 'RUB',
         },
         'platega': {
             'default_display_name': settings.get_platega_display_name(),
@@ -81,6 +93,7 @@ def _get_method_defaults() -> dict:
             'default_min': settings.PLATEGA_MIN_AMOUNT_KOPEKS,
             'default_max': settings.PLATEGA_MAX_AMOUNT_KOPEKS,
             'available_sub_options': _get_platega_sub_options(),
+            'default_currency': settings.PLATEGA_CURRENCY,
         },
         'wata': {
             'default_display_name': settings.get_wata_display_name(),
@@ -88,6 +101,7 @@ def _get_method_defaults() -> dict:
             'default_min': settings.WATA_MIN_AMOUNT_KOPEKS,
             'default_max': settings.WATA_MAX_AMOUNT_KOPEKS,
             'available_sub_options': None,
+            'default_currency': 'RUB',
         },
         'freekassa': {
             'default_display_name': settings.get_freekassa_display_name(),
@@ -98,6 +112,7 @@ def _get_method_defaults() -> dict:
                 {'id': 'sbp', 'name': 'NSPK СБП'},
                 {'id': 'card', 'name': 'Карта'},
             ],
+            'default_currency': settings.FREEKASSA_CURRENCY,
         },
         'cloudpayments': {
             'default_display_name': settings.get_cloudpayments_display_name(),
@@ -108,6 +123,7 @@ def _get_method_defaults() -> dict:
                 {'id': 'card', 'name': 'Карта'},
                 {'id': 'sbp', 'name': 'СБП'},
             ],
+            'default_currency': settings.CLOUDPAYMENTS_CURRENCY,
         },
         'kassa_ai': {
             'default_display_name': settings.get_kassa_ai_display_name(),
@@ -115,8 +131,31 @@ def _get_method_defaults() -> dict:
             'default_min': settings.KASSA_AI_MIN_AMOUNT_KOPEKS,
             'default_max': settings.KASSA_AI_MAX_AMOUNT_KOPEKS,
             'available_sub_options': None,
+            'default_currency': settings.KASSA_AI_CURRENCY,
         },
     }
+
+
+def normalize_payment_method_id(method_id: str) -> str:
+    """Map aliases to canonical PaymentMethodConfig IDs."""
+    normalized = (method_id or '').strip().lower()
+    return PAYMENT_METHOD_ALIASES.get(normalized, normalized)
+
+
+def normalize_currency_code(currency: str | None, fallback: str = 'RUB') -> str:
+    """Normalize currency/asset codes to uppercase with a safe fallback.
+
+    Delegates to Settings.normalize_currency to keep a single implementation.
+    """
+    return settings.normalize_currency(currency, fallback)
+
+
+def get_default_method_currency(method_id: str) -> str:
+    """Return default currency for a payment method."""
+    defaults = _get_method_defaults()
+    canonical = normalize_payment_method_id(method_id)
+    method_def = defaults.get(canonical, {})
+    return normalize_currency_code(method_def.get('default_currency'), 'RUB')
 
 
 def _get_platega_sub_options() -> list[dict] | None:
@@ -192,6 +231,7 @@ async def ensure_payment_method_configs(db: AsyncSession) -> None:
                 sub_options=sub_options,
                 min_amount_kopeks=None,
                 max_amount_kopeks=None,
+                currency=None,
                 user_type_filter='all',
                 first_topup_filter='any',
                 promo_group_filter_mode='all',
@@ -228,6 +268,7 @@ async def ensure_payment_method_configs(db: AsyncSession) -> None:
                 sub_options=sub_options,
                 min_amount_kopeks=None,
                 max_amount_kopeks=None,
+                currency=None,
                 user_type_filter='all',
                 first_topup_filter='any',
                 promo_group_filter_mode='all',
@@ -279,13 +320,17 @@ async def update_config(
         'sub_options',
         'min_amount_kopeks',
         'max_amount_kopeks',
+        'currency',
         'user_type_filter',
         'first_topup_filter',
         'promo_group_filter_mode',
     )
     for key in updatable_fields:
         if key in data:
-            setattr(config, key, data[key])
+            value = data[key]
+            if key == 'currency' and value is not None:
+                value = normalize_currency_code(value)
+            setattr(config, key, value)
 
     # Update promo groups M2M if specified
     if promo_group_ids is not None:
@@ -316,6 +361,49 @@ async def get_all_promo_groups(db: AsyncSession) -> list[PromoGroup]:
     """Get all promo groups for the filter selector."""
     result = await db.execute(select(PromoGroup).order_by(PromoGroup.priority.desc(), PromoGroup.name))
     return list(result.scalars().all())
+
+
+async def get_method_currency_map(
+    db: AsyncSession,
+    method_ids: list[str] | None = None,
+) -> dict[str, str]:
+    """Resolve effective currencies for provided methods (or all defaults)."""
+    defaults = _get_method_defaults()
+    requested_ids = method_ids or list(defaults.keys())
+    canonical_ids = {normalize_payment_method_id(method_id) for method_id in requested_ids}
+    canonical_ids = {method_id for method_id in canonical_ids if method_id}
+
+    overrides: dict[str, str] = {}
+    if canonical_ids:
+        try:
+            result = await db.execute(
+                select(PaymentMethodConfig.method_id, PaymentMethodConfig.currency).where(
+                    PaymentMethodConfig.method_id.in_(canonical_ids)
+                )
+            )
+            for method_id, currency in result.all():
+                if currency:
+                    overrides[method_id] = currency
+        except Exception as error:
+            logger.warning('Не удалось загрузить валюты методов из БД, используем значения по умолчанию: %s', error)
+
+    currency_map: dict[str, str] = {}
+    for method_id in requested_ids:
+        canonical = normalize_payment_method_id(method_id)
+        fallback = get_default_method_currency(canonical)
+        effective = normalize_currency_code(overrides.get(canonical), fallback)
+        currency_map[method_id] = effective
+
+    return currency_map
+
+
+async def get_effective_method_currency(
+    db: AsyncSession,
+    method_id: str,
+) -> str:
+    """Resolve effective currency for one payment method."""
+    currencies = await get_method_currency_map(db, [method_id])
+    return currencies.get(method_id, get_default_method_currency(method_id))
 
 
 # ============ User-facing methods ============
@@ -409,10 +497,13 @@ async def get_enabled_methods_for_user(
             if enabled_options:
                 options = enabled_options
 
+        currency = normalize_currency_code(config.currency, method_def.get('default_currency', 'RUB'))
+
         result.append(
             {
                 'id': method_id,
                 'name': display_name,
+                'currency': currency,
                 'min_amount_kopeks': min_amount,
                 'max_amount_kopeks': max_amount,
                 'options': options,

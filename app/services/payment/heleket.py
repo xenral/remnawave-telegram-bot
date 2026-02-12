@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database.models import PaymentMethod, TransactionType
+from app.services.payment_method_config_service import get_effective_method_currency
 from app.services.subscription_auto_purchase_service import (
     auto_activate_subscription_after_topup,
     auto_purchase_saved_cart_after_topup,
@@ -42,6 +43,7 @@ class HeleketPaymentMixin:
 
         amount_rubles = amount_kopeks / 100
         amount_str = f'{amount_rubles:.2f}'
+        currency = await get_effective_method_currency(db, 'heleket')
 
         order_id = f'heleket_{user_id}_{int(time.time())}_{secrets.token_hex(3)}'
 
@@ -57,7 +59,7 @@ class HeleketPaymentMixin:
 
         payload: dict[str, Any] = {
             'amount': amount_str,
-            'currency': 'RUB',
+            'currency': currency,
             'order_id': order_id,
             'lifetime': settings.get_heleket_lifetime(),
         }
@@ -140,7 +142,7 @@ class HeleketPaymentMixin:
             uuid=uuid,
             order_id=order_id,
             amount=amount_str,
-            currency='RUB',
+            currency=currency,
             status=status,
             payer_amount=payer_amount,
             payer_currency=payer_currency,
@@ -152,9 +154,10 @@ class HeleketPaymentMixin:
         )
 
         logger.info(
-            'Создан Heleket платеж %s на %s₽ для пользователя %s',
+            'Создан Heleket платеж %s на %s %s для пользователя %s',
             uuid,
             amount_str,
+            currency,
             user_id,
         )
 
@@ -399,8 +402,9 @@ class HeleketPaymentMixin:
                     keyboard = await self.build_topup_success_keyboard(user)
 
                     exchange_rate_value = updated_payment.exchange_rate or 0
+                    base_currency = settings.get_default_currency()
                     rate_text = (
-                        f'💱 Курс: 1 RUB = {1 / exchange_rate_value:.4f} {updated_payment.payer_currency}'
+                        f'💱 Курс: 1 {base_currency} = {1 / exchange_rate_value:.4f} {updated_payment.payer_currency}'
                         if exchange_rate_value and updated_payment.payer_currency
                         else None
                     )

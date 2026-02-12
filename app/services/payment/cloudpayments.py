@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database.models import PaymentMethod, TransactionType
 from app.services.cloudpayments_service import CloudPaymentsAPIError
+from app.services.payment_method_config_service import get_effective_method_currency
 from app.services.subscription_auto_purchase_service import (
     auto_activate_subscription_after_topup,
     auto_purchase_saved_cart_after_topup,
@@ -72,6 +73,7 @@ class CloudPaymentsPaymentMixin:
 
         # Generate unique invoice ID (use user_id for uniqueness, works for email-only users too)
         invoice_id = self.cloudpayments_service.generate_invoice_id(user_id)
+        currency = await get_effective_method_currency(db, 'cloudpayments')
 
         try:
             # Create payment order via CloudPayments API
@@ -82,6 +84,7 @@ class CloudPaymentsPaymentMixin:
                 invoice_id=invoice_id,
                 description=description,
                 email=email,
+                currency=currency,
             )
         except CloudPaymentsAPIError as error:
             logger.error('Ошибка создания CloudPayments платежа: %s', error)
@@ -101,6 +104,7 @@ class CloudPaymentsPaymentMixin:
             user_id=user_id,
             invoice_id=invoice_id,
             amount_kopeks=amount_kopeks,
+            currency=currency,
             description=description,
             payment_url=payment_url,
             metadata=metadata,
@@ -112,9 +116,10 @@ class CloudPaymentsPaymentMixin:
             return None
 
         logger.info(
-            'Создан CloudPayments платёж: invoice=%s, amount=%s₽, user=%s',
+            'Создан CloudPayments платёж: invoice=%s, amount=%s %s, user=%s',
             invoice_id,
             amount_kopeks / 100,
+            currency,
             user_id,
         )
 
@@ -185,6 +190,7 @@ class CloudPaymentsPaymentMixin:
                 user_id=user.id,
                 invoice_id=invoice_id,
                 amount_kopeks=amount_kopeks,
+                currency=str(webhook_data.get('currency') or settings.CLOUDPAYMENTS_CURRENCY).upper(),
                 description=settings.CLOUDPAYMENTS_DESCRIPTION,
                 test_mode=test_mode,
             )
@@ -245,9 +251,10 @@ class CloudPaymentsPaymentMixin:
 
         user_id_display = user.telegram_id or user.email or f'#{user.id}'
         logger.info(
-            'CloudPayments платёж успешно обработан: invoice=%s, amount=%s₽, user=%s',
+            'CloudPayments платёж успешно обработан: invoice=%s, amount=%s %s, user=%s',
             invoice_id,
             amount_kopeks / 100,
+            payment.currency or settings.CLOUDPAYMENTS_CURRENCY,
             user_id_display,
         )
 
@@ -257,6 +264,7 @@ class CloudPaymentsPaymentMixin:
                 user=user,
                 amount_kopeks=amount_kopeks,
                 transaction=transaction,
+                currency=payment.currency or settings.CLOUDPAYMENTS_CURRENCY,
             )
         except Exception as error:
             logger.exception('Ошибка отправки уведомления CloudPayments: %s', error)
@@ -348,6 +356,7 @@ class CloudPaymentsPaymentMixin:
         user: Any,
         amount_kopeks: int,
         transaction: Any,
+        currency: str,
     ) -> None:
         """Send success notification to user via Telegram."""
         from aiogram import Bot
@@ -372,19 +381,16 @@ class CloudPaymentsPaymentMixin:
 
         referrer_info = format_referrer_info(user)
 
-        amount_rub = amount_kopeks / 100
-        new_balance = user.balance_kopeks / 100
-
         message = texts.t(
             'PAYMENT_SUCCESS_CLOUDPAYMENTS',
             '✅ <b>Оплата получена!</b>\n\n'
-            '💰 Сумма: {amount}₽\n'
+            '💰 Сумма: {amount}\n'
             '💳 Способ: CloudPayments\n'
-            '💵 Баланс: {balance}₽\n\n'
+            '💵 Баланс: {balance}\n\n'
             'Спасибо за пополнение!',
         ).format(
-            amount=f'{amount_rub:.2f}',
-            balance=f'{new_balance:.2f}',
+            amount=settings.format_price(amount_kopeks, round_kopeks=False, currency=currency),
+            balance=settings.format_price(user.balance_kopeks, round_kopeks=False),
         )
 
         if referrer_info:

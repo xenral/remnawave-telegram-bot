@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database.models import PaymentMethod, TransactionType
+from app.services.payment_method_config_service import get_effective_method_currency
 from app.services.pal24_service import Pal24APIError
 from app.services.subscription_auto_purchase_service import (
     auto_activate_subscription_after_topup,
@@ -67,6 +68,7 @@ class Pal24PaymentMixin:
 
         normalized_payment_method = self._normalize_payment_method(payment_method)
         api_payment_method = self._map_api_payment_method(normalized_payment_method)
+        currency = await get_effective_method_currency(db, 'pal24')
 
         payment_module = import_module('app.services.payment_service')
 
@@ -76,6 +78,7 @@ class Pal24PaymentMixin:
                 user_id=user_id,
                 order_id=order_id,
                 description=description,
+                currency_in=currency,
                 ttl_seconds=ttl_seconds,
                 custom_payload=custom_payload,
                 payer_email=payer_email,
@@ -161,7 +164,7 @@ class Pal24PaymentMixin:
             description=description,
             status=response.get('status', 'NEW'),
             type_=response.get('type', 'normal'),
-            currency=response.get('currency', 'RUB'),
+            currency=response.get('currency') or currency,
             link_url=transfer_url or card_url,
             link_page_url=link_page_url or primary_link,
             order_id=order_id,
@@ -170,10 +173,11 @@ class Pal24PaymentMixin:
         )
 
         logger.info(
-            'Создан Pal24 счет %s для пользователя %s (%s₽)',
+            'Создан Pal24 счет %s для пользователя %s (%s %s)',
             bill_id,
             user_id,
             amount_kopeks / 100,
+            currency,
         )
 
         payment_status = getattr(payment, 'status', response.get('status', 'NEW'))

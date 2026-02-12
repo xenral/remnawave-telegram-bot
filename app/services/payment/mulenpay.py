@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database.models import PaymentMethod, TransactionType
+from app.services.payment_method_config_service import get_effective_method_currency
 from app.services.subscription_auto_purchase_service import (
     auto_activate_subscription_after_topup,
     auto_purchase_saved_cart_after_topup,
@@ -58,6 +59,7 @@ class MulenPayPaymentMixin:
         try:
             payment_uuid = f'mulen_{user_id}_{uuid.uuid4().hex}'
             amount_rubles = amount_kopeks / 100
+            currency = await get_effective_method_currency(db, 'mulenpay')
 
             items = [
                 {
@@ -100,16 +102,17 @@ class MulenPayPaymentMixin:
                 description=description,
                 payment_url=payment_url,
                 mulen_payment_id=mulen_payment_id,
-                currency='RUB',
+                currency=currency,
                 status='created',
                 metadata=metadata,
             )
 
             logger.info(
-                'Создан %s платеж %s на %s₽ для пользователя %s',
+                'Создан %s платеж %s на %s %s для пользователя %s',
                 display_name,
                 mulen_payment_id,
                 amount_rubles,
+                currency,
                 user_id,
             )
 
