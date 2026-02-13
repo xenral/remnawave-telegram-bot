@@ -19,7 +19,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, backref, mapped_column, relationship
 from sqlalchemy.sql import func
 
 
@@ -1137,6 +1137,8 @@ class Subscription(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
+    last_webhook_update_at = Column(DateTime, nullable=True)
+
     remnawave_short_uuid = Column(String(255), nullable=True)
 
     # Тариф (для режима продаж "Тарифы")
@@ -1151,23 +1153,35 @@ class Subscription(Base):
     user = relationship('User', back_populates='subscription')
     tariff = relationship('Tariff', back_populates='subscriptions')
     discount_offers = relationship('DiscountOffer', back_populates='subscription')
-    temporary_accesses = relationship('SubscriptionTemporaryAccess', back_populates='subscription')
-    traffic_purchases = relationship('TrafficPurchase', back_populates='subscription', cascade='all, delete-orphan')
+    temporary_accesses = relationship(
+        'SubscriptionTemporaryAccess', back_populates='subscription', passive_deletes=True
+    )
+    traffic_purchases = relationship(
+        'TrafficPurchase', back_populates='subscription', passive_deletes=True, cascade='all, delete-orphan'
+    )
 
     @property
     def is_active(self) -> bool:
         current_time = datetime.utcnow()
-        return self.status == SubscriptionStatus.ACTIVE.value and self.end_date > current_time
+        return (
+            self.status == SubscriptionStatus.ACTIVE.value
+            and self.end_date is not None
+            and self.end_date > current_time
+        )
 
     @property
     def is_expired(self) -> bool:
         """Проверяет, истёк ли срок подписки"""
-        return self.end_date <= datetime.utcnow()
+        return self.end_date is not None and self.end_date <= datetime.utcnow()
 
     @property
     def should_be_expired(self) -> bool:
         current_time = datetime.utcnow()
-        return self.status == SubscriptionStatus.ACTIVE.value and self.end_date <= current_time
+        return (
+            self.status == SubscriptionStatus.ACTIVE.value
+            and self.end_date is not None
+            and self.end_date <= current_time
+        )
 
     @property
     def actual_status(self) -> str:
@@ -1180,12 +1194,12 @@ class Subscription(Base):
             return 'disabled'
 
         if self.status == SubscriptionStatus.ACTIVE.value:
-            if self.end_date <= current_time:
+            if self.end_date is None or self.end_date <= current_time:
                 return 'expired'
             return 'active'
 
         if self.status == SubscriptionStatus.TRIAL.value:
-            if self.end_date <= current_time:
+            if self.end_date is None or self.end_date <= current_time:
                 return 'expired'
             return 'trial'
 
@@ -1228,6 +1242,8 @@ class Subscription(Base):
 
     @property
     def days_left(self) -> int:
+        if self.end_date is None:
+            return 0
         current_time = datetime.utcnow()
         if self.end_date <= current_time:
             return 0
@@ -1253,11 +1269,10 @@ class Subscription(Base):
 
     @property
     def traffic_used_percent(self) -> float:
-        if self.traffic_limit_gb == 0:
+        if not self.traffic_limit_gb:
             return 0.0
-        if self.traffic_limit_gb > 0:
-            return min((self.traffic_used_gb / self.traffic_limit_gb) * 100, 100.0)
-        return 0.0
+        used = self.traffic_used_gb or 0.0
+        return min((used / self.traffic_limit_gb) * 100, 100.0)
 
     def extend_subscription(self, days: int):
         if self.end_date > datetime.utcnow():
@@ -1768,7 +1783,7 @@ class SentNotification(Base):
     created_at = Column(DateTime, default=func.now())
 
     user = relationship('User', backref='sent_notifications')
-    subscription = relationship('Subscription', backref='sent_notifications')
+    subscription = relationship('Subscription', backref=backref('sent_notifications', passive_deletes=True))
 
 
 class SubscriptionEvent(Base):
@@ -2058,7 +2073,7 @@ class SubscriptionServer(Base):
 
     paid_price_kopeks = Column(Integer, default=0)
 
-    subscription = relationship('Subscription', backref='subscription_servers')
+    subscription = relationship('Subscription', backref=backref('subscription_servers', passive_deletes=True))
     server_squad = relationship('ServerSquad', backref='subscription_servers')
 
 
@@ -2398,7 +2413,7 @@ class ButtonClickLog(Base):
     clicked_at = Column(DateTime, default=func.now(), index=True)
 
     # Дополнительная информация
-    button_type = Column(String(20), nullable=True)  # builtin, callback, url, mini_app
+    button_type = Column(String(20), nullable=True, index=True)  # builtin, callback, url, mini_app
     button_text = Column(String(255), nullable=True)  # Текст кнопки на момент клика
 
     __table_args__ = (

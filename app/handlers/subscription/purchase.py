@@ -1570,11 +1570,6 @@ async def handle_extend_subscription(callback: types.CallbackQuery, db_user: Use
                     else:
                         device_limit = forced_limit
 
-            # Модем добавляет +1 к device_limit, но оплачивается отдельно,
-            # поэтому не должен учитываться как платное устройство при продлении
-            if getattr(subscription, 'modem_enabled', False):
-                device_limit = max(1, device_limit - 1)
-
             additional_devices = max(0, (device_limit or 0) - settings.DEFAULT_DEVICE_LIMIT)
             devices_price_per_month = additional_devices * settings.PRICE_PER_DEVICE
             devices_total_base = devices_price_per_month * months_in_period
@@ -1782,11 +1777,6 @@ async def confirm_extend_subscription(callback: types.CallbackQuery, db_user: Us
                     device_limit = settings.DEFAULT_DEVICE_LIMIT
                 else:
                     device_limit = forced_limit
-
-        # Модем добавляет +1 к device_limit, но оплачивается отдельно,
-        # поэтому не должен учитываться как платное устройство при продлении
-        if getattr(subscription, 'modem_enabled', False):
-            device_limit = max(1, device_limit - 1)
 
         additional_devices = max(0, (device_limit or 0) - settings.DEFAULT_DEVICE_LIMIT)
         devices_price_per_month = additional_devices * settings.PRICE_PER_DEVICE
@@ -2383,26 +2373,31 @@ async def confirm_purchase(callback: types.CallbackQuery, state: FSMContext, db_
         promo_offer_discount_percent = 0
 
     # Валидация: проверяем что cached_total_price соответствует ожидаемой финальной цене
-    # Допускаем небольшое расхождение из-за округления (до 5%)
-    price_difference = abs(final_price - cached_total_price)
-    max_allowed_difference = max(500, int(final_price * 0.05))  # 5% или минимум 5₽
-
-    if price_difference > max_allowed_difference:
-        # Слишком большое расхождение - блокируем покупку
-        logger.error(
-            f'Критическое расхождение цены для пользователя {db_user.telegram_id}: '
-            f'кэш={cached_total_price / 100}₽, пересчет={final_price / 100}₽, '
-            f'разница={price_difference / 100}₽ (>{max_allowed_difference / 100}₽). '
-            f'Покупка заблокирована.'
-        )
-        await callback.answer(get_texts(db_user.language).t('PURCHASE_PRICE_CHANGED_ALERT'), show_alert=True)
-        return
-    if price_difference > 100:  # допуск 1₽
-        # Небольшое расхождение - логируем предупреждение но продолжаем
-        logger.warning(
-            f'Расхождение цены для пользователя {db_user.telegram_id}: '
+    # Блокируем только если цена ВЫРОСЛА (пользователь переплатит).
+    # Если цена снизилась (промо-скидка активировалась) — разрешаем покупку по новой цене.
+    price_difference = final_price - cached_total_price
+    if price_difference > 0:
+        max_allowed_increase = max(500, int(final_price * 0.05))  # 5% или минимум 5₽
+        if price_difference > max_allowed_increase:
+            logger.error(
+                f'Цена выросла для пользователя {db_user.telegram_id}: '
+                f'кэш={cached_total_price / 100}₽, пересчет={final_price / 100}₽, '
+                f'разница=+{price_difference / 100}₽ (>{max_allowed_increase / 100}₽). '
+                f'Покупка заблокирована.'
+            )
+            await callback.answer(get_texts(db_user.language).t('PURCHASE_PRICE_CHANGED_ALERT'), show_alert=True)
+            return
+        if price_difference > 100:  # допуск 1₽
+            logger.warning(
+                f'Небольшой рост цены для пользователя {db_user.telegram_id}: '
+                f'кэш={cached_total_price / 100}₽, пересчет={final_price / 100}₽. '
+                f'Используем пересчитанную цену.'
+            )
+    elif price_difference < -100:  # цена снизилась более чем на 1₽
+        logger.info(
+            f'Цена снизилась для пользователя {db_user.telegram_id}: '
             f'кэш={cached_total_price / 100}₽, пересчет={final_price / 100}₽. '
-            f'Используем пересчитанную цену.'
+            f'Применяем новую цену.'
         )
 
     # Используем пересчитанную цену
@@ -3126,6 +3121,9 @@ async def handle_trial_pay_with_balance(callback: types.CallbackQuery, db_user: 
 
     await db.refresh(db_user)
 
+    # Сохраняем ID до начала транзакции (на случай detached session)
+    user_id_snapshot = db_user.id
+
     # Создаем триальную подписку
     subscription: Subscription | None = None
     remnawave_user = None
@@ -3269,22 +3267,33 @@ async def handle_trial_pay_with_balance(callback: types.CallbackQuery, db_user: 
     except Exception as error:
         logger.error(
             'Unexpected error during paid trial activation for user %s: %s',
-            db_user.id,
+            user_id_snapshot,
             error,
         )
-        # Пытаемся откатить и вернуть деньги
-        if subscription:
-            await rollback_trial_subscription_activation(db, subscription)
-        from app.database.crud.user import add_user_balance
+        # Откатываем сессию чтобы очистить PendingRollbackError
+        try:
+            await db.rollback()
+        except Exception:
+            pass
 
-        await add_user_balance(
-            db,
-            db_user,
-            trial_price_kopeks,
-            texts.t('TRIAL_REFUND_DESCRIPTION'),
-            transaction_type=TransactionType.REFUND,
-        )
-        await db.refresh(db_user)
+        # Пытаемся вернуть деньги
+        try:
+            from app.database.crud.user import add_user_balance
+
+            await add_user_balance(
+                db,
+                db_user,
+                trial_price_kopeks,
+                texts.t('TRIAL_REFUND_DESCRIPTION'),
+                transaction_type=TransactionType.REFUND,
+            )
+            await db.refresh(db_user)
+        except Exception as refund_error:
+            logger.error(
+                'Failed to refund trial payment for user %s: %s',
+                user_id_snapshot,
+                refund_error,
+            )
 
         await callback.message.edit_text(
             texts.t('TRIAL_ACTIVATION_ERROR'),
@@ -3951,11 +3960,6 @@ def register_handlers(dp: Dispatcher):
 
     dp.callback_query.register(show_device_connection_help, F.data == 'device_connection_help')
 
-    # Регистрируем обработчики модема
-    from .modem import register_modem_handlers
-
-    register_modem_handlers(dp)
-
     # Регистрируем обработчики покупки по тарифам
     from .tariff_purchase import register_tariff_purchase_handlers
 
@@ -3990,10 +3994,6 @@ async def handle_simple_subscription_purchase(
     if current_subscription and current_subscription.is_active:
         # При продлении используем текущие устройства подписки, а не дефолтные
         extend_device_limit = current_subscription.device_limit or simple_device_limit
-        # Модем добавляет +1 к device_limit, но оплачивается отдельно
-        modem_enabled = getattr(current_subscription, 'modem_enabled', False)
-        if modem_enabled:
-            extend_device_limit = max(1, extend_device_limit - 1)
         # Используем максимум из текущего и дефолтного
         extend_device_limit = max(simple_device_limit, extend_device_limit)
 
@@ -4007,7 +4007,6 @@ async def handle_simple_subscription_purchase(
             device_limit=extend_device_limit,
             traffic_limit_gb=settings.SIMPLE_SUBSCRIPTION_TRAFFIC_GB,
             squad_uuid=settings.SIMPLE_SUBSCRIPTION_SQUAD_UUID,
-            modem_enabled=modem_enabled,
         )
         return
 
@@ -4150,7 +4149,6 @@ async def _extend_existing_subscription(
     device_limit: int,
     traffic_limit_gb: int,
     squad_uuid: str,
-    modem_enabled: bool = False,
 ):
     """Продлевает существующую подписку."""
     from datetime import datetime, timedelta
@@ -4168,7 +4166,6 @@ async def _extend_existing_subscription(
         'device_limit': device_limit,
         'traffic_limit_gb': traffic_limit_gb,
         'squad_uuid': squad_uuid,
-        'modem_enabled': modem_enabled,
     }
     price_kopeks, price_breakdown = await _calculate_simple_subscription_price(
         db,
@@ -4177,17 +4174,15 @@ async def _extend_existing_subscription(
         resolved_squad_uuid=squad_uuid,
     )
     logger.warning(
-        'SIMPLE_SUBSCRIPTION_EXTEND_PRICE | user=%s | total=%s | base=%s | traffic=%s | devices=%s | modem=%s | servers=%s | discount=%s | device_limit=%s | modem_enabled=%s',
+        'SIMPLE_SUBSCRIPTION_EXTEND_PRICE | user=%s | total=%s | base=%s | traffic=%s | devices=%s | servers=%s | discount=%s | device_limit=%s',
         db_user.id,
         price_kopeks,
         price_breakdown.get('base_price', 0),
         price_breakdown.get('traffic_price', 0),
         price_breakdown.get('devices_price', 0),
-        price_breakdown.get('modem_price', 0),
         price_breakdown.get('servers_price', 0),
         price_breakdown.get('total_discount', 0),
         device_limit,
-        modem_enabled,
     )
 
     # Проверяем баланс пользователя

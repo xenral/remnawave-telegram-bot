@@ -6,7 +6,7 @@ from typing import Any
 import redis.asyncio as aioredis
 from aiogram import BaseMiddleware, Bot, types
 from aiogram.enums import ChatMemberStatus
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, TelegramObject, Update
 
@@ -109,6 +109,15 @@ class ChannelCheckerMiddleware(BaseMiddleware):
             logger.debug('❌ telegram_id не найден, пропускаем')
             return await handler(event, data)
 
+        # Skip channel check for lightweight UI callbacks (close/delete notifications)
+        if isinstance(event, CallbackQuery) and event.data in (
+            'webhook:close',
+            'ban_notify:delete',
+            'noop',
+            'current_page',
+        ):
+            return await handler(event, data)
+
         # Админам разрешаем пропускать проверку подписки
         if settings.is_admin(telegram_id):
             logger.debug(
@@ -188,6 +197,9 @@ class ChannelCheckerMiddleware(BaseMiddleware):
                 logger.error(f'❌ Ошибка запроса к каналу {channel_id}: {e}')
             await self._capture_start_payload(state, event, bot)
             return await self._deny_message(event, bot, channel_link, channel_id)
+        except TelegramNetworkError as e:
+            logger.warning(f'⚠️ Таймаут при проверке подписки на канал: {e}')
+            return await handler(event, data)
         except Exception as e:
             logger.error(f'❌ Неожиданная ошибка при проверке подписки: {e}')
             return await handler(event, data)

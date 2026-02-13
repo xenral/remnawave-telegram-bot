@@ -2444,10 +2444,17 @@ async def show_inactive_users(callback: types.CallbackQuery, db_user: User, db: 
         await callback.answer()
         return
 
+    with_active_sub = sum(1 for u in inactive_users if u.subscription and u.subscription.is_active)
+    will_delete = len(inactive_users) - with_active_sub
+
     text = texts.t('ADMIN_INACTIVE_USERS_TITLE') + '\n'
     text += texts.t('ADMIN_INACTIVE_USERS_SUMMARY').format(
         months=settings.INACTIVE_USER_DELETE_MONTHS, count=len(inactive_users)
-    ) + '\n\n'
+    ) + '\n'
+    if with_active_sub > 0:
+        text += f'🛡️ С активной подпиской (не будут удалены): {with_active_sub}\n'
+        text += f'🗑️ Будет удалено: {will_delete}\n'
+    text += '\n'
 
     for user in inactive_users[:10]:
         if user.telegram_id:
@@ -2456,7 +2463,9 @@ async def show_inactive_users(callback: types.CallbackQuery, db_user: User, db: 
         else:
             user_link = f'<b>{user.full_name}</b>'
             user_id_display = user.email or f'#{user.id}'
-        text += f'👤 {user_link}\n'
+        has_active = user.subscription and user.subscription.is_active
+        sub_badge = ' 🛡️' if has_active else ''
+        text += f'👤 {user_link}{sub_badge}\n'
         text += f'🆔 <code>{user_id_display}</code>\n'
         last_activity_display = (
             format_time_ago(user.last_activity, db_user.language) if user.last_activity else texts.t('ADMIN_INACTIVE_USERS_NEVER')
@@ -4232,11 +4241,15 @@ async def _calculate_subscription_period_price(
 @error_handler
 async def cleanup_inactive_users(callback: types.CallbackQuery, db_user: User, db: AsyncSession):
     user_service = UserService()
-    deleted_count = await user_service.cleanup_inactive_users(db)
+    deleted_count, skipped_count = await user_service.cleanup_inactive_users(db)
     texts = get_texts(db_user.language)
 
+    text = texts.t('ADMIN_USERS_CLEANUP_DONE').format(count=deleted_count)
+    if skipped_count > 0:
+        text += f'\n⏭️ Пропущено (активная подписка): {skipped_count}'
+
     await callback.message.edit_text(
-        texts.t('ADMIN_USERS_CLEANUP_DONE').format(count=deleted_count),
+        text,
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[[types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_users')]]
         ),
@@ -5661,8 +5674,6 @@ def register_handlers(dp: Dispatcher):
     dp.callback_query.register(start_devices_edit, F.data.startswith('admin_user_devices_') & ~F.data.contains('set'))
 
     dp.callback_query.register(set_user_devices_button, F.data.startswith('admin_user_devices_set_'))
-
-    dp.callback_query.register(toggle_user_modem, F.data.startswith('admin_user_modem_'))
 
     # Смена тарифа пользователя
     dp.callback_query.register(show_admin_tariff_change, F.data.startswith('admin_sub_change_tariff_'))

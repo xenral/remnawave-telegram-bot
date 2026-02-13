@@ -22,6 +22,7 @@ from app.database.crud.user import (
 from app.database.crud.user_message import get_random_active_message
 from app.database.models import PinnedMessage, SubscriptionStatus, UserStatus
 from app.keyboards.inline import (
+    get_back_keyboard,
     get_language_selection_keyboard,
     get_main_menu_keyboard_async,
     get_post_registration_keyboard,
@@ -465,9 +466,24 @@ async def cmd_start(message: types.Message, state: FSMContext, db: AsyncSession,
         logger.info(f'🔄 Удаленный пользователь {user.telegram_id} начинает повторную регистрацию')
 
         try:
-            from sqlalchemy import delete
+            from sqlalchemy import delete, update as sa_update
 
-            from app.database.models import PromoCodeUse, ReferralEarning, SubscriptionServer, Transaction
+            from app.database.models import (
+                CloudPaymentsPayment,
+                CryptoBotPayment,
+                FreekassaPayment,
+                HeleketPayment,
+                KassaAiPayment,
+                MulenPayPayment,
+                Pal24Payment,
+                PlategaPayment,
+                PromoCodeUse,
+                ReferralEarning,
+                SubscriptionServer,
+                Transaction,
+                WataPayment,
+                YooKassaPayment,
+            )
 
             if user.subscription:
                 await decrement_subscription_server_counts(db, user.subscription)
@@ -482,8 +498,36 @@ async def cmd_start(message: types.Message, state: FSMContext, db: AsyncSession,
 
             await db.execute(delete(PromoCodeUse).where(PromoCodeUse.user_id == user.id))
 
+            await db.execute(
+                sa_update(ReferralEarning)
+                .where(ReferralEarning.user_id == user.id)
+                .values(referral_transaction_id=None)
+            )
+            await db.execute(
+                sa_update(ReferralEarning)
+                .where(ReferralEarning.referral_id == user.id)
+                .values(referral_transaction_id=None)
+            )
             await db.execute(delete(ReferralEarning).where(ReferralEarning.user_id == user.id))
             await db.execute(delete(ReferralEarning).where(ReferralEarning.referral_id == user.id))
+
+            # Обнуляем transaction_id во всех таблицах платежей перед удалением транзакций
+            payment_models = [
+                YooKassaPayment,
+                CryptoBotPayment,
+                HeleketPayment,
+                MulenPayPayment,
+                Pal24Payment,
+                WataPayment,
+                PlategaPayment,
+                CloudPaymentsPayment,
+                FreekassaPayment,
+                KassaAiPayment,
+            ]
+            for payment_model in payment_models:
+                await db.execute(
+                    sa_update(payment_model).where(payment_model.user_id == user.id).values(transaction_id=None)
+                )
 
             await db.execute(delete(Transaction).where(Transaction.user_id == user.id))
 
@@ -845,14 +889,11 @@ async def process_privacy_policy_accept(callback: types.CallbackQuery, state: FS
                 await callback.message.edit_text(
                     privacy_policy_required_text, reply_markup=get_privacy_policy_keyboard(language)
                 )
+            except TelegramBadRequest as e:
+                if 'message is not modified' not in str(e):
+                    logger.warning(f'Ошибка при показе сообщения об отклонении политики: {e}')
             except Exception as e:
-                logger.error(f'Ошибка при показе сообщения об отклонении политики конфиденциальности: {e}')
-                try:
-                    await callback.message.edit_text(
-                        privacy_policy_required_text, reply_markup=get_privacy_policy_keyboard(language)
-                    )
-                except:
-                    pass
+                logger.warning(f'Ошибка при показе сообщения об отклонении политики: {e}')
 
         logger.info(f'✅ Политика конфиденциальности обработана для пользователя {callback.from_user.id}')
 
@@ -1130,6 +1171,20 @@ async def complete_registration_from_callback(callback: types.CallbackQuery, sta
             )
             logger.info(f'✅ Приветственное сообщение отправлено пользователю {user.telegram_id}')
             await _send_pinned_message(callback.bot, db, user)
+        except TelegramBadRequest as e:
+            if 'parse entities' in str(e).lower() or "can't parse" in str(e).lower():
+                logger.warning(f'HTML parse error в приветственном сообщении, повтор без parse_mode: {e}')
+                try:
+                    await callback.message.answer(
+                        offer_text,
+                        reply_markup=get_post_registration_keyboard(user.language),
+                        parse_mode=None,
+                    )
+                    await _send_pinned_message(callback.bot, db, user)
+                except Exception as fallback_err:
+                    logger.error(f'Ошибка при повторной отправке приветственного сообщения: {fallback_err}')
+            else:
+                logger.error(f'Ошибка при отправке приветственного сообщения: {e}')
         except Exception as e:
             logger.error(f'Ошибка при отправке приветственного сообщения: {e}')
     else:
@@ -1387,12 +1442,33 @@ async def complete_registration(message: types.Message, state: FSMContext, db: A
 
     if offer_text and not skip_welcome_offer:
         try:
+            # Если у пользователя уже есть подписка (например, от промокода), не предлагаем триал
+            user_has_subscription = user.subscription and getattr(user.subscription, 'is_active', False)
+            if user_has_subscription:
+                keyboard = get_back_keyboard(user.language, callback_data='back_to_menu')
+            else:
+                keyboard = get_post_registration_keyboard(user.language)
+
             await message.answer(
                 offer_text,
-                reply_markup=get_post_registration_keyboard(user.language),
+                reply_markup=keyboard,
             )
             logger.info(f'✅ Приветственное сообщение отправлено пользователю {user.telegram_id}')
             await _send_pinned_message(message.bot, db, user)
+        except TelegramBadRequest as e:
+            if 'parse entities' in str(e).lower() or "can't parse" in str(e).lower():
+                logger.warning(f'HTML parse error в приветственном сообщении, повтор без parse_mode: {e}')
+                try:
+                    await message.answer(
+                        offer_text,
+                        reply_markup=keyboard,
+                        parse_mode=None,
+                    )
+                    await _send_pinned_message(message.bot, db, user)
+                except Exception as fallback_err:
+                    logger.error(f'Ошибка при повторной отправке приветственного сообщения: {fallback_err}')
+            else:
+                logger.error(f'Ошибка при отправке приветственного сообщения: {e}')
         except Exception as e:
             logger.error(f'Ошибка при отправке приветственного сообщения: {e}')
     else:
@@ -1594,6 +1670,8 @@ async def get_main_menu_text_simple(user_name, texts, db: AsyncSession):
 async def required_sub_channel_check(
     query: types.CallbackQuery, bot: Bot, state: FSMContext, db: AsyncSession, db_user=None
 ):
+    from app.utils.message_patch import _cache_logo_file_id, get_logo_media
+
     language = DEFAULT_LANGUAGE
     texts = get_texts(language)
 
@@ -1739,10 +1817,6 @@ async def required_sub_channel_check(
 
             menu_text = await get_main_menu_text(user, texts, db)
 
-            from aiogram.types import FSInputFile
-
-            from app.utils.message_patch import LOGO_PATH
-
             is_admin = settings.is_admin(user.telegram_id)
             is_moderator = (not is_admin) and SupportSettingsService.is_moderator(user.telegram_id)
 
@@ -1768,13 +1842,14 @@ async def required_sub_channel_check(
             )
 
             if settings.ENABLE_LOGO_MODE:
-                await bot.send_photo(
+                _result = await bot.send_photo(
                     chat_id=query.from_user.id,
-                    photo=FSInputFile(LOGO_PATH),
+                    photo=get_logo_media(),
                     caption=menu_text,
                     reply_markup=keyboard,
                     parse_mode='HTML',
                 )
+                _cache_logo_file_id(_result)
             else:
                 await bot.send_message(
                     chat_id=query.from_user.id,
@@ -1834,10 +1909,6 @@ async def required_sub_channel_check(
 
                     menu_text = await get_main_menu_text(user, texts, db)
 
-                    from aiogram.types import FSInputFile
-
-                    from app.utils.message_patch import LOGO_PATH
-
                     is_admin = settings.is_admin(user.telegram_id)
                     is_moderator = (not is_admin) and SupportSettingsService.is_moderator(user.telegram_id)
 
@@ -1863,13 +1934,14 @@ async def required_sub_channel_check(
                     )
 
                     if settings.ENABLE_LOGO_MODE:
-                        await bot.send_photo(
+                        _result = await bot.send_photo(
                             chat_id=query.from_user.id,
-                            photo=FSInputFile(LOGO_PATH),
+                            photo=get_logo_media(),
                             caption=menu_text,
                             reply_markup=keyboard,
                             parse_mode='HTML',
                         )
+                        _cache_logo_file_id(_result)
                     else:
                         await bot.send_message(
                             chat_id=query.from_user.id,
@@ -1888,19 +1960,16 @@ async def required_sub_channel_check(
                     )
                     await state.set_state(RegistrationStates.waiting_for_referral_code)
             else:
-                from aiogram.types import FSInputFile
-
-                from app.utils.message_patch import LOGO_PATH
-
                 rules_text = await get_rules(language)
 
                 if settings.ENABLE_LOGO_MODE:
-                    await bot.send_photo(
+                    _result = await bot.send_photo(
                         chat_id=query.from_user.id,
-                        photo=FSInputFile(LOGO_PATH),
+                        photo=get_logo_media(),
                         caption=rules_text,
                         reply_markup=get_rules_keyboard(language),
                     )
+                    _cache_logo_file_id(_result)
                 else:
                     await bot.send_message(
                         chat_id=query.from_user.id,
@@ -1909,9 +1978,22 @@ async def required_sub_channel_check(
                     )
                 await state.set_state(RegistrationStates.waiting_for_rules_accept)
 
+    except TelegramBadRequest as e:
+        error_msg = str(e).lower()
+        if 'query is too old' in error_msg or 'query id is invalid' in error_msg:
+            logger.debug('Устаревший callback в required_sub_channel_check, игнорируем')
+        else:
+            logger.error(f'Ошибка Telegram API в required_sub_channel_check: {e}')
+            try:
+                await query.answer(f'{texts.ERROR}!', show_alert=True)
+            except Exception:
+                pass
     except Exception as e:
         logger.error(f'Ошибка в required_sub_channel_check: {e}')
-        await query.answer(f'{texts.ERROR}!', show_alert=True)
+        try:
+            await query.answer(f'{texts.ERROR}!', show_alert=True)
+        except Exception:
+            pass
 
 
 def register_handlers(dp: Dispatcher):

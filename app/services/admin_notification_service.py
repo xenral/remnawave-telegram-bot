@@ -1216,6 +1216,21 @@ class AdminNotificationService:
     def _is_enabled(self) -> bool:
         return self.enabled and bool(self.chat_id)
 
+    @property
+    def is_enabled(self) -> bool:
+        """Public check for whether admin notifications are configured and active."""
+        return self._is_enabled()
+
+    async def send_webhook_notification(self, text: str) -> bool:
+        """Send a generic webhook/infrastructure notification to admin chat.
+
+        Used by RemnaWaveWebhookService for node, service, and CRM events.
+        The caller is responsible for HTML-escaping all untrusted data in `text`.
+        """
+        if not self._is_enabled():
+            return False
+        return await self._send_message(text)
+
     def _get_payment_method_display(self, payment_method: str | None) -> str:
         if not payment_method:
             return '💰 С баланса'
@@ -1519,7 +1534,6 @@ class AdminNotificationService:
                 'traffic': '📊 ДОКУПКА ТРАФИКА',
                 'devices': '📱 ДОКУПКА УСТРОЙСТВ',
                 'servers': '🌐 СМЕНА СЕРВЕРОВ',
-                'modem': '📡 МОДЕМ',
             }
             title = update_titles.get(update_type, '⚙️ ИЗМЕНЕНИЕ ПОДПИСКИ')
 
@@ -1555,10 +1569,6 @@ class AdminNotificationService:
                 message_lines.append(f'🔄 {old_formatted} → {new_formatted}')
             elif update_type == 'devices':
                 message_lines.append(f'🔄 {old_value} → {new_value} устр.')
-            elif update_type == 'modem':
-                old_state = '✅ Вкл' if old_value else '❌ Выкл'
-                new_state = '✅ Вкл' if new_value else '❌ Выкл'
-                message_lines.append(f'🔄 {old_state} → {new_state}')
             else:
                 message_lines.append(f'🔄 {old_value} → {new_value}')
 
@@ -1623,8 +1633,6 @@ class AdminNotificationService:
             if isinstance(value, list):
                 return f'{len(value)} серверов'
             return str(value)
-        if update_type == 'modem':
-            return '✅ Включён' if value else '❌ Выключен'
         return str(value)
 
     async def send_bulk_ban_notification(

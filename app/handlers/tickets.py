@@ -8,7 +8,6 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InaccessibleMessage
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.database.crud.ticket import TicketCRUD, TicketMessageCRUD
 from app.database.crud.user import get_user_by_id
 from app.database.models import Ticket, TicketStatus, User
@@ -93,22 +92,15 @@ async def handle_ticket_title_input(message: types.Message, state: FSMContext, d
     if len(title) < 5:
         texts = get_texts(db_user.language)
         if prompt_chat_id and prompt_message_id:
-            text_val = texts.t('TICKET_TITLE_TOO_SHORT')
-            if settings.ENABLE_LOGO_MODE:
-                await message.bot.edit_message_caption(
-                    chat_id=prompt_chat_id,
-                    message_id=prompt_message_id,
-                    caption=text_val,
-                    reply_markup=get_ticket_cancel_keyboard(db_user.language),
-                    parse_mode=None,
-                )
-            else:
-                await message.bot.edit_message_text(
-                    chat_id=prompt_chat_id,
-                    message_id=prompt_message_id,
-                    text=text_val,
-                    reply_markup=get_ticket_cancel_keyboard(db_user.language),
-                )
+            text_val = texts.t(
+                'TICKET_TITLE_TOO_SHORT', 'Заголовок должен содержать минимум 5 символов. Попробуйте еще раз:'
+            )
+            await message.bot.edit_message_text(
+                chat_id=prompt_chat_id,
+                message_id=prompt_message_id,
+                text=text_val,
+                reply_markup=get_ticket_cancel_keyboard(db_user.language),
+            )
         else:
             await message.answer(
                 texts.t('TICKET_TITLE_TOO_SHORT')
@@ -118,22 +110,15 @@ async def handle_ticket_title_input(message: types.Message, state: FSMContext, d
     if len(title) > 255:
         texts = get_texts(db_user.language)
         if prompt_chat_id and prompt_message_id:
-            text_val = texts.t('TICKET_TITLE_TOO_LONG')
-            if settings.ENABLE_LOGO_MODE:
-                await message.bot.edit_message_caption(
-                    chat_id=prompt_chat_id,
-                    message_id=prompt_message_id,
-                    caption=text_val,
-                    reply_markup=get_ticket_cancel_keyboard(db_user.language),
-                    parse_mode=None,
-                )
-            else:
-                await message.bot.edit_message_text(
-                    chat_id=prompt_chat_id,
-                    message_id=prompt_message_id,
-                    text=text_val,
-                    reply_markup=get_ticket_cancel_keyboard(db_user.language),
-                )
+            text_val = texts.t(
+                'TICKET_TITLE_TOO_LONG', 'Заголовок слишком длинный. Максимум 255 символов. Попробуйте еще раз:'
+            )
+            await message.bot.edit_message_text(
+                chat_id=prompt_chat_id,
+                message_id=prompt_message_id,
+                text=text_val,
+                reply_markup=get_ticket_cancel_keyboard(db_user.language),
+            )
         else:
             await message.answer(
                 texts.t('TICKET_TITLE_TOO_LONG')
@@ -162,22 +147,13 @@ async def handle_ticket_title_input(message: types.Message, state: FSMContext, d
     texts = get_texts(db_user.language)
 
     if prompt_chat_id and prompt_message_id:
-        text_val = texts.t('TICKET_MESSAGE_INPUT')
-        if settings.ENABLE_LOGO_MODE:
-            await message.bot.edit_message_caption(
-                chat_id=prompt_chat_id,
-                message_id=prompt_message_id,
-                caption=text_val,
-                reply_markup=get_ticket_cancel_keyboard(db_user.language),
-                parse_mode=None,
-            )
-        else:
-            await message.bot.edit_message_text(
-                chat_id=prompt_chat_id,
-                message_id=prompt_message_id,
-                text=text_val,
-                reply_markup=get_ticket_cancel_keyboard(db_user.language),
-            )
+        text_val = texts.t('TICKET_MESSAGE_INPUT', 'Опишите проблему (до 500 символов) или отправьте фото с подписью:')
+        await message.bot.edit_message_text(
+            chat_id=prompt_chat_id,
+            message_id=prompt_message_id,
+            text=text_val,
+            reply_markup=get_ticket_cancel_keyboard(db_user.language),
+        )
     else:
         await message.answer(
             texts.t('TICKET_MESSAGE_INPUT'),
@@ -257,12 +233,7 @@ async def handle_ticket_message_input(message: types.Message, state: FSMContext,
             )
         )
         if prompt_chat_id and prompt_message_id:
-            if settings.ENABLE_LOGO_MODE:
-                await message.bot.edit_message_caption(
-                    chat_id=prompt_chat_id, message_id=prompt_message_id, caption=text_msg, parse_mode=None
-                )
-            else:
-                await message.bot.edit_message_text(chat_id=prompt_chat_id, message_id=prompt_message_id, text=text_msg)
+            await message.bot.edit_message_text(chat_id=prompt_chat_id, message_id=prompt_message_id, text=text_msg)
         else:
             await message.answer(text_msg)
         await state.clear()
@@ -278,21 +249,12 @@ async def handle_ticket_message_input(message: types.Message, state: FSMContext,
         prompt_message_id = data_prompt.get('prompt_message_id')
         err_text = texts.t('TICKET_MESSAGE_TOO_SHORT')
         if prompt_chat_id and prompt_message_id:
-            if settings.ENABLE_LOGO_MODE:
-                await message.bot.edit_message_caption(
-                    chat_id=prompt_chat_id,
-                    message_id=prompt_message_id,
-                    caption=err_text,
-                    reply_markup=get_ticket_cancel_keyboard(db_user.language),
-                    parse_mode=None,
-                )
-            else:
-                await message.bot.edit_message_text(
-                    chat_id=prompt_chat_id,
-                    message_id=prompt_message_id,
-                    text=err_text,
-                    reply_markup=get_ticket_cancel_keyboard(db_user.language),
-                )
+            await message.bot.edit_message_text(
+                chat_id=prompt_chat_id,
+                message_id=prompt_message_id,
+                text=err_text,
+                reply_markup=get_ticket_cancel_keyboard(db_user.language),
+            )
         else:
             await message.answer(err_text)
         return
@@ -349,22 +311,13 @@ async def handle_ticket_message_input(message: types.Message, state: FSMContext,
             ]
         )
         if prompt_chat_id and prompt_message_id:
-            if settings.ENABLE_LOGO_MODE:
-                await message.bot.edit_message_caption(
-                    chat_id=prompt_chat_id,
-                    message_id=prompt_message_id,
-                    caption=creation_text,
-                    reply_markup=keyboard,
-                    parse_mode='HTML',
-                )
-            else:
-                await message.bot.edit_message_text(
-                    chat_id=prompt_chat_id,
-                    message_id=prompt_message_id,
-                    text=creation_text,
-                    reply_markup=keyboard,
-                    parse_mode='HTML',
-                )
+            await message.bot.edit_message_text(
+                chat_id=prompt_chat_id,
+                message_id=prompt_message_id,
+                text=creation_text,
+                reply_markup=keyboard,
+                parse_mode='HTML',
+            )
         else:
             await message.answer(creation_text, reply_markup=keyboard, parse_mode='HTML')
 

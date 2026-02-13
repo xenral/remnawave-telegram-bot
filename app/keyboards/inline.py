@@ -47,8 +47,6 @@ async def get_main_menu_keyboard_async(
     Иначе делегирует в синхронную версию.
     """
     if settings.MENU_LAYOUT_ENABLED:
-        from datetime import datetime
-
         from app.services.menu_layout_service import MenuContext, MenuLayoutService
 
         # Получаем данные для плейсхолдеров
@@ -364,32 +362,101 @@ def get_language_selection_keyboard(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def _build_text_main_menu_keyboard(
+def _build_cabinet_main_menu_keyboard(
     language: str,
     texts,
     *,
     is_admin: bool,
     is_moderator: bool,
+    balance_kopeks: int = 0,
 ) -> InlineKeyboardMarkup:
-    profile_text = texts.t('MENU_PROFILE')
-    miniapp_url = settings.get_main_menu_miniapp_url()
+    """Build the main-menu keyboard for Cabinet mode.
 
-    if miniapp_url:
-        profile_button = InlineKeyboardButton(
-            text=profile_text,
-            web_app=types.WebAppInfo(url=miniapp_url),
-        )
+    Each button opens the corresponding section of the cabinet frontend
+    via ``MINIAPP_CUSTOM_URL`` + path (e.g. ``/subscription``, ``/balance``).
+    """
+    from app.utils.button_styles_cache import CALLBACK_TO_SECTION, get_cached_button_styles
+    from app.utils.miniapp_buttons import (
+        CALLBACK_TO_CABINET_STYLE,
+        _resolve_style,
+        build_cabinet_url,
+    )
+
+    global_style = _resolve_style((settings.CABINET_BUTTON_STYLE or '').strip())
+    cached_styles = get_cached_button_styles()
+
+    def _cabinet_button(
+        text: str,
+        path: str,
+        callback_fallback: str,
+        *,
+        style: str | None = None,
+        icon_custom_emoji_id: str | None = None,
+    ) -> InlineKeyboardButton:
+        url = build_cabinet_url(path)
+        if url:
+            section = CALLBACK_TO_SECTION.get(callback_fallback)
+            section_cfg = cached_styles.get(section or '', {}) if section else {}
+
+            # 'default' in per-section config means "no color" — do not fall through.
+            if style:
+                resolved = _resolve_style(style)
+            elif section_cfg.get('style'):
+                resolved = _resolve_style(section_cfg['style'])
+            else:
+                resolved = global_style or _resolve_style(CALLBACK_TO_CABINET_STYLE.get(callback_fallback))
+            resolved_emoji = icon_custom_emoji_id or section_cfg.get('icon_custom_emoji_id') or None
+
+            return InlineKeyboardButton(
+                text=text,
+                web_app=types.WebAppInfo(url=url),
+                style=resolved,
+                icon_custom_emoji_id=resolved_emoji or None,
+            )
+        return InlineKeyboardButton(text=text, callback_data=callback_fallback)
+
+    # -- Primary action row: Cabinet home --
+    home_cfg = cached_styles.get('home', {})
+    if home_cfg.get('enabled', True):
+        profile_text = home_cfg.get('labels', {}).get(language, '') or texts.t('MENU_PROFILE', '👤 Личный кабинет')
+        keyboard_rows: list[list[InlineKeyboardButton]] = [
+            [_cabinet_button(profile_text, '/', 'menu_profile_unavailable')],
+        ]
     else:
-        profile_button = InlineKeyboardButton(
-            text=profile_text,
-            callback_data='menu_profile_unavailable',
-        )
+        keyboard_rows: list[list[InlineKeyboardButton]] = []
 
-    keyboard_rows: list[list[InlineKeyboardButton]] = [[profile_button]]
+    # -- Section buttons as paired rows --
+    paired: list[InlineKeyboardButton] = []
 
-    if settings.is_language_selection_enabled():
-        keyboard_rows.append([InlineKeyboardButton(text=texts.MENU_LANGUAGE, callback_data='menu_language')])
+    # Subscription (green — main action)
+    sub_cfg = cached_styles.get('subscription', {})
+    if sub_cfg.get('enabled', True):
+        sub_text = sub_cfg.get('labels', {}).get(language, '') or texts.MENU_SUBSCRIPTION
+        paired.append(_cabinet_button(sub_text, '/subscription', 'menu_subscription'))
 
+    # Balance
+    bal_cfg = cached_styles.get('balance', {})
+    if bal_cfg.get('enabled', True):
+        safe_balance = balance_kopeks or 0
+        # Custom label overrides the whole text including balance amount
+        custom_bal = bal_cfg.get('labels', {}).get(language, '')
+        if custom_bal:
+            balance_text = custom_bal
+        elif hasattr(texts, 'BALANCE_BUTTON') and safe_balance > 0:
+            balance_text = texts.BALANCE_BUTTON.format(balance=texts.format_price(safe_balance))
+        else:
+            balance_text = texts.t('BALANCE_BUTTON_DEFAULT', '💰 Баланс: {balance}').format(
+                balance=texts.format_price(safe_balance),
+            )
+        paired.append(_cabinet_button(balance_text, '/balance', 'menu_balance'))
+
+    # Referrals (if enabled)
+    ref_cfg = cached_styles.get('referral', {})
+    if settings.is_referral_program_enabled() and ref_cfg.get('enabled', True):
+        ref_text = ref_cfg.get('labels', {}).get(language, '') or texts.MENU_REFERRALS
+        paired.append(_cabinet_button(ref_text, '/referral', 'menu_referrals'))
+
+    # Support
     support_enabled = False
     try:
         from app.services.support_settings_service import SupportSettingsService
@@ -398,11 +465,33 @@ def _build_text_main_menu_keyboard(
     except Exception:
         support_enabled = settings.SUPPORT_MENU_ENABLED
 
-    if support_enabled:
-        keyboard_rows.append([InlineKeyboardButton(text=texts.MENU_SUPPORT, callback_data='menu_support')])
+    sup_cfg = cached_styles.get('support', {})
+    if support_enabled and sup_cfg.get('enabled', True):
+        sup_text = sup_cfg.get('labels', {}).get(language, '') or texts.MENU_SUPPORT
+        paired.append(_cabinet_button(sup_text, '/support', 'menu_support'))
 
+    # Info
+    info_cfg = cached_styles.get('info', {})
+    if info_cfg.get('enabled', True):
+        info_text = info_cfg.get('labels', {}).get(language, '') or texts.t('MENU_INFO', 'ℹ️ Инфо')
+        paired.append(_cabinet_button(info_text, '/info', 'menu_info'))
+
+    # Language selection (stays as callback — not a cabinet section)
+    if settings.is_language_selection_enabled():
+        paired.append(InlineKeyboardButton(text=texts.MENU_LANGUAGE, callback_data='menu_language'))
+
+    # Lay out in pairs
+    for i in range(0, len(paired), 2):
+        keyboard_rows.append(paired[i : i + 2])
+
+    # Admin / Moderator
+    admin_cfg = cached_styles.get('admin', {})
     if is_admin:
-        keyboard_rows.append([InlineKeyboardButton(text=texts.MENU_ADMIN, callback_data='admin_panel')])
+        admin_buttons = [InlineKeyboardButton(text=texts.MENU_ADMIN, callback_data='admin_panel')]
+        if admin_cfg.get('enabled', True):
+            admin_web_text = admin_cfg.get('labels', {}).get(language, '') or '🖥 Веб-Админка'
+            admin_buttons.append(_cabinet_button(admin_web_text, '/admin', 'admin_panel'))
+        keyboard_rows.append(admin_buttons)
     elif is_moderator:
         keyboard_rows.append([InlineKeyboardButton(text=texts.t('MENU_MODERATOR'), callback_data='moderator_panel')])
 
@@ -425,12 +514,13 @@ def get_main_menu_keyboard(
 ) -> InlineKeyboardMarkup:
     texts = get_texts(language)
 
-    if settings.is_text_main_menu_mode():
-        return _build_text_main_menu_keyboard(
+    if settings.is_cabinet_mode():
+        return _build_cabinet_main_menu_keyboard(
             language,
             texts,
             is_admin=is_admin,
             is_moderator=is_moderator,
+            balance_kopeks=balance_kopeks,
         )
 
     if settings.DEBUG:

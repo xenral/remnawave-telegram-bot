@@ -3311,7 +3311,7 @@
     "SUBSCRIPTION_HAPP_OPEN_LINK": "<a href=\"{subscription_link}\">🔓 باز کردن لینک در Happ</a>",
     "SUBSCRIPTION_HAPP_OPEN_TITLE": "🔗 <b>اتصال از طریق Happ</b>",
     "SUBSCRIPTION_IMPORT_INSTRUCTION_PROMPT": "📱 دکمه زیر بزنید تا راهنمای تنظیم VPN روی دستگاه را ببینید",
-    "SUBSCRIPTION_IMPORT_LINK_SECTION": "🔗 <b>لینک وارد کردن در اپلیکیشن VPN:</b>\n<code>{subscription_url}</code>",
+    "SUBSCRIPTION_IMPORT_LINK_SECTION": "🔗 <b>لینک وارد کردن در اپلیکیشن VPN:</b>\n<code>{subscription_url}",
     "SUBSCRIPTION_INFO": "ℹ️ اطلاعات اشتراک",
     "SUBSCRIPTION_LINK_GENERATING_NOTICE": "{purchase_text}\n\nلینک در حال ایجاد است، لطفا چند ثانیه بعد به بخش «اشتراک من» بروید.",
     "SUBSCRIPTION_LINK_HIDDEN_NOTICE": "ℹ️ لینک اشتراک از دکمه‌های زیر یا بخش «اشتراک من» در دسترس است.",
@@ -3390,8 +3390,8 @@
     "TARIFF_PURCHASE_CART_DAILY_CONFIRM_TEXT": "✅ <b>تایید خرید</b>\n\n📦 تعرفه: <b>{tariff_name}</b>\n📊 ترافیک: {traffic}\n📱 دستگاه‌ها: {devices}\n🔄 نوع: روزانه\n💰 <b>هزینه روزانه: {daily_price}</b>\n\n💳 موجودی شما: {balance}\nپس از پرداخت: {after_payment}",
     "TARIFF_PURCHASE_CART_EXTEND_CONFIRM_TEXT": "✅ <b>تایید تمدید</b>\n\n📦 تعرفه: <b>{tariff_name}</b>\n📊 ترافیک: {traffic}\n📱 دستگاه‌ها: {devices}\n📅 دوره: {period}\n{discount_text}\n💰 <b>جمع: {total}</b>\n\n💳 موجودی شما: {balance}\nپس از پرداخت: {after_payment}",
     "TARIFF_PURCHASE_CART_RESTORED_ALERT": "✅ سبد خرید بازیابی شد!",
-    "TARIFF_PURCHASE_CART_STILL_INSUFFICIENT_DAILY_TEXT": "❌ <b>هنوز موجودی کافی نیست</b>\n\n📦 تعرفه: <b>{tariff_name}</b>\n🔄 نوع: روزانه\n💰 هزینه: {total}\n\n💳 موجودی شما: {balance}\n⚠️ کسری: <b>{missing}</b>",
-    "TARIFF_PURCHASE_CART_STILL_INSUFFICIENT_PERIOD_TEXT": "❌ <b>هنوز موجودی کافی نیست</b>\n\n📦 تعرفه: <b>{tariff_name}</b>\n📅 دوره: {period}\n💰 هزینه: {total}\n\n💳 موجودی شما: {balance}\n⚠️ کسری: <b>{missing}</b>",
+    "TARIFF_PURCHASE_CART_STILL_INSUFFICIENT_DAILY_TEXT": "❌ <b>هنوز موجودی کافی نیست</b>\n\n📦 تعرفه: <b>{tariff_name}</b>\n🔄 نوع: روزانه\n💰 هزینه: {total}\n\n💳 موجودی شما: {balance}\n⚠️ کسری: <b>{missing}</b>\n\n🛒 <i>سبد ذخیره شد! پس از شارژ، اشتراک به‌صورت خودکار فعال می‌شود.</i>",
+    "TARIFF_PURCHASE_CART_STILL_INSUFFICIENT_PERIOD_TEXT": "❌ <b>هنوز موجودی کافی نیست</b>\n\n📦 تعرفه: <b>{tariff_name}</b>\n📅 دوره: {period}\n💰 هزینه: {total}\n\n💳 موجودی شما: {balance}\n⚠️ کسری: <b>{missing}</b>\n\n🛒 <i>سبد ذخیره شد! پس از شارژ، اشتراک به‌صورت خودکار فعال می‌شود.</i>",
     "TARIFF_PURCHASE_CART_TARIFF_UNAVAILABLE_ALERT": "❌ تعرفه دیگر در دسترس نیست",
     "TARIFF_PURCHASE_CONFIRM_BUTTON": "✅ تایید خرید",
     "TARIFF_PURCHASE_CONFIRM_EXTEND_BUTTON": "✅ تایید تمدید",
@@ -3595,19 +3595,6 @@
     "WATA_AMOUNT_TOO_LOW": "حداقل مبلغ: {amount}",
     "WATA_PAYMENT_ERROR": "❌ خطا در پرداخت WATA. بعداً تلاش کنید.",
     "WATA_PAYMENT_INSTRUCTIONS": "💳 <b>پرداخت WATA</b>\n\n💰 مبلغ: {amount}\n🆔 شناسه: {payment_id}\n\n📱 <b>راهنما:</b>\n1. دکمه پرداخت بزنید\n2. مراحل درگاه را دنبال کنید\n3. تأیید کنید\n4. وجه خودکار واریز می‌شود\n\n❓ مشکل؟ {support}",
-    "YOOKASSA_CREATE_PAYMENT_ERROR": "❌ خطا در ایجاد پرداخت. بعداً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
-    "YOOKASSA_CREATE_SBP_PAYMENT_ERROR": "❌ خطا در ایجاد پرداخت از طریق SBP. بعداً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
-    "YOOKASSA_MAX_CARD_AMOUNT_ALERT": "❌ حداکثر مبلغ پرداخت با کارت: {amount}",
-    "YOOKASSA_MAX_SBP_AMOUNT_ALERT": "❌ حداکثر مبلغ پرداخت از طریق SBP: {amount}",
-    "YOOKASSA_MIN_CARD_AMOUNT_ALERT": "❌ حداقل مبلغ پرداخت با کارت: {amount}",
-    "YOOKASSA_MIN_SBP_AMOUNT_ALERT": "❌ حداقل مبلغ پرداخت از طریق SBP: {amount}",
-    "YOOKASSA_PAYMENT_LINK_ERROR": "❌ خطا در دریافت لینک پرداخت. با پشتیبانی تماس بگیرید.",
-    "YOOKASSA_PAY_CARD_BUTTON": "💳 پرداخت با کارت",
-    "YOOKASSA_SBP_DATA_ERROR": "❌ خطا در دریافت اطلاعات پرداخت از طریق SBP. با پشتیبانی تماس بگیرید.",
-    "WATA_PAY_BUTTON": "💳 پرداخت WATA",
-    "WATA_STATUS_CLOSED": "در حال پردازش",
-    "WATA_STATUS_DECLINED": "رد شده",
-    "WATA_STATUS_OPENED": "در انتظار پرداخت",
     "WATA_STATUS_PAID": "پرداخت شده",
     "WATA_STATUS_TITLE": "💳 <b>وضعیت پرداخت WATA</b>",
     "WATA_STATUS_UNKNOWN": "نامشخص",
@@ -3615,5 +3602,100 @@
     "WELCOME": "\n🎉 <b>به سرویس VPN خوش آمدید!</b>\n\nسرویس ما دسترسی سریع و امن به اینترنت بدون محدودیت فراهم می‌کند.\n\n🔐 <b>مزایا:</b>\n• سرعت بالا\n• سرورهای متعدد\n• حفاظت از داده‌ها\n• پشتیبانی ۲۴ ساعته\n\nزبان رابط را انتخاب کنید:\n",
     "WELCOME_FALLBACK": "خوش آمدید، {user_name}!",
     "YES": "✅ بله",
-    "YOUR_BALANCE": "موجودی شما"
+    "YOUR_BALANCE": "موجودی شما",
+    "SIMPLE_SUBSCRIPTION_TRIAL_NOTICE_ACTIVE": "ℹ️ اشتراک آزمایشی فعال دارید. {days} روز اعتبار دارد. پس از خرید دوره پولی اضافه می‌شود.",
+    "SIMPLE_SUBSCRIPTION_TRIAL_NOTICE_TRIAL": "ℹ️ اشتراک آزمایشی دارید. {days} روز تا انقضا. خرید جدید خودکار تمدید می‌کند.",
+    "SIMPLE_SUBSCRIPTION_SERVER_ANY": "هر سرور موجود",
+    "SIMPLE_SUBSCRIPTION_SERVER_SELECTED": "✅ سرور: {name}",
+    "SIMPLE_SUBSCRIPTION_SERVER_ASSIGNED": "خودکار تعیین شده",
+    "MENU_SIMPLE_SUBSCRIPTION": "⚡ خرید ساده",
+    "ADMIN_COMMUNICATIONS_POLLS": "🗳️ نظرسنجی‌ها",
+    "ADMIN_POLLS_CREATE": "➕ ایجاد نظرسنجی",
+    "ADMIN_POLLS_REWARD_ENABLED": "پاداش: {amount}",
+    "ADMIN_POLLS_REWARD_DISABLED": "پاداش غیرفعال",
+    "ADMIN_POLLS_SEND": "📤 ارسال",
+    "ADMIN_POLLS_STATS": "📊 آمار",
+    "ADMIN_POLLS_DELETE": "🗑️ حذف",
+    "ADMIN_POLLS_BACK": "⬅️ بازگشت به لیست",
+    "ADMIN_POLLS_CUSTOM_TARGET": "⚙️ بر اساس معیار",
+    "ADMIN_POLLS_SEND_CONFIRM_BUTTON": "✅ ارسال",
+    "ADMIN_POLLS_LIST_TITLE": "🗳️ <b>نظرسنجی‌ها</b>",
+    "ADMIN_POLLS_LIST_EMPTY": "هنوز نظرسنجی‌ای نیست.",
+    "ADMIN_POLLS_QUESTIONS_COUNT": "سوالات: {count}",
+    "ADMIN_POLLS_CREATION_TITLE_PROMPT": "🗳️ <b>ایجاد نظرسنجی</b>\n\nعنوان نظرسنجی:",
+    "ADMIN_POLLS_CREATION_CANCELLED": "❌ ایجاد نظرسنجی لغو شد.",
+    "ADMIN_POLLS_CREATION_DESCRIPTION_PROMPT": "توضیحات نظرسنجی. HTML مجاز.\nبرای رد کردن /skip بفرستید.",
+    "ADMIN_POLLS_CREATION_DESCRIPTION_SKIPPED": "توضیحات رد شد.",
+    "ADMIN_POLLS_CREATION_INVALID_HTML": "❌ خطا در HTML: {error}",
+    "ADMIN_POLLS_CREATION_REWARD_PROMPT": "مبلغ پاداش وارد کنید. برای غیرفعال 0 بفرستید.",
+    "ADMIN_POLLS_CREATION_REWARD_INVALID": "❌ مبلغ نامعتبر. دوباره تلاش کنید.",
+    "ADMIN_POLLS_CREATION_QUESTION_PROMPT": "سوال و گزینه‌ها را وارد کنید.\nهر خط یک گزینه.\nخط اول متن سوال.\nبعد از اتمام /done بفرستید.",
+    "ADMIN_POLLS_CREATION_NEEDS_QUESTION": "❌ حداقل یک سوال اضافه کنید.",
+    "ADMIN_POLLS_CREATION_FINISHED": "✅ نظرسنجی «{title}» ایجاد شد. سوالات: {count}. {reward}",
+    "ADMIN_POLLS_CREATION_MIN_OPTIONS": "❌ یک سوال و حداقل دو گزینه لازم است.",
+    "ADMIN_POLLS_CREATION_ADDED_QUESTION": "سوال اضافه شد: «{question}». سوال بعدی یا /done بفرستید.",
+    "ADMIN_POLLS_QUESTION_LIST_HEADER": "<b>سوالات:</b>",
+    "ADMIN_POLLS_OPTION_BULLET": "   • {option}",
+    "ADMIN_POLLS_SEND_CHOOSE_TARGET": "🎯 مخاطبان ارسال نظرسنجی:",
+    "ADMIN_POLLS_CUSTOM_PROMPT": "معیار اضافی مخاطبان:",
+    "ADMIN_POLLS_SEND_CONFIRM": "📤 ارسال نظرسنجی «{title}» به «{audience}»؟ کاربران: {count}",
+    "ADMIN_POLLS_SENDING": "📤 در حال ارسال نظرسنجی...",
+    "ADMIN_POLLS_SEND_RESULT": "📤 ارسال تمام شد\nموفق: {sent}\nخطا: {failed}\nرد شده: {skipped}\nکل: {total}",
+    "ADMIN_POLLS_STATS_HEADER": "📊 <b>آمار نظرسنجی</b>",
+    "ADMIN_POLLS_STATS_OVERVIEW": "کل دعوت‌شده: {total}\nتکمیل‌شده: {completed}\nپاداش پرداخت‌شده: {reward}",
+    "ADMIN_POLLS_STATS_OPTION_LINE": "• {option}: {count}",
+    "ADMIN_POLLS_CONFIRM_DELETE": "آیا نظرسنجی «{title}» حذف شود؟",
+    "ADMIN_POLLS_DELETED": "🗑️ نظرسنجی حذف شد.",
+    "POLL_INVITATION_REWARD": "🎁 با شرکت {amount} پاداش می‌گیرید.",
+    "POLL_INVITATION_START": "دکمه زیر را برای شرکت در نظرسنجی بزنید.",
+    "POLL_START_BUTTON": "📝 شرکت در نظرسنجی",
+    "POLL_QUESTION_HEADER": "<b>سوال {current}/{total}</b>",
+    "POLL_ALREADY_COMPLETED": "شما قبلاً در این نظرسنجی شرکت کرده‌اید.",
+    "POLL_EMPTY": "نظرسنجی فعلاً در دسترس نیست.",
+    "POLL_ERROR": "پردازش نظرسنجی ناموفق. بعداً تلاش کنید.",
+    "POLL_COMPLETED": "🙏 ممنون از شرکت در نظرسنجی!",
+    "POLL_REWARD_GRANTED": "پاداش {amount} به موجودی شما اضافه شد.",
+    "ADMIN_USERS_BULK_BAN": "🛑 بن دسته‌جمعی",
+    "ADMIN_USERS_BLACKLIST": "🔐 لیست سیاه",
+    "ADMIN_USERS_BLOCKED_CHECK": "🔒 مسدودکنندگان ربات",
+    "CONTEST_START_ANNOUNCEMENT": "بازی شروع می‌شود",
+    "CONTEST_PRIZE": "جایزه",
+    "DAYS": "روز اشتراک",
+    "CONTEST_WINNERS": "برندگان",
+    "CONTEST_ATTEMPTS": "تلاش/کاربر",
+    "CONTEST_ELIGIBILITY": "فقط با اشتراک فعال یا آزمایشی می‌توانید شرکت کنید",
+    "REMINDER": "یادآوری",
+    "CONTEST_REMINDER_TEXT": "فراموش نکنید در مسابقات شرکت کنید",
+    "MODEM_BUTTON": "📡 مودم",
+    "MODEM_ENABLE_BUTTON": "✅ اتصال مودم",
+    "MODEM_DISABLE_BUTTON": "❌ قطع مودم",
+    "MODEM_CONFIRM_BUTTON": "✅ تأیید اتصال",
+    "MODEM_STATUS_ENABLED": "✅ متصل",
+    "MODEM_STATUS_DISABLED": "❌ متصل نیست",
+    "MODEM_PAID_ONLY": "⚠️ مودم فقط برای اشتراک‌های پولی",
+    "MODEM_DISABLED": "⚠️ قابلیت مودم غیرفعال است",
+    "MODEM_ALREADY_ENABLED": "ℹ️ مودم قبلاً متصل است",
+    "MODEM_NOT_ENABLED": "ℹ️ مودم متصل نیست",
+    "MODEM_INFO_ENABLED": "📡 <b>مودم</b>\n\nوضعیت: {status}\n\nمودم به اشتراک شما متصل است.\nهزینه ماهانه: {price}\n\nبا قطع مودم بازپرداخت انجام نمی‌شود.",
+    "MODEM_INFO_DISABLED": "📡 <b>مودم</b>\n\nوضعیت: {status}\n\nمودم را به اشتراک خود متصل کنید.\nهزینه ماهانه: {price}\n\nبا اتصال مودم یک دستگاه اضافی اضافه می‌شود.",
+    "MODEM_INSUFFICIENT_FUNDS": "⚠️ <b>موجودی ناکافی</b>\n\nهزینه اتصال مودم: {required}\nموجودی: {balance}\nکسری: {missing}\n\nروش شارژ را انتخاب کنید.",
+    "MODEM_CONFIRM_ENABLE": "📡 <b>تأیید اتصال مودم</b>\n\nهزینه: {price} (برای {months} ماه)\n\nبا اتصال مودم:\n• یک دستگاه اضافی به اشتراک اضافه می‌شود\n• هزینه ماهانه {monthly_price} افزایش می‌یابد\n\nتأیید اتصال؟",
+    "MODEM_ENABLED_SUCCESS": "✅ <b>مودم با موفقیت متصل شد!</b>\n\n📡 مودم فعال شد\n📱 دستگاه مودم اضافه شد\n",
+    "MODEM_CHARGED": "💰 کسر شد: {amount}",
+    "MODEM_DISABLED_SUCCESS": "✅ <b>مودم قطع شد</b>\n\n📡 مودم غیرفعال شد\nℹ️ بازپرداخت انجام نمی‌شود",
+    "MODEM_PERIOD_INFO": "\n📅 مودم تا: <b>{end_date}</b> ({days} روز)",
+    "MODEM_SHORT_PERIOD_WARNING": "\n⚠️ <b>توجه!</b> فقط <b>{days} روز</b> تا پایان اشتراک مانده.\nپس از تمدید، مودم باید دوباره پرداخت شود!",
+    "MODEM_PERIOD_NOTE": "\nℹ️ تا پایان اشتراک: <b>{days} روز</b>\nپس از تمدید مودم باید دوباره پرداخت شود.",
+    "MODEM_PRICE_WITH_DISCOUNT": "هزینه: <s>{base_price}</s> <b>{final_price}</b> (برای {months} ماه)\n🎁 تخفیف {discount}%: -{discount_amount}",
+    "MODEM_PRICE_NO_DISCOUNT": "هزینه: {price} (برای {months} ماه)",
+    "MODEM_CONFIRM_ENABLE_BASE": "📡 <b>تأیید اتصال مودم</b>\n\n{price_text}\n\nبا اتصال مودم:\n• یک دستگاه اضافی اضافه می‌شود\n• هزینه ماهانه {monthly_price} افزایش می‌یابد\n\nتأیید اتصال؟",
+    "ADMIN_USER_RESTRICTIONS": "⚠️ محدود کردن",
+    "USER_RESTRICTION_TOPUP_BLOCKED": "🚫 <b>شارژ محدود شده</b>\n\n{reason}\n\nاگر فکر می‌کنید اشتباه است، می‌توانید اعتراض کنید.",
+    "USER_RESTRICTION_SUBSCRIPTION_BLOCKED": "🚫 <b>خرید/تمدید اشتراک محدود شده</b>\n\n{reason}\n\nاگر فکر می‌کنید اشتباه است، می‌توانید اعتراض کنید.",
+    "USER_RESTRICTION_APPEAL_BUTTON": "🆘 اعتراض",
+    "PAUSE_DAILY_BUTTON": "⏸️ توقف اشتراک",
+    "RESUME_DAILY_BUTTON": "▶️ ازسرگیری اشتراک",
+    "DAILY_SWITCH_WARNING": "⚠️ <b>توجه!</b> {days} روز اشتراک باقی مانده.\nبا تغییر به تعرفه روزانه از دست می‌روند!",
+    "DAILY_SUBSCRIPTION_PAUSED": "⏸️ اشتراک متوقف شد",
+    "DAILY_SUBSCRIPTION_RESUMED": "▶️ اشتراک از سر گرفته شد!"
 }

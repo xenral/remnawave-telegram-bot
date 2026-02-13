@@ -619,7 +619,7 @@ async def get_traffic_packages(
         if tariff and not tariff.allow_traffic_topup:
             return []
 
-    packages = settings.get_traffic_packages()
+    packages = settings.get_traffic_topup_packages()
     result = []
 
     for pkg in packages:
@@ -724,7 +724,7 @@ async def purchase_traffic(
                 )
 
         # Получаем цену из глобальных настроек
-        packages = settings.get_traffic_packages()
+        packages = settings.get_traffic_topup_packages()
         matching_pkg = next((pkg for pkg in packages if pkg['gb'] == request.gb and pkg.get('enabled', True)), None)
         if not matching_pkg:
             raise HTTPException(
@@ -1662,7 +1662,7 @@ async def submit_purchase(
                         user=user,
                         subscription=subscription,
                         transaction=None,
-                        period_days=selection.period_days,
+                        period_days=selection.period.days,
                         was_trial_conversion=result.get('was_trial_conversion', False),
                         amount_kopeks=pricing.final_total,
                         purchase_type='renewal' if not is_new_subscription else None,
@@ -2407,7 +2407,7 @@ async def save_traffic_cart(
                 detail='Докупка трафика отключена',
             )
 
-        packages = settings.get_traffic_packages()
+        packages = settings.get_traffic_topup_packages()
         matching_pkg = next((pkg for pkg in packages if pkg['gb'] == request.gb and pkg.get('enabled', True)), None)
         if not matching_pkg:
             raise HTTPException(
@@ -3216,7 +3216,10 @@ async def update_countries(
         added_server_ids = await get_server_ids_by_uuids(db, added)
         if added_server_ids:
             await add_subscription_servers(db, user.subscription, added_server_ids, added_server_prices)
-            await add_user_to_servers(db, added_server_ids)
+            try:
+                await add_user_to_servers(db, added_server_ids)
+            except Exception as e:
+                logger.error(f'Ошибка обновления счётчика серверов: {e}')
 
     # Update connected squads
     user.subscription.connected_squads = selected_countries

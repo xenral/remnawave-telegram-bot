@@ -105,6 +105,25 @@ class Settings(BaseSettings):
     REMNAWAVE_AUTO_SYNC_TIMES: str = '03:00'
     CABINET_REMNA_SUB_CONFIG: str | None = None  # UUID конфига страницы подписки из RemnaWave
 
+    # RemnaWave incoming webhooks (real-time event delivery from backend)
+    REMNAWAVE_WEBHOOK_ENABLED: bool = False
+    REMNAWAVE_WEBHOOK_PATH: str = '/remnawave-webhook'
+    REMNAWAVE_WEBHOOK_SECRET: str | None = None  # HMAC-SHA256 shared secret (min 32 chars)
+
+    # Webhook user notification toggles (what Telegram messages users receive from webhook events)
+    WEBHOOK_NOTIFY_USER_ENABLED: bool = True
+    WEBHOOK_NOTIFY_SUB_STATUS: bool = True
+    WEBHOOK_NOTIFY_SUB_EXPIRED: bool = True
+    WEBHOOK_NOTIFY_SUB_EXPIRING: bool = True
+    WEBHOOK_NOTIFY_SUB_LIMITED: bool = True
+    WEBHOOK_NOTIFY_TRAFFIC_RESET: bool = True
+    WEBHOOK_NOTIFY_SUB_DELETED: bool = True
+    WEBHOOK_NOTIFY_SUB_REVOKED: bool = True
+    WEBHOOK_NOTIFY_FIRST_CONNECTED: bool = True
+    WEBHOOK_NOTIFY_NOT_CONNECTED: bool = True
+    WEBHOOK_NOTIFY_BANDWIDTH_THRESHOLD: bool = True
+    WEBHOOK_NOTIFY_DEVICES: bool = True
+
     TRIAL_DURATION_DAYS: int = 3
     TRIAL_TRAFFIC_LIMIT_GB: int = 10
     TRIAL_DEVICE_LIMIT: int = 2
@@ -162,11 +181,6 @@ class Settings(BaseSettings):
     DEVICES_SELECTION_ENABLED: bool = True
     DEVICES_SELECTION_DISABLED_AMOUNT: int | None = None
 
-    # Настройки модема
-    MODEM_ENABLED: bool = False
-    MODEM_PRICE_PER_MONTH: int = 10000  # Цена модема в копейках за месяц
-    MODEM_PERIOD_DISCOUNTS: str = ''  # Скидки на модем: "месяцев:процент,месяцев:процент" (напр. "3:10,6:15,12:20")
-
     BASE_PROMO_GROUP_PERIOD_DISCOUNTS_ENABLED: bool = False
     BASE_PROMO_GROUP_PERIOD_DISCOUNTS: str = ''
 
@@ -181,7 +195,7 @@ class Settings(BaseSettings):
     # Режим продаж подписок:
     # - classic: классический режим (выбор серверов, трафика, устройств, периода отдельно)
     # - tariffs: режим тарифов (готовые пакеты с фиксированными параметрами)
-    SALES_MODE: str = 'classic'
+    SALES_MODE: str = 'tariffs'
 
     # ID тарифа для триала в режиме тарифов (0 = использовать стандартные настройки триала)
     # Если указан ID тарифа, параметры триала берутся из тарифа (traffic_limit_gb, device_limit, allowed_squads)
@@ -339,12 +353,6 @@ class Settings(BaseSettings):
     NALOGO_STORAGE_PATH: str = './nalogo_tokens.json'
 
     AUTO_PURCHASE_AFTER_TOPUP_ENABLED: bool = False
-    AUTO_ACTIVATE_AFTER_TOPUP_ENABLED: bool = False
-
-    # Показывать предупреждение об активации подписки после пополнения баланса
-    # Если True - после пополнения показывает большое сообщение с кнопками:
-    # "Активировать", "Продлить", "Добавить устройства"
-    SHOW_ACTIVATION_PROMPT_AFTER_TOPUP: bool = False
 
     # Отключение превью ссылок в сообщениях бота
     DISABLE_WEB_PAGE_PREVIEW: bool = False
@@ -401,6 +409,7 @@ class Settings(BaseSettings):
     MULENPAY_MIN_AMOUNT_KOPEKS: int = 10000
     MULENPAY_MAX_AMOUNT_KOPEKS: int = 10000000
     MULENPAY_IFRAME_EXPECTED_ORIGIN: str | None = None
+    MULENPAY_WEBSITE_URL: str | None = None
 
     PAL24_ENABLED: bool = False
     PAL24_DISPLAY_NAME: str = 'PAL24'
@@ -409,7 +418,6 @@ class Settings(BaseSettings):
     PAL24_SIGNATURE_TOKEN: str | None = None
     PAL24_BASE_URL: str = 'https://pal24.pro/api/v1/'
     PAL24_WEBHOOK_PATH: str = '/pal24-webhook'
-    PAL24_WEBHOOK_PORT: int = 8084
     PAL24_PAYMENT_DESCRIPTION: str = 'Пополнение баланса'
     PAL24_MIN_AMOUNT_KOPEKS: int = 10000
     PAL24_MAX_AMOUNT_KOPEKS: int = 100000000
@@ -508,8 +516,10 @@ class Settings(BaseSettings):
     # Способ оплаты: 44 = СБП (QR код), 36 = Карты РФ, 43 = SberPay
     KASSA_AI_PAYMENT_SYSTEM_ID: int = 44
 
-    MAIN_MENU_MODE: str = 'default'
-    CONNECT_BUTTON_MODE: str = 'guide'
+    MAIN_MENU_MODE: str = 'default'  # 'default' | 'cabinet'
+    # Стиль кнопок Cabinet: primary (синий), success (зелёный), danger (красный), '' (по умолчанию для каждой секции)
+    CABINET_BUTTON_STYLE: str = ''
+    CONNECT_BUTTON_MODE: str = 'miniapp_subscription'
     MINIAPP_CUSTOM_URL: str = ''
     MINIAPP_STATIC_PATH: str = 'miniapp'
     MINIAPP_PURCHASE_URL: str = ''
@@ -742,15 +752,16 @@ class Settings(BaseSettings):
             'default': 'default',
             'full': 'default',
             'standard': 'default',
-            'text': 'text',
-            'text_only': 'text',
-            'textual': 'text',
-            'minimal': 'text',
+            'cabinet': 'cabinet',
+            'text': 'cabinet',
+            'text_only': 'cabinet',
+            'textual': 'cabinet',
+            'minimal': 'cabinet',
         }
 
         mode = aliases.get(normalized, normalized)
-        if mode not in {'default', 'text'}:
-            raise ValueError('MAIN_MENU_MODE must be one of: default, text')
+        if mode not in {'default', 'cabinet'}:
+            raise ValueError('MAIN_MENU_MODE must be one of: default, cabinet')
         return mode
 
     @field_validator('SERVER_STATUS_MODE', mode='before')
@@ -1058,7 +1069,7 @@ class Settings(BaseSettings):
         if not sanitized_username:
             sanitized_username = f'user_{identifier}'
 
-        return sanitized_username[:64]
+        return sanitized_username[:36]
 
     @staticmethod
     def parse_daily_time_list(raw_value: str | None) -> list[time]:
@@ -1095,6 +1106,13 @@ class Settings(BaseSettings):
 
     def get_remnawave_auto_sync_times(self) -> list[time]:
         return self.parse_daily_time_list(self.REMNAWAVE_AUTO_SYNC_TIMES)
+
+    def is_remnawave_webhook_enabled(self) -> bool:
+        return (
+            self.REMNAWAVE_WEBHOOK_ENABLED
+            and bool(self.REMNAWAVE_WEBHOOK_SECRET)
+            and len(self.REMNAWAVE_WEBHOOK_SECRET or '') >= 32
+        )
 
     def get_traffic_monitored_nodes(self) -> list[str]:
         """Возвращает список UUID нод для мониторинга (пусто = все)"""
@@ -1176,16 +1194,6 @@ class Settings(BaseSettings):
 
     def is_auto_purchase_after_topup_enabled(self) -> bool:
         value = getattr(self, 'AUTO_PURCHASE_AFTER_TOPUP_ENABLED', False)
-
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            return normalized in {'1', 'true', 'yes', 'on'}
-
-        return bool(value)
-
-    def is_auto_activate_after_topup_enabled(self) -> bool:
-        """Умная автоактивация после пополнения баланса (без корзины)."""
-        value = getattr(self, 'AUTO_ACTIVATE_AFTER_TOPUP_ENABLED', False)
 
         if isinstance(value, str):
             normalized = value.strip().lower()
@@ -1360,8 +1368,12 @@ class Settings(BaseSettings):
     def get_main_menu_mode(self) -> str:
         return getattr(self, 'MAIN_MENU_MODE', 'default')
 
+    def is_cabinet_mode(self) -> bool:
+        return self.get_main_menu_mode() == 'cabinet'
+
     def is_text_main_menu_mode(self) -> bool:
-        return self.get_main_menu_mode() == 'text'
+        """Backward-compatible alias for :meth:`is_cabinet_mode`."""
+        return self.is_cabinet_mode()
 
     def get_main_menu_miniapp_url(self) -> str | None:
         for candidate in [self.MINIAPP_CUSTOM_URL, self.MINIAPP_PURCHASE_URL]:
@@ -1533,9 +1545,6 @@ class Settings(BaseSettings):
     def get_disabled_mode_device_limit(self) -> int | None:
         return self.get_devices_selection_disabled_amount()
 
-    def is_modem_enabled(self) -> bool:
-        return bool(self.MODEM_ENABLED)
-
     def is_tariffs_mode(self) -> bool:
         """Проверяет, включен ли режим продаж 'Тарифы'."""
         return self.SALES_MODE == 'tariffs'
@@ -1546,67 +1555,11 @@ class Settings(BaseSettings):
 
     def get_sales_mode(self) -> str:
         """Возвращает текущий режим продаж."""
-        return self.SALES_MODE if self.SALES_MODE in ('classic', 'tariffs') else 'classic'
+        return self.SALES_MODE if self.SALES_MODE in ('classic', 'tariffs') else 'tariffs'
 
     def get_trial_tariff_id(self) -> int:
         """Возвращает ID тарифа для триала (0 = использовать стандартные настройки)."""
         return max(0, self.TRIAL_TARIFF_ID)
-
-    def get_modem_price_per_month(self) -> int:
-        try:
-            value = int(self.MODEM_PRICE_PER_MONTH)
-        except (TypeError, ValueError):
-            logger.warning(
-                'Некорректное значение MODEM_PRICE_PER_MONTH: %s',
-                self.MODEM_PRICE_PER_MONTH,
-            )
-            return 10000
-        return max(0, value)
-
-    def get_modem_period_discounts(self) -> dict[int, int]:
-        """Возвращает скидки на модем по количеству месяцев: {месяцев: процент_скидки}"""
-        try:
-            config_str = (self.MODEM_PERIOD_DISCOUNTS or '').strip()
-            if not config_str:
-                return {}
-
-            discounts: dict[int, int] = {}
-            for part in config_str.split(','):
-                part = part.strip()
-                if not part:
-                    continue
-
-                months_and_discount = part.split(':')
-                if len(months_and_discount) != 2:
-                    continue
-
-                months_str, discount_str = months_and_discount
-                try:
-                    months = int(months_str.strip())
-                    discount_percent = int(discount_str.strip())
-                except ValueError:
-                    continue
-
-                discounts[months] = max(0, min(100, discount_percent))
-
-            return discounts
-        except Exception:
-            return {}
-
-    def get_modem_period_discount(self, months: int) -> int:
-        """Возвращает процент скидки для указанного количества месяцев"""
-        if months <= 0:
-            return 0
-
-        discounts = self.get_modem_period_discounts()
-
-        # Ищем точное совпадение или ближайшее меньшее
-        applicable_discount = 0
-        for discount_months, discount_percent in sorted(discounts.items()):
-            if months >= discount_months:
-                applicable_discount = discount_percent
-
-        return applicable_discount
 
     def is_trial_paid_activation_enabled(self) -> bool:
         # TRIAL_PAYMENT_ENABLED - главный переключатель платной активации
@@ -2449,7 +2402,7 @@ class Settings(BaseSettings):
 
     def get_bot_run_mode(self) -> str:
         mode = (self.BOT_RUN_MODE or 'polling').strip().lower()
-        if mode not in {'polling', 'webhook', 'both'}:
+        if mode not in {'polling', 'webhook'}:
             return 'polling'
         return mode
 

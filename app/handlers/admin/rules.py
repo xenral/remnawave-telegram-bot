@@ -1,4 +1,5 @@
 import logging
+import re
 
 from aiogram import Dispatcher, F, types
 from aiogram.fsm.context import FSMContext
@@ -10,6 +11,14 @@ from app.localization.texts import get_texts
 from app.states import AdminStates
 from app.utils.decorators import admin_required, error_handler
 from app.utils.validators import get_html_help_text, validate_html_tags
+
+
+def _safe_preview(html_text: str, limit: int = 500) -> str:
+    """Создаёт превью текста, безопасно обрезая HTML-теги."""
+    plain = re.sub(r'<[^>]+>', '', html_text)
+    if len(plain) <= limit:
+        return plain
+    return plain[:limit] + '...'
 
 
 logger = logging.getLogger(__name__)
@@ -77,7 +86,7 @@ async def start_edit_rules(callback: types.CallbackQuery, db_user: User, state: 
     try:
         current_rules = await get_current_rules_content(db, db_user.language)
 
-        preview = current_rules[:500] + ('...' if len(current_rules) > 500 else '')
+        preview = _safe_preview(current_rules, 500)
         text = texts.t('ADMIN_RULES_EDIT_PROMPT').format(preview=preview)
 
         await callback.message.edit_text(
@@ -125,7 +134,7 @@ async def process_rules_edit(message: types.Message, db_user: User, state: FSMCo
         preview_text = texts.t('ADMIN_RULES_PREVIEW_TEXT').format(rules=new_rules)
 
         if len(preview_text) > 4000:
-            preview_text = texts.t('ADMIN_RULES_PREVIEW_TRUNCATED_TEXT').format(rules_preview=new_rules[:500], length=len(new_rules))
+            preview_text = texts.t('ADMIN_RULES_PREVIEW_TRUNCATED_TEXT').format(rules_preview=_safe_preview(new_rules, 500), length=len(new_rules))
 
         await message.answer(
             preview_text,
