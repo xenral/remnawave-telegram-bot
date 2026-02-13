@@ -263,21 +263,21 @@ def format_tariff_info_for_user(
 
     text = (
         f'📦 <b>{tariff.name}</b>\n\n'
-        f"{texts.t('TARIFF_PURCHASE_INFO_PARAMS_HEADER')}\n"
-        f"{texts.t('TARIFF_PURCHASE_INFO_TRAFFIC_LINE').format(traffic=traffic)}\n"
-        f"{texts.t('TARIFF_PURCHASE_INFO_DEVICES_LINE').format(devices=tariff.device_limit)}\n"
+        f'{texts.t("TARIFF_PURCHASE_INFO_PARAMS_HEADER")}\n'
+        f'{texts.t("TARIFF_PURCHASE_INFO_TRAFFIC_LINE").format(traffic=traffic)}\n'
+        f'{texts.t("TARIFF_PURCHASE_INFO_DEVICES_LINE").format(devices=tariff.device_limit)}\n'
     )
 
     if tariff.description:
         text += f'\n📝 {tariff.description}\n'
 
     if discount_percent > 0:
-        text += f"\n{texts.t('TARIFF_PURCHASE_INFO_DISCOUNT').format(percent=discount_percent)}\n"
+        text += f'\n{texts.t("TARIFF_PURCHASE_INFO_DISCOUNT").format(percent=discount_percent)}\n'
 
     # Для суточных тарифов не показываем выбор периода
     is_daily = getattr(tariff, 'is_daily', False)
     if not is_daily:
-        text += f"\n{texts.t('TARIFF_PURCHASE_INFO_SELECT_PERIOD')}"
+        text += f'\n{texts.t("TARIFF_PURCHASE_INFO_SELECT_PERIOD")}'
 
     return text
 
@@ -396,7 +396,11 @@ def get_custom_tariff_keyboard(
 
     # Кнопка подтверждения
     buttons.append(
-        [InlineKeyboardButton(text=texts.t('TARIFF_PURCHASE_CONFIRM_BUTTON'), callback_data=f'custom_confirm:{tariff_id}')]
+        [
+            InlineKeyboardButton(
+                text=texts.t('TARIFF_PURCHASE_CONFIRM_BUTTON'), callback_data=f'custom_confirm:{tariff_id}'
+            )
+        ]
     )
 
     # Кнопка назад
@@ -461,7 +465,7 @@ def format_custom_tariff_preview(
         else _format_traffic(tariff.traffic_limit_gb, language)
     )
 
-    text = f"📦 <b>{tariff.name}</b>\n\n{texts.t('TARIFF_PURCHASE_CUSTOM_CONFIGURE_HEADER')}\n"
+    text = f'📦 <b>{tariff.name}</b>\n\n{texts.t("TARIFF_PURCHASE_CUSTOM_CONFIGURE_HEADER")}\n'
 
     if tariff.can_purchase_custom_days():
         text += texts.t('TARIFF_PURCHASE_CUSTOM_DAYS_RANGE').format(
@@ -486,12 +490,12 @@ def format_custom_tariff_preview(
         text += '\n'
         text += f'   💰 +{_format_price_kopeks(traffic_price)}\n'
     else:
-        text += f"{texts.t('TARIFF_PURCHASE_TRAFFIC_LINE').format(traffic=traffic_display)}\n"
+        text += f'{texts.t("TARIFF_PURCHASE_TRAFFIC_LINE").format(traffic=traffic_display)}\n'
 
-    text += f"{texts.t('TARIFF_PURCHASE_DEVICES_LINE').format(devices=tariff.device_limit)}\n"
+    text += f'{texts.t("TARIFF_PURCHASE_DEVICES_LINE").format(devices=tariff.device_limit)}\n'
 
     if discount_percent > 0:
-        text += f"\n{texts.t('TARIFF_PURCHASE_DISCOUNT_LINE').format(percent=discount_percent)}\n"
+        text += f'\n{texts.t("TARIFF_PURCHASE_DISCOUNT_LINE").format(percent=discount_percent)}\n'
 
     text += texts.t('TARIFF_PURCHASE_TOTAL_LINE').format(total=_format_price_kopeks(total_price))
     text += '\n\n'
@@ -672,7 +676,7 @@ async def select_tariff(
             # Показываем обычный выбор периода, трафик будет на следующем шаге
             await callback.message.edit_text(
                 format_tariff_info_for_user(tariff, db_user.language)
-                + f"\n\n{texts.t('TARIFF_PURCHASE_TRAFFIC_AFTER_PERIOD_HINT')}",
+                + f'\n\n{texts.t("TARIFF_PURCHASE_TRAFFIC_AFTER_PERIOD_HINT")}',
                 reply_markup=get_tariff_periods_keyboard_with_traffic(tariff, db_user.language, db_user=db_user),
                 parse_mode='HTML',
             )
@@ -702,7 +706,9 @@ async def handle_custom_days_change(
 
     tariff = await get_tariff_by_id(db, tariff_id)
     if not tariff or not tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     state_data = await state.get_data()
@@ -762,7 +768,9 @@ async def handle_custom_traffic_change(
 
     tariff = await get_tariff_by_id(db, tariff_id)
     if not tariff or not tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     state_data = await state.get_data()
@@ -984,7 +992,9 @@ async def select_tariff_period_with_traffic(
 
     tariff = await get_tariff_by_id(db, tariff_id)
     if not tariff or not tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     if not tariff.can_purchase_custom_traffic():
@@ -1009,11 +1019,11 @@ async def select_tariff_period_with_traffic(
     )
 
     preview_text = format_custom_tariff_preview(
-            tariff=tariff,
-            language=db_user.language,
-            days=period,
-            traffic_gb=initial_traffic,
-            user_balance=user_balance,
+        tariff=tariff,
+        language=db_user.language,
+        days=period,
+        traffic_gb=initial_traffic,
+        user_balance=user_balance,
         discount_percent=discount_percent,  # Применяем скидку при отображении
     )
 
@@ -1567,7 +1577,7 @@ async def show_tariff_extend(
 
     discount_hint = ''
     if has_period_discounts:
-        discount_hint = f"\n{texts.t('TARIFF_PURCHASE_EXTEND_DISCOUNT_HINT')}"
+        discount_hint = f'\n{texts.t("TARIFF_PURCHASE_EXTEND_DISCOUNT_HINT")}'
 
     actual_device_limit = subscription.device_limit or tariff.device_limit
 
@@ -1602,7 +1612,9 @@ async def select_tariff_extend_period(
 
     tariff = await get_tariff_by_id(db, tariff_id)
     if not tariff or not tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     subscription = await get_subscription_by_user_id(db, db_user.id)
@@ -1705,7 +1717,9 @@ async def confirm_tariff_extend(
 
     tariff = await get_tariff_by_id(db, tariff_id)
     if not tariff or not tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     subscription = await get_subscription_by_user_id(db, db_user.id)
@@ -1727,7 +1741,9 @@ async def confirm_tariff_extend(
     # Проверяем баланс
     user_balance = db_user.balance_kopeks or 0
     if user_balance < final_price:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_INSUFFICIENT_BALANCE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_INSUFFICIENT_BALANCE_ALERT'), show_alert=True
+        )
         return
 
     texts = get_texts(db_user.language)
@@ -1738,7 +1754,9 @@ async def confirm_tariff_extend(
             db, db_user, final_price, f'Продление тарифа {tariff.name} на {period} дней'
         )
         if not success:
-            await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_BALANCE_CHARGE_ERROR_ALERT'), show_alert=True)
+            await callback.answer(
+                get_texts(db_user.language).t('TARIFF_PURCHASE_BALANCE_CHARGE_ERROR_ALERT'), show_alert=True
+            )
             return
 
         # Продлеваем подписку (параметры тарифа не меняются, только добавляется время)
@@ -2254,7 +2272,9 @@ async def confirm_tariff_switch(
 
     tariff = await get_tariff_by_id(db, tariff_id)
     if not tariff or not tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     # Получаем скидку для выбранного периода
@@ -2268,7 +2288,9 @@ async def confirm_tariff_switch(
     # Проверяем баланс
     user_balance = db_user.balance_kopeks or 0
     if user_balance < final_price:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_INSUFFICIENT_BALANCE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_INSUFFICIENT_BALANCE_ALERT'), show_alert=True
+        )
         return
 
     # Проверяем наличие подписки
@@ -2285,7 +2307,9 @@ async def confirm_tariff_switch(
             db, db_user, final_price, f'Смена тарифа на {tariff.name} ({period} дней)'
         )
         if not success:
-            await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_BALANCE_CHARGE_ERROR_ALERT'), show_alert=True)
+            await callback.answer(
+                get_texts(db_user.language).t('TARIFF_PURCHASE_BALANCE_CHARGE_ERROR_ALERT'), show_alert=True
+            )
             return
 
         # Получаем список серверов из тарифа
@@ -2422,7 +2446,9 @@ async def confirm_daily_tariff_switch(
     tariff = await get_tariff_by_id(db, tariff_id)
 
     if not tariff or not tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     is_daily = getattr(tariff, 'is_daily', False)
@@ -2432,13 +2458,17 @@ async def confirm_daily_tariff_switch(
 
     daily_price = getattr(tariff, 'daily_price_kopeks', 0)
     if daily_price <= 0:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_INVALID_DAILY_PRICE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_INVALID_DAILY_PRICE_ALERT'), show_alert=True
+        )
         return
 
     # Проверяем баланс
     user_balance = db_user.balance_kopeks or 0
     if user_balance < daily_price:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_INSUFFICIENT_BALANCE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_INSUFFICIENT_BALANCE_ALERT'), show_alert=True
+        )
         return
 
     # Проверяем наличие подписки
@@ -2455,7 +2485,9 @@ async def confirm_daily_tariff_switch(
             db, db_user, daily_price, f'Смена на суточный тариф {tariff.name} (первый день)'
         )
         if not success:
-            await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_BALANCE_CHARGE_ERROR_ALERT'), show_alert=True)
+            await callback.answer(
+                get_texts(db_user.language).t('TARIFF_PURCHASE_BALANCE_CHARGE_ERROR_ALERT'), show_alert=True
+            )
             return
 
         # Получаем список серверов из тарифа
@@ -2570,7 +2602,9 @@ async def confirm_daily_tariff_switch(
 
     except Exception as e:
         logger.error(f'Ошибка при смене на суточный тариф: {e}', exc_info=True)
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_DAILY_SWITCH_ERROR_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_DAILY_SWITCH_ERROR_ALERT'), show_alert=True
+        )
 
 
 # ==================== Мгновенное переключение тарифов (без выбора периода) ====================
@@ -2759,13 +2793,17 @@ async def show_instant_switch_list(
         return
 
     if not subscription.tariff_id:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_SUBSCRIPTION_TARIFF_MISSING_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_SUBSCRIPTION_TARIFF_MISSING_ALERT'), show_alert=True
+        )
         return
 
     # Получаем текущий тариф
     current_tariff = await get_tariff_by_id(db, subscription.tariff_id)
     if not current_tariff:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_CURRENT_TARIFF_NOT_FOUND_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_CURRENT_TARIFF_NOT_FOUND_ALERT'), show_alert=True
+        )
         return
 
     # Рассчитываем оставшиеся дни
@@ -2832,7 +2870,9 @@ async def preview_instant_switch(
     new_tariff = await get_tariff_by_id(db, tariff_id)
 
     if not new_tariff or not new_tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     # Получаем данные из состояния
@@ -2849,7 +2889,9 @@ async def preview_instant_switch(
     current_tariff_id = current_tariff_id or subscription.tariff_id
     current_tariff = await get_tariff_by_id(db, current_tariff_id)
     if not current_tariff:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_CURRENT_TARIFF_NOT_FOUND_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_CURRENT_TARIFF_NOT_FOUND_ALERT'), show_alert=True
+        )
         return
 
     if not remaining_days and subscription.end_date:
@@ -2991,7 +3033,9 @@ async def confirm_instant_switch(
     new_tariff = await get_tariff_by_id(db, tariff_id)
 
     if not new_tariff or not new_tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         return
 
     # Получаем данные из состояния
@@ -3009,7 +3053,9 @@ async def confirm_instant_switch(
     # Проверяем баланс если это upgrade
     user_balance = db_user.balance_kopeks or 0
     if is_upgrade and user_balance < upgrade_cost:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_INSUFFICIENT_BALANCE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_INSUFFICIENT_BALANCE_ALERT'), show_alert=True
+        )
         return
 
     texts = get_texts(db_user.language)
@@ -3019,7 +3065,9 @@ async def confirm_instant_switch(
         if is_upgrade and upgrade_cost > 0:
             success = await subtract_user_balance(db, db_user, upgrade_cost, f'Переключение на тариф {new_tariff.name}')
             if not success:
-                await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_BALANCE_CHARGE_ERROR_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('TARIFF_PURCHASE_BALANCE_CHARGE_ERROR_ALERT'), show_alert=True
+                )
                 return
 
         # Получаем список серверов из нового тарифа
@@ -3203,7 +3251,9 @@ async def return_to_saved_tariff_cart(
 
     tariff = await get_tariff_by_id(db, tariff_id)
     if not tariff or not tariff.is_active:
-        await callback.answer(get_texts(db_user.language).t('TARIFF_PURCHASE_CART_TARIFF_UNAVAILABLE_ALERT'), show_alert=True)
+        await callback.answer(
+            get_texts(db_user.language).t('TARIFF_PURCHASE_CART_TARIFF_UNAVAILABLE_ALERT'), show_alert=True
+        )
         # Очищаем корзину
         await user_cart_service.delete_user_cart(db_user.id)
         return

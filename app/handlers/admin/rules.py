@@ -35,7 +35,11 @@ async def show_rules_management(callback: types.CallbackQuery, db_user: User, db
         [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_VIEW_BUTTON'), callback_data='admin_view_rules')],
         [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CLEAR_BUTTON'), callback_data='admin_clear_rules')],
         [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_HTML_HELP_BUTTON'), callback_data='admin_rules_help')],
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_BACK_TO_SETTINGS_BUTTON'), callback_data='admin_submenu_settings')],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_RULES_BACK_TO_SETTINGS_BUTTON'), callback_data='admin_submenu_settings'
+            )
+        ],
     ]
 
     await callback.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard))
@@ -58,8 +62,16 @@ async def view_current_rules(callback: types.CallbackQuery, db_user: User, db: A
             texts.t('ADMIN_RULES_CURRENT_TEXT').format(rules=current_rules, warning=warning),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_EDIT_SHORT_BUTTON'), callback_data='admin_edit_rules')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CLEAR_SHORT_BUTTON'), callback_data='admin_clear_rules')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_EDIT_SHORT_BUTTON'), callback_data='admin_edit_rules'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_CLEAR_SHORT_BUTTON'), callback_data='admin_clear_rules'
+                        )
+                    ],
                     [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_BACK_BUTTON'), callback_data='admin_rules')],
                 ]
             ),
@@ -71,7 +83,11 @@ async def view_current_rules(callback: types.CallbackQuery, db_user: User, db: A
             texts.t('ADMIN_RULES_LOAD_ERROR'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CLEAR_BUTTON'), callback_data='admin_clear_rules')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_CLEAR_BUTTON'), callback_data='admin_clear_rules'
+                        )
+                    ],
                     [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_BACK_BUTTON'), callback_data='admin_rules')],
                 ]
             ),
@@ -93,8 +109,16 @@ async def start_edit_rules(callback: types.CallbackQuery, db_user: User, state: 
             text,
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_HTML_HELP_SHORT_BUTTON'), callback_data='admin_rules_help')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_HTML_HELP_SHORT_BUTTON'), callback_data='admin_rules_help'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules'
+                        )
+                    ],
                 ]
             ),
         )
@@ -123,8 +147,16 @@ async def process_rules_edit(message: types.Message, db_user: User, state: FSMCo
             texts.t('ADMIN_RULES_HTML_INVALID').format(error=error_msg),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_HTML_HELP_SHORT_BUTTON'), callback_data='admin_rules_help')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_HTML_HELP_SHORT_BUTTON'), callback_data='admin_rules_help'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules'
+                        )
+                    ],
                 ]
             ),
         )
@@ -134,15 +166,21 @@ async def process_rules_edit(message: types.Message, db_user: User, state: FSMCo
         preview_text = texts.t('ADMIN_RULES_PREVIEW_TEXT').format(rules=new_rules)
 
         if len(preview_text) > 4000:
-            preview_text = texts.t('ADMIN_RULES_PREVIEW_TRUNCATED_TEXT').format(rules_preview=_safe_preview(new_rules, 500), length=len(new_rules))
+            preview_text = texts.t('ADMIN_RULES_PREVIEW_TRUNCATED_TEXT').format(
+                rules_preview=_safe_preview(new_rules, 500), length=len(new_rules)
+            )
 
         await message.answer(
             preview_text,
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
                     [
-                        types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_SAVE_BUTTON'), callback_data='admin_save_rules'),
-                        types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules'),
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_SAVE_BUTTON'), callback_data='admin_save_rules'
+                        ),
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules'
+                        ),
                     ]
                 ]
             ),
@@ -157,8 +195,12 @@ async def process_rules_edit(message: types.Message, db_user: User, state: FSMCo
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
                     [
-                        types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_SAVE_BUTTON'), callback_data='admin_save_rules'),
-                        types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules'),
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_SAVE_BUTTON'), callback_data='admin_save_rules'
+                        ),
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules'
+                        ),
                     ]
                 ]
             ),
@@ -184,8 +226,16 @@ async def save_rules(callback: types.CallbackQuery, db_user: User, state: FSMCon
             texts.t('ADMIN_RULES_SAVE_HTML_ERROR').format(error=error_msg),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_RETRY_BUTTON'), callback_data='admin_edit_rules')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_TO_RULES_BUTTON'), callback_data='admin_rules')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_RETRY_BUTTON'), callback_data='admin_edit_rules'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_TO_RULES_BUTTON'), callback_data='admin_rules'
+                        )
+                    ],
                 ]
             ),
         )
@@ -208,8 +258,16 @@ async def save_rules(callback: types.CallbackQuery, db_user: User, state: FSMCon
             texts.t('ADMIN_RULES_SAVE_SUCCESS').format(length=len(new_rules)),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_VIEW_CURRENT_BUTTON'), callback_data='admin_view_rules')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_TO_RULES_BUTTON'), callback_data='admin_rules')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_VIEW_CURRENT_BUTTON'), callback_data='admin_view_rules'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_TO_RULES_BUTTON'), callback_data='admin_rules'
+                        )
+                    ],
                 ]
             ),
         )
@@ -224,8 +282,16 @@ async def save_rules(callback: types.CallbackQuery, db_user: User, state: FSMCon
             texts.t('ADMIN_RULES_SAVE_ERROR'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_RETRY_BUTTON'), callback_data='admin_save_rules')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_TO_RULES_BUTTON'), callback_data='admin_rules')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_RETRY_BUTTON'), callback_data='admin_save_rules'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_TO_RULES_BUTTON'), callback_data='admin_rules'
+                        )
+                    ],
                 ]
             ),
         )
@@ -241,7 +307,9 @@ async def clear_rules_confirmation(callback: types.CallbackQuery, db_user: User,
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
                 [
-                    types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CONFIRM_CLEAR_BUTTON'), callback_data='admin_confirm_clear_rules'),
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_RULES_CONFIRM_CLEAR_BUTTON'), callback_data='admin_confirm_clear_rules'
+                    ),
                     types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CANCEL_BUTTON'), callback_data='admin_rules'),
                 ]
             ]
@@ -265,9 +333,21 @@ async def confirm_clear_rules(callback: types.CallbackQuery, db_user: User, db: 
             texts.t('ADMIN_RULES_CLEAR_SUCCESS'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_CREATE_NEW_BUTTON'), callback_data='admin_edit_rules')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_VIEW_CURRENT_LONG_BUTTON'), callback_data='admin_view_rules')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RULES_TO_RULES_BUTTON'), callback_data='admin_rules')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_CREATE_NEW_BUTTON'), callback_data='admin_edit_rules'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_VIEW_CURRENT_LONG_BUTTON'), callback_data='admin_view_rules'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RULES_TO_RULES_BUTTON'), callback_data='admin_rules'
+                        )
+                    ],
                 ]
             ),
         )

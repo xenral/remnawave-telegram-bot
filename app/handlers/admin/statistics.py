@@ -333,8 +333,16 @@ async def show_revenue_by_period(callback: types.CallbackQuery, db_user: User, d
         text,
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=texts.t('ADMIN_STATS_OTHER_PERIOD_BUTTON'), callback_data='admin_revenue_period')],
-                [types.InlineKeyboardButton(text=texts.t('ADMIN_STATS_TO_REVENUE_BUTTON'), callback_data='admin_stats_revenue')],
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_STATS_OTHER_PERIOD_BUTTON'), callback_data='admin_revenue_period'
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_STATS_TO_REVENUE_BUTTON'), callback_data='admin_stats_revenue'
+                    )
+                ],
             ]
         ),
     )

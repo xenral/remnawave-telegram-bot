@@ -36,12 +36,18 @@ def get_backup_main_keyboard(language: str = 'ru'):
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_CREATE_BUTTON'), callback_data='backup_create'),
-                InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_RESTORE_BUTTON'), callback_data='backup_restore'),
+                InlineKeyboardButton(
+                    text=_t_lang(language, 'ADMIN_BACKUP_CREATE_BUTTON'), callback_data='backup_create'
+                ),
+                InlineKeyboardButton(
+                    text=_t_lang(language, 'ADMIN_BACKUP_RESTORE_BUTTON'), callback_data='backup_restore'
+                ),
             ],
             [
                 InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_LIST_BUTTON'), callback_data='backup_list'),
-                InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_SETTINGS_BUTTON'), callback_data='backup_settings'),
+                InlineKeyboardButton(
+                    text=_t_lang(language, 'ADMIN_BACKUP_SETTINGS_BUTTON'), callback_data='backup_settings'
+                ),
             ],
             [InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_BACK_BUTTON'), callback_data='admin_panel')],
         ]
@@ -93,7 +99,9 @@ def get_backup_list_keyboard(backups: list, language: str, page: int = 1, per_pa
 
         keyboard.append(nav_row)
 
-    keyboard.extend([[InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_BACK_BUTTON'), callback_data='backup_panel')]])
+    keyboard.extend(
+        [[InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_BACK_BUTTON'), callback_data='backup_panel')]]
+    )
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -101,8 +109,18 @@ def get_backup_list_keyboard(backups: list, language: str, page: int = 1, per_pa
 def get_backup_manage_keyboard(backup_filename: str, language: str):
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_RESTORE_BUTTON'), callback_data=f'backup_restore_file_{backup_filename}')],
-            [InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_DELETE_BUTTON'), callback_data=f'backup_delete_{backup_filename}')],
+            [
+                InlineKeyboardButton(
+                    text=_t_lang(language, 'ADMIN_BACKUP_RESTORE_BUTTON'),
+                    callback_data=f'backup_restore_file_{backup_filename}',
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=_t_lang(language, 'ADMIN_BACKUP_DELETE_BUTTON'),
+                    callback_data=f'backup_delete_{backup_filename}',
+                )
+            ],
             [InlineKeyboardButton(text=_t_lang(language, 'ADMIN_BACKUP_TO_LIST_BUTTON'), callback_data='backup_list')],
         ]
     )
@@ -167,7 +185,9 @@ async def show_backup_panel(callback: types.CallbackQuery, db_user: User, db: As
         auto_status=status_auto,
         interval_hours=settings_obj.backup_interval_hours,
         keep_count=settings_obj.max_backups_keep,
-        compression_status=_t(db_user, 'ADMIN_BACKUP_YES') if settings_obj.compression_enabled else _t(db_user, 'ADMIN_BACKUP_NO'),
+        compression_status=_t(db_user, 'ADMIN_BACKUP_YES')
+        if settings_obj.compression_enabled
+        else _t(db_user, 'ADMIN_BACKUP_NO'),
     )
 
     await callback.message.edit_text(text, parse_mode='HTML', reply_markup=get_backup_main_keyboard(db_user.language))
@@ -218,7 +238,11 @@ async def show_backup_list(callback: types.CallbackQuery, db_user: User, db: Asy
         text = _t(db_user, 'ADMIN_BACKUP_LIST_EMPTY')
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_CREATE_FIRST_BUTTON'), callback_data='backup_create')],
+                [
+                    InlineKeyboardButton(
+                        text=_t(db_user, 'ADMIN_BACKUP_CREATE_FIRST_BUTTON'), callback_data='backup_create'
+                    )
+                ],
                 [InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_BACK_BUTTON'), callback_data='backup_panel')],
             ]
         )
@@ -266,14 +290,18 @@ async def manage_backup_file(callback: types.CallbackQuery, db_user: User, db: A
         total_records=f'{backup_info.get("total_records", "?"):,}'
         if isinstance(backup_info.get('total_records'), int)
         else backup_info.get('total_records', '?'),
-        compression=_t(db_user, 'ADMIN_BACKUP_YES') if backup_info.get('compressed') else _t(db_user, 'ADMIN_BACKUP_NO'),
+        compression=_t(db_user, 'ADMIN_BACKUP_YES')
+        if backup_info.get('compressed')
+        else _t(db_user, 'ADMIN_BACKUP_NO'),
         database_type=backup_info.get('database_type', 'unknown'),
     )
 
     if backup_info.get('error'):
         text += _t(db_user, 'ADMIN_BACKUP_INFO_ERROR', error=backup_info['error'])
 
-    await callback.message.edit_text(text, parse_mode='HTML', reply_markup=get_backup_manage_keyboard(filename, db_user.language))
+    await callback.message.edit_text(
+        text, parse_mode='HTML', reply_markup=get_backup_manage_keyboard(filename, db_user.language)
+    )
     await callback.answer()
 
 
@@ -291,7 +319,9 @@ async def delete_backup_confirm(callback: types.CallbackQuery, db_user: User, db
                     text=_t(db_user, 'ADMIN_BACKUP_DELETE_CONFIRM_BUTTON'),
                     callback_data=f'backup_delete_confirm_{filename}',
                 ),
-                InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_CANCEL_BUTTON'), callback_data=f'backup_manage_{filename}'),
+                InlineKeyboardButton(
+                    text=_t(db_user, 'ADMIN_BACKUP_CANCEL_BUTTON'), callback_data=f'backup_manage_{filename}'
+                ),
             ]
         ]
     )
@@ -312,7 +342,13 @@ async def delete_backup_execute(callback: types.CallbackQuery, db_user: User, db
             _t(db_user, 'ADMIN_BACKUP_DELETE_SUCCESS', message=message),
             parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_TO_LIST_FULL_BUTTON'), callback_data='backup_list')]]
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_BACKUP_TO_LIST_FULL_BUTTON'), callback_data='backup_list'
+                        )
+                    ]
+                ]
             ),
         )
     else:
@@ -346,7 +382,11 @@ async def restore_backup_start(callback: types.CallbackQuery, db_user: User, db:
                         callback_data=f'backup_restore_clear_{filename}',
                     ),
                 ],
-                [InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_CANCEL_BUTTON'), callback_data=f'backup_manage_{filename}')],
+                [
+                    InlineKeyboardButton(
+                        text=_t(db_user, 'ADMIN_BACKUP_CANCEL_BUTTON'), callback_data=f'backup_manage_{filename}'
+                    )
+                ],
             ]
         )
     else:
@@ -354,7 +394,11 @@ async def restore_backup_start(callback: types.CallbackQuery, db_user: User, db:
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_PICK_FROM_LIST_BUTTON'), callback_data='backup_list')],
+                [
+                    InlineKeyboardButton(
+                        text=_t(db_user, 'ADMIN_BACKUP_PICK_FROM_LIST_BUTTON'), callback_data='backup_list'
+                    )
+                ],
                 [InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_CANCEL_BUTTON'), callback_data='backup_panel')],
             ]
         )
@@ -416,7 +460,13 @@ async def handle_backup_file_upload(message: types.Message, db_user: User, db: A
         await message.answer(
             _t(db_user, 'ADMIN_BACKUP_UPLOAD_PLEASE_SEND_FILE'),
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_CANCEL_ALT_BUTTON'), callback_data='backup_panel')]]
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_BACKUP_CANCEL_ALT_BUTTON'), callback_data='backup_panel'
+                        )
+                    ]
+                ]
             ),
         )
         return
@@ -427,7 +477,13 @@ async def handle_backup_file_upload(message: types.Message, db_user: User, db: A
         await message.answer(
             _t(db_user, 'ADMIN_BACKUP_UPLOAD_UNSUPPORTED_FORMAT'),
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_CANCEL_ALT_BUTTON'), callback_data='backup_panel')]]
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_BACKUP_CANCEL_ALT_BUTTON'), callback_data='backup_panel'
+                        )
+                    ]
+                ]
             ),
         )
         return
@@ -436,7 +492,13 @@ async def handle_backup_file_upload(message: types.Message, db_user: User, db: A
         await message.answer(
             _t(db_user, 'ADMIN_BACKUP_UPLOAD_TOO_LARGE'),
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_CANCEL_ALT_BUTTON'), callback_data='backup_panel')]]
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_BACKUP_CANCEL_ALT_BUTTON'), callback_data='backup_panel'
+                        )
+                    ]
+                ]
             ),
         )
         return
@@ -479,7 +541,13 @@ async def handle_backup_file_upload(message: types.Message, db_user: User, db: A
         await message.answer(
             _t(db_user, 'ADMIN_BACKUP_UPLOAD_ERROR', error=e),
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text=_t(db_user, 'ADMIN_BACKUP_CANCEL_ALT_BUTTON'), callback_data='backup_panel')]]
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_BACKUP_CANCEL_ALT_BUTTON'), callback_data='backup_panel'
+                        )
+                    ]
+                ]
             ),
         )
 
@@ -501,7 +569,9 @@ async def show_backup_settings(callback: types.CallbackQuery, db_user: User, db:
         compression_status=_t(db_user, 'ADMIN_BACKUP_ENABLED_SINGLE_STATUS')
         if settings_obj.compression_enabled
         else _t(db_user, 'ADMIN_BACKUP_DISABLED_STATUS'),
-        logs_status=_t(db_user, 'ADMIN_BACKUP_YES_STATUS') if settings_obj.include_logs else _t(db_user, 'ADMIN_BACKUP_NO_STATUS'),
+        logs_status=_t(db_user, 'ADMIN_BACKUP_YES_STATUS')
+        if settings_obj.include_logs
+        else _t(db_user, 'ADMIN_BACKUP_NO_STATUS'),
         backup_location=settings_obj.backup_location,
     )
 
@@ -521,24 +591,30 @@ async def toggle_backup_setting(callback: types.CallbackQuery, db_user: User, db
     if callback.data == 'backup_toggle_auto':
         new_value = not settings_obj.auto_backup_enabled
         await backup_service.update_backup_settings(auto_backup_enabled=new_value)
-        status = _t(db_user, 'ADMIN_BACKUP_STATUS_ENABLED_LOWER') if new_value else _t(
-            db_user, 'ADMIN_BACKUP_STATUS_DISABLED_LOWER'
+        status = (
+            _t(db_user, 'ADMIN_BACKUP_STATUS_ENABLED_LOWER')
+            if new_value
+            else _t(db_user, 'ADMIN_BACKUP_STATUS_DISABLED_LOWER')
         )
         await callback.answer(_t(db_user, 'ADMIN_BACKUP_TOGGLE_AUTO_RESULT', status=status))
 
     elif callback.data == 'backup_toggle_compression':
         new_value = not settings_obj.compression_enabled
         await backup_service.update_backup_settings(compression_enabled=new_value)
-        status = _t(db_user, 'ADMIN_BACKUP_STATUS_ENABLED_SINGULAR_LOWER') if new_value else _t(
-            db_user, 'ADMIN_BACKUP_STATUS_DISABLED_LOWER'
+        status = (
+            _t(db_user, 'ADMIN_BACKUP_STATUS_ENABLED_SINGULAR_LOWER')
+            if new_value
+            else _t(db_user, 'ADMIN_BACKUP_STATUS_DISABLED_LOWER')
         )
         await callback.answer(_t(db_user, 'ADMIN_BACKUP_TOGGLE_COMPRESSION_RESULT', status=status))
 
     elif callback.data == 'backup_toggle_logs':
         new_value = not settings_obj.include_logs
         await backup_service.update_backup_settings(include_logs=new_value)
-        status = _t(db_user, 'ADMIN_BACKUP_STATUS_ENABLED_LOWER') if new_value else _t(
-            db_user, 'ADMIN_BACKUP_STATUS_DISABLED_LOWER'
+        status = (
+            _t(db_user, 'ADMIN_BACKUP_STATUS_ENABLED_LOWER')
+            if new_value
+            else _t(db_user, 'ADMIN_BACKUP_STATUS_DISABLED_LOWER')
         )
         await callback.answer(_t(db_user, 'ADMIN_BACKUP_TOGGLE_LOGS_RESULT', status=status))
 

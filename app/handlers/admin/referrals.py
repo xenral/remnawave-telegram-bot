@@ -81,21 +81,51 @@ async def show_referral_statistics(callback: types.CallbackQuery, db_user: User,
 """
 
         keyboard_rows = [
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'), callback_data='admin_referrals')],
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TOP_BUTTON'), callback_data='admin_referrals_top')],
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAGNOSTICS_BUTTON'), callback_data='admin_referral_diagnostics')],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'),
+                    callback_data='admin_referrals',
+                )
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TOP_BUTTON'),
+                    callback_data='admin_referrals_top',
+                )
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAGNOSTICS_BUTTON'),
+                    callback_data='admin_referral_diagnostics',
+                )
+            ],
         ]
 
         # Кнопка заявок на вывод (если функция включена)
         if settings.is_referral_withdrawal_enabled():
             keyboard_rows.append(
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_WITHDRAWALS_BUTTON'), callback_data='admin_withdrawal_requests')]
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_WITHDRAWALS_BUTTON'),
+                        callback_data='admin_withdrawal_requests',
+                    )
+                ]
             )
 
         keyboard_rows.extend(
             [
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_SETTINGS_BUTTON'), callback_data='admin_referrals_settings')],
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'), callback_data='admin_panel')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_SETTINGS_BUTTON'),
+                        callback_data='admin_referrals_settings',
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'),
+                        callback_data='admin_panel',
+                    )
+                ],
             ]
         )
 
@@ -131,8 +161,18 @@ async def show_referral_statistics(callback: types.CallbackQuery, db_user: User,
 
         keyboard = types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_RETRY_BUTTON'), callback_data='admin_referrals')],
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'), callback_data='admin_panel')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_RETRY_BUTTON'),
+                        callback_data='admin_referrals',
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'),
+                        callback_data='admin_panel',
+                    )
+                ],
             ]
         )
 
@@ -160,8 +200,18 @@ def _get_top_keyboard(period: str, sort_by: str) -> types.InlineKeyboardMarkup:
                 types.InlineKeyboardButton(text=sort_earnings, callback_data=f'admin_top_ref:{period}:earnings'),
                 types.InlineKeyboardButton(text=sort_invited, callback_data=f'admin_top_ref:{period}:invited'),
             ],
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'), callback_data=f'admin_top_ref:{period}:{sort_by}')],
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'), callback_data='admin_referrals')],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'),
+                    callback_data=f'admin_top_ref:{period}:{sort_by}',
+                )
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'),
+                    callback_data='admin_referrals',
+                )
+            ],
         ]
     )
 
@@ -279,7 +329,14 @@ async def show_referral_settings(callback: types.CallbackQuery, db_user: User, d
 """
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'), callback_data='admin_referrals')]]
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'),
+                    callback_data='admin_referrals',
+                )
+            ]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -299,9 +356,21 @@ async def show_pending_withdrawal_requests(callback: types.CallbackQuery, db_use
         # Кнопка тестового начисления (только в тестовом режиме)
         if settings.REFERRAL_WITHDRAWAL_TEST_MODE:
             keyboard_rows.append(
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_EARNING_BUTTON'), callback_data='admin_test_referral_earning')]
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_EARNING_BUTTON'),
+                        callback_data='admin_test_referral_earning',
+                    )
+                ]
             )
-        keyboard_rows.append([types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'), callback_data='admin_referrals')])
+        keyboard_rows.append(
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'),
+                    callback_data='admin_referrals',
+                )
+            ]
+        )
 
         await callback.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows))
         await callback.answer()
@@ -335,10 +404,22 @@ async def show_pending_withdrawal_requests(callback: types.CallbackQuery, db_use
     # Кнопка тестового начисления (только в тестовом режиме)
     if settings.REFERRAL_WITHDRAWAL_TEST_MODE:
         keyboard_rows.append(
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_EARNING_BUTTON'), callback_data='admin_test_referral_earning')]
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_EARNING_BUTTON'),
+                    callback_data='admin_test_referral_earning',
+                )
+            ]
         )
 
-    keyboard_rows.append([types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'), callback_data='admin_referrals')])
+    keyboard_rows.append(
+        [
+            types.InlineKeyboardButton(
+                text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'),
+                callback_data='admin_referrals',
+            )
+        ]
+    )
 
     await callback.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows))
     await callback.answer()
@@ -354,7 +435,9 @@ async def view_withdrawal_request(callback: types.CallbackQuery, db_user: User, 
     request = result.scalar_one_or_none()
 
     if not request:
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_NOT_FOUND'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_NOT_FOUND'), show_alert=True
+        )
         return
 
     user = await get_user_by_id(db, request.user_id)
@@ -392,8 +475,14 @@ async def view_withdrawal_request(callback: types.CallbackQuery, db_user: User, 
     if request.status == WithdrawalRequestStatus.PENDING.value:
         keyboard.append(
             [
-                types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_WITHDRAW_APPROVE_BUTTON'), callback_data=f'admin_withdrawal_approve_{request.id}'),
-                types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_WITHDRAW_REJECT_BUTTON'), callback_data=f'admin_withdrawal_reject_{request.id}'),
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_WITHDRAW_APPROVE_BUTTON'),
+                    callback_data=f'admin_withdrawal_approve_{request.id}',
+                ),
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_WITHDRAW_REJECT_BUTTON'),
+                    callback_data=f'admin_withdrawal_reject_{request.id}',
+                ),
             ]
         )
 
@@ -401,16 +490,29 @@ async def view_withdrawal_request(callback: types.CallbackQuery, db_user: User, 
         keyboard.append(
             [
                 types.InlineKeyboardButton(
-                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_WITHDRAW_COMPLETE_BUTTON'), callback_data=f'admin_withdrawal_complete_{request.id}'
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_WITHDRAW_COMPLETE_BUTTON'),
+                    callback_data=f'admin_withdrawal_complete_{request.id}',
                 )
             ]
         )
 
     if user:
         keyboard.append(
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_USER_PROFILE_BUTTON'), callback_data=f'admin_user_manage_{user.id}')]
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_USER_PROFILE_BUTTON'),
+                    callback_data=f'admin_user_manage_{user.id}',
+                )
+            ]
         )
-    keyboard.append([types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_LIST_BUTTON'), callback_data='admin_withdrawal_requests')])
+    keyboard.append(
+        [
+            types.InlineKeyboardButton(
+                text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_LIST_BUTTON'),
+                callback_data='admin_withdrawal_requests',
+            )
+        ]
+    )
 
     await callback.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard))
     await callback.answer()
@@ -426,7 +528,9 @@ async def approve_withdrawal_request(callback: types.CallbackQuery, db_user: Use
     request = result.scalar_one_or_none()
 
     if not request:
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_NOT_FOUND'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_NOT_FOUND'), show_alert=True
+        )
         return
 
     success, error = await referral_withdrawal_service.approve_request(db, request_id, db_user.id)
@@ -468,7 +572,9 @@ async def reject_withdrawal_request(callback: types.CallbackQuery, db_user: User
     request = result.scalar_one_or_none()
 
     if not request:
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_NOT_FOUND'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_NOT_FOUND'), show_alert=True
+        )
         return
 
     success = await referral_withdrawal_service.reject_request(db, request_id, db_user.id, 'Отклонено администратором')
@@ -496,7 +602,9 @@ async def reject_withdrawal_request(callback: types.CallbackQuery, db_user: User
         # Обновляем отображение
         await view_withdrawal_request(callback, db_user, db)
     else:
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_REJECT_ERROR'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_REJECT_ERROR'), show_alert=True
+        )
 
 
 @admin_required
@@ -509,7 +617,9 @@ async def complete_withdrawal_request(callback: types.CallbackQuery, db_user: Us
     request = result.scalar_one_or_none()
 
     if not request:
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_NOT_FOUND'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_NOT_FOUND'), show_alert=True
+        )
         return
 
     success = await referral_withdrawal_service.complete_request(db, request_id, db_user.id, 'Перевод выполнен')
@@ -537,7 +647,9 @@ async def complete_withdrawal_request(callback: types.CallbackQuery, db_user: Us
         # Обновляем отображение
         await view_withdrawal_request(callback, db_user, db)
     else:
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_COMPLETE_ERROR'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REQUEST_COMPLETE_ERROR'), show_alert=True
+        )
 
 
 @admin_required
@@ -566,7 +678,14 @@ async def start_test_referral_earning(
 """
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'), callback_data='admin_withdrawal_requests')]]
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'),
+                    callback_data='admin_withdrawal_requests',
+                )
+            ]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -586,9 +705,7 @@ async def process_test_referral_earning(message: types.Message, db_user: User, d
     parts = text_input.split()
 
     if len(parts) != 2:
-        await message.answer(
-            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_INVALID_FORMAT')
-        )
+        await message.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_INVALID_FORMAT'))
         return
 
     try:
@@ -605,18 +722,16 @@ async def process_test_referral_earning(message: types.Message, db_user: User, d
             return
 
     except ValueError:
-        await message.answer(
-            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_INVALID_NUMBERS')
-        )
+        await message.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_INVALID_NUMBERS'))
         return
 
     # Ищем целевого пользователя
     target_user = await get_user_by_telegram_id(db, target_telegram_id)
     if not target_user:
         await message.answer(
-            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_USER_NOT_FOUND_BY_ID').format(
-                telegram_id=target_telegram_id
-            )
+            get_texts(settings.DEFAULT_LANGUAGE)
+            .t('ADMIN_REFERRAL_USER_NOT_FOUND_BY_ID')
+            .format(telegram_id=target_telegram_id)
         )
         return
 
@@ -636,7 +751,9 @@ async def process_test_referral_earning(message: types.Message, db_user: User, d
     await state.clear()
 
     await message.answer(
-        get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TEST_EARNING_CREATED').format(
+        get_texts(settings.DEFAULT_LANGUAGE)
+        .t('ADMIN_REFERRAL_TEST_EARNING_CREATED')
+        .format(
             user_name=target_user.full_name or get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_NO_NAME'),
             telegram_id=target_telegram_id,
             amount=f'{amount_rubles:.0f}₽',
@@ -644,8 +761,18 @@ async def process_test_referral_earning(message: types.Message, db_user: User, d
         ),
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TO_REQUESTS_BUTTON'), callback_data='admin_withdrawal_requests')],
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_PROFILE_BUTTON'), callback_data=f'admin_user_manage_{target_user.id}')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_TO_REQUESTS_BUTTON'),
+                        callback_data='admin_withdrawal_requests',
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_PROFILE_BUTTON'),
+                        callback_data=f'admin_user_manage_{target_user.id}',
+                    )
+                ],
             ]
         ),
     )
@@ -769,13 +896,27 @@ async def _show_diagnostics_for_period(callback: types.CallbackQuery, db: AsyncS
         # Кнопки: только "Сегодня" (текущий лог) и "Загрузить файл" (старые логи)
         keyboard_rows = [
             [
-                types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_TODAY_BUTTON'), callback_data='admin_ref_diag:today'),
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_TODAY_BUTTON'),
+                    callback_data='admin_ref_diag:today',
+                ),
             ],
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_UPLOAD_BUTTON'), callback_data='admin_ref_diag_upload')],
-            [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_CHECK_BONUSES_BUTTON'), callback_data='admin_ref_check_bonuses')],
             [
                 types.InlineKeyboardButton(
-                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_SYNC_CONTEST_BUTTON'), callback_data='admin_ref_sync_contest'
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_UPLOAD_BUTTON'),
+                    callback_data='admin_ref_diag_upload',
+                )
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_CHECK_BONUSES_BUTTON'),
+                    callback_data='admin_ref_check_bonuses',
+                )
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_SYNC_CONTEST_BUTTON'),
+                    callback_data='admin_ref_sync_contest',
                 )
             ],
         ]
@@ -783,13 +924,28 @@ async def _show_diagnostics_for_period(callback: types.CallbackQuery, db: AsyncS
         # Кнопки действий (только если есть потерянные рефералы)
         if report.lost_referrals:
             keyboard_rows.append(
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_PREVIEW_FIXES_BUTTON'), callback_data='admin_ref_fix_preview')]
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_PREVIEW_FIXES_BUTTON'),
+                        callback_data='admin_ref_fix_preview',
+                    )
+                ]
             )
 
         keyboard_rows.extend(
             [
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'), callback_data=f'admin_ref_diag:{period}')],
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'), callback_data='admin_referrals')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'),
+                        callback_data=f'admin_ref_diag:{period}',
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'),
+                        callback_data='admin_referrals',
+                    )
+                ],
             ]
         )
 
@@ -799,7 +955,9 @@ async def _show_diagnostics_for_period(callback: types.CallbackQuery, db: AsyncS
 
     except Exception as e:
         logger.error(f'Ошибка в _show_diagnostics_for_period: {e}', exc_info=True)
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_LOG_ANALYSIS_ERROR'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_LOG_ANALYSIS_ERROR'), show_alert=True
+        )
 
 
 @admin_required
@@ -833,7 +991,9 @@ async def preview_referral_fixes(callback: types.CallbackQuery, db_user: User, d
             # Используем сохранённый отчёт из загруженного файла (десериализуем)
             report_data = state_data.get('uploaded_file_report')
             if not report_data:
-                await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOADED_REPORT_NOT_FOUND'), show_alert=True)
+                await callback.answer(
+                    get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOADED_REPORT_NOT_FOUND'), show_alert=True
+                )
                 return
             report = DiagnosticReport.from_dict(report_data)
             period_display = 'загруженный файл'
@@ -846,7 +1006,9 @@ async def preview_referral_fixes(callback: types.CallbackQuery, db_user: User, d
             period_display = _get_period_display_name(period)
 
         if not report.lost_referrals:
-            await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_NO_LOST_FOR_FIX'), show_alert=True)
+            await callback.answer(
+                get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_NO_LOST_FOR_FIX'), show_alert=True
+            )
             return
 
         # Запускаем предпросмотр исправлений
@@ -895,7 +1057,12 @@ async def preview_referral_fixes(callback: types.CallbackQuery, db_user: User, d
 
         keyboard = types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_APPLY_FIXES_BUTTON'), callback_data='admin_ref_fix_apply')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_APPLY_FIXES_BUTTON'),
+                        callback_data='admin_ref_fix_apply',
+                    )
+                ],
                 [types.InlineKeyboardButton(text=back_button_text, callback_data=back_button_callback)],
             ]
         )
@@ -925,7 +1092,9 @@ async def apply_referral_fixes(callback: types.CallbackQuery, db_user: User, db:
             # Используем сохранённый отчёт из загруженного файла (десериализуем)
             report_data = state_data.get('uploaded_file_report')
             if not report_data:
-                await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOADED_REPORT_NOT_FOUND'), show_alert=True)
+                await callback.answer(
+                    get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOADED_REPORT_NOT_FOUND'), show_alert=True
+                )
                 return
             report = DiagnosticReport.from_dict(report_data)
             period_display = 'загруженный файл'
@@ -938,7 +1107,9 @@ async def apply_referral_fixes(callback: types.CallbackQuery, db_user: User, db:
             period_display = _get_period_display_name(period)
 
         if not report.lost_referrals:
-            await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_NO_LOST_FOR_FIX'), show_alert=True)
+            await callback.answer(
+                get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_NO_LOST_FOR_FIX'), show_alert=True
+            )
             return
 
         # Применяем исправления
@@ -993,9 +1164,21 @@ async def apply_referral_fixes(callback: types.CallbackQuery, db_user: User, db:
         keyboard_rows = []
         if period != 'uploaded_file':
             keyboard_rows.append(
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_REFRESH_BUTTON'), callback_data=f'admin_ref_diag:{period}')]
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_REFRESH_BUTTON'),
+                        callback_data=f'admin_ref_diag:{period}',
+                    )
+                ]
             )
-        keyboard_rows.append([types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'), callback_data='admin_referrals')])
+        keyboard_rows.append(
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'),
+                    callback_data='admin_referrals',
+                )
+            ]
+        )
 
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
 
@@ -1062,17 +1245,42 @@ async def check_missing_bonuses(callback: types.CallbackQuery, db_user: User, db
 
             keyboard = types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_APPLY_ALL_BONUSES_BUTTON'), callback_data='admin_ref_bonus_apply')],
-                    [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'), callback_data='admin_ref_check_bonuses')],
-                    [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'), callback_data='admin_referral_diagnostics')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_APPLY_ALL_BONUSES_BUTTON'),
+                            callback_data='admin_ref_bonus_apply',
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'),
+                            callback_data='admin_ref_check_bonuses',
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'),
+                            callback_data='admin_referral_diagnostics',
+                        )
+                    ],
                 ]
             )
         else:
             text += '\n✅ <b>Все бонусы начислены!</b>'
             keyboard = types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'), callback_data='admin_ref_check_bonuses')],
-                    [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'), callback_data='admin_referral_diagnostics')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REFRESH_BUTTON'),
+                            callback_data='admin_ref_check_bonuses',
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'),
+                            callback_data='admin_referral_diagnostics',
+                        )
+                    ],
                 ]
             )
 
@@ -1080,7 +1288,9 @@ async def check_missing_bonuses(callback: types.CallbackQuery, db_user: User, db
 
     except Exception as e:
         logger.error(f'Ошибка в check_missing_bonuses: {e}', exc_info=True)
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CHECK_BONUS_ERROR'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CHECK_BONUS_ERROR'), show_alert=True
+        )
 
 
 @admin_required
@@ -1100,13 +1310,17 @@ async def apply_missing_bonuses(callback: types.CallbackQuery, db_user: User, db
         report_dict = data.get('missing_bonuses_report')
 
         if not report_dict:
-            await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REPORT_NOT_FOUND_REFRESH'), show_alert=True)
+            await callback.answer(
+                get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_REPORT_NOT_FOUND_REFRESH'), show_alert=True
+            )
             return
 
         report = MissingBonusReport.from_dict(report_dict)
 
         if not report.missing_bonuses:
-            await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_NO_BONUSES_TO_APPLY'), show_alert=True)
+            await callback.answer(
+                get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_NO_BONUSES_TO_APPLY'), show_alert=True
+            )
             return
 
         # Применяем исправления
@@ -1130,8 +1344,18 @@ async def apply_missing_bonuses(callback: types.CallbackQuery, db_user: User, db
 
         keyboard = types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_CHECK_AGAIN_BUTTON'), callback_data='admin_ref_check_bonuses')],
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'), callback_data='admin_referral_diagnostics')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_CHECK_AGAIN_BUTTON'),
+                        callback_data='admin_ref_check_bonuses',
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'),
+                        callback_data='admin_referral_diagnostics',
+                    )
+                ],
             ]
         )
 
@@ -1139,7 +1363,9 @@ async def apply_missing_bonuses(callback: types.CallbackQuery, db_user: User, db
 
     except Exception as e:
         logger.error(f'Ошибка в apply_missing_bonuses: {e}', exc_info=True)
-        await callback.answer(get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_APPLY_BONUS_ERROR'), show_alert=True)
+        await callback.answer(
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_APPLY_BONUS_ERROR'), show_alert=True
+        )
 
 
 @admin_required
@@ -1169,7 +1395,12 @@ async def sync_referrals_with_contest(
                 get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_NO_ACTIVE_CONTESTS'),
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'), callback_data='admin_referral_diagnostics')]
+                        [
+                            types.InlineKeyboardButton(
+                                text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'),
+                                callback_data='admin_referral_diagnostics',
+                            )
+                        ]
                     ]
                 ),
             )
@@ -1206,8 +1437,18 @@ async def sync_referrals_with_contest(
 
         keyboard = types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_SYNC_AGAIN_BUTTON'), callback_data='admin_ref_sync_contest')],
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'), callback_data='admin_referral_diagnostics')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_SYNC_AGAIN_BUTTON'),
+                        callback_data='admin_ref_sync_contest',
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'),
+                        callback_data='admin_referral_diagnostics',
+                    )
+                ],
             ]
         )
 
@@ -1240,7 +1481,14 @@ async def request_log_file_upload(callback: types.CallbackQuery, db_user: User, 
 """
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'), callback_data='admin_referral_diagnostics')]]
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'),
+                    callback_data='admin_referral_diagnostics',
+                )
+            ]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -1259,7 +1507,12 @@ async def receive_log_file(message: types.Message, db_user: User, db: AsyncSessi
             get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOAD_SEND_DOCUMENT'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'), callback_data='admin_referral_diagnostics')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'),
+                            callback_data='admin_referral_diagnostics',
+                        )
+                    ]
                 ]
             ),
         )
@@ -1271,12 +1524,15 @@ async def receive_log_file(message: types.Message, db_user: User, db: AsyncSessi
 
     if file_ext not in ['.log', '.txt']:
         await message.answer(
-            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOAD_INVALID_FILE_FORMAT').format(
-                ext=file_ext
-            ),
+            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOAD_INVALID_FILE_FORMAT').format(ext=file_ext),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'), callback_data='admin_referral_diagnostics')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'),
+                            callback_data='admin_referral_diagnostics',
+                        )
+                    ]
                 ]
             ),
         )
@@ -1286,12 +1542,17 @@ async def receive_log_file(message: types.Message, db_user: User, db: AsyncSessi
     max_size = 50 * 1024 * 1024  # 50 MB
     if message.document.file_size > max_size:
         await message.answer(
-            get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOAD_FILE_TOO_LARGE').format(
-                size_mb=f'{message.document.file_size / 1024 / 1024:.1f}'
-            ),
+            get_texts(settings.DEFAULT_LANGUAGE)
+            .t('ADMIN_REFERRAL_UPLOAD_FILE_TOO_LARGE')
+            .format(size_mb=f'{message.document.file_size / 1024 / 1024:.1f}'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'), callback_data='admin_referral_diagnostics')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_CANCEL_BUTTON'),
+                            callback_data='admin_referral_diagnostics',
+                        )
+                    ]
                 ]
             ),
         )
@@ -1299,7 +1560,9 @@ async def receive_log_file(message: types.Message, db_user: User, db: AsyncSessi
 
     # Информируем о начале загрузки
     status_message = await message.answer(
-        get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOAD_LOADING_FILE').format(
+        get_texts(settings.DEFAULT_LANGUAGE)
+        .t('ADMIN_REFERRAL_UPLOAD_LOADING_FILE')
+        .format(
             file_name=file_name,
             size_mb=f'{message.document.file_size / 1024 / 1024:.1f}',
         )
@@ -1386,13 +1649,28 @@ async def receive_log_file(message: types.Message, db_user: User, db: AsyncSessi
 
         if report.lost_referrals:
             keyboard_rows.append(
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_PREVIEW_FIXES_BUTTON'), callback_data='admin_ref_fix_preview')]
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_PREVIEW_FIXES_BUTTON'),
+                        callback_data='admin_ref_fix_preview',
+                    )
+                ]
             )
 
         keyboard_rows.extend(
             [
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'), callback_data='admin_referral_diagnostics')],
-                [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'), callback_data='admin_referrals')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'),
+                        callback_data='admin_referral_diagnostics',
+                    )
+                ],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_TO_STATS_BUTTON'),
+                        callback_data='admin_referrals',
+                    )
+                ],
             ]
         )
 
@@ -1412,7 +1690,9 @@ async def receive_log_file(message: types.Message, db_user: User, db: AsyncSessi
 
         try:
             await status_message.edit_text(
-                get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOAD_ANALYSIS_ERROR').format(
+                get_texts(settings.DEFAULT_LANGUAGE)
+                .t('ADMIN_REFERRAL_UPLOAD_ANALYSIS_ERROR')
+                .format(
                     file_name=file_name,
                     error=str(e),
                 ),
@@ -1420,12 +1700,14 @@ async def receive_log_file(message: types.Message, db_user: User, db: AsyncSessi
                     inline_keyboard=[
                         [
                             types.InlineKeyboardButton(
-                                text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_RETRY_UPLOAD_BUTTON'), callback_data='admin_ref_diag_upload'
+                                text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_RETRY_UPLOAD_BUTTON'),
+                                callback_data='admin_ref_diag_upload',
                             )
                         ],
                         [
                             types.InlineKeyboardButton(
-                                text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'), callback_data='admin_referral_diagnostics'
+                                text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_DIAG_BACK_BUTTON'),
+                                callback_data='admin_referral_diagnostics',
                             )
                         ],
                     ]
@@ -1433,12 +1715,17 @@ async def receive_log_file(message: types.Message, db_user: User, db: AsyncSessi
             )
         except:
             await message.answer(
-                get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_UPLOAD_ANALYSIS_ERROR_SHORT').format(
-                    error=str(e)
-                ),
+                get_texts(settings.DEFAULT_LANGUAGE)
+                .t('ADMIN_REFERRAL_UPLOAD_ANALYSIS_ERROR_SHORT')
+                .format(error=str(e)),
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [types.InlineKeyboardButton(text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'), callback_data='admin_referral_diagnostics')]
+                        [
+                            types.InlineKeyboardButton(
+                                text=get_texts(settings.DEFAULT_LANGUAGE).t('ADMIN_REFERRAL_BACK_BUTTON'),
+                                callback_data='admin_referral_diagnostics',
+                            )
+                        ]
                     ]
                 ),
             )

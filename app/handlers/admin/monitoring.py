@@ -171,7 +171,11 @@ def _build_notification_settings_view(language: str):
                     callback_data='admin_mon_notify_edit_nd_threshold',
                 )
             ],
-            [InlineKeyboardButton(text=texts.t('ADMIN_MON_NOTIFY_SEND_ALL_TESTS'), callback_data='admin_mon_notify_preview_all')],
+            [
+                InlineKeyboardButton(
+                    text=texts.t('ADMIN_MON_NOTIFY_SEND_ALL_TESTS'), callback_data='admin_mon_notify_preview_all'
+                )
+            ],
             [InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_mon_settings')],
         ]
     )
@@ -442,8 +446,8 @@ async def admin_monitoring_menu(callback: CallbackQuery):
             language = callback.from_user.language_code or settings.DEFAULT_LANGUAGE
             texts = get_texts(language)
 
-            running_status = texts.t('ADMIN_MON_STATUS_RUNNING') if status['is_running'] else texts.t(
-                'ADMIN_MON_STATUS_STOPPED'
+            running_status = (
+                texts.t('ADMIN_MON_STATUS_RUNNING') if status['is_running'] else texts.t('ADMIN_MON_STATUS_STOPPED')
             )
             last_update = (
                 status['last_update'].strftime('%H:%M:%S')
@@ -496,7 +500,11 @@ async def admin_monitoring_settings(callback: CallbackQuery):
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text=texts.t('ADMIN_MON_NOTIFY_SETTINGS_BUTTON'), callback_data='admin_mon_notify_settings')],
+                [
+                    InlineKeyboardButton(
+                        text=texts.t('ADMIN_MON_NOTIFY_SETTINGS_BUTTON'), callback_data='admin_mon_notify_settings'
+                    )
+                ],
                 [InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_submenu_settings')],
             ]
         )
@@ -913,7 +921,11 @@ async def traffic_check_callback(callback: CallbackQuery):
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text=texts.t('ADMIN_MON_TRAFFIC_REPEAT_BUTTON'), callback_data='admin_mon_traffic_check')],
+                [
+                    InlineKeyboardButton(
+                        text=texts.t('ADMIN_MON_TRAFFIC_REPEAT_BUTTON'), callback_data='admin_mon_traffic_check'
+                    )
+                ],
                 [InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_monitoring')],
             ]
         )
@@ -940,7 +952,9 @@ async def monitoring_logs_callback(callback: CallbackQuery):
 
             if not all_logs:
                 text = texts.t('ADMIN_MON_LOGS_EMPTY_TEXT')
-                keyboard = get_monitoring_logs_back_keyboard(callback.from_user.language_code or settings.DEFAULT_LANGUAGE)
+                keyboard = get_monitoring_logs_back_keyboard(
+                    callback.from_user.language_code or settings.DEFAULT_LANGUAGE
+                )
                 await callback.message.edit_text(text, parse_mode='HTML', reply_markup=keyboard)
                 return
 
@@ -1015,8 +1029,10 @@ async def clear_logs_callback(callback: CallbackQuery):
 async def test_notifications_callback(callback: CallbackQuery):
     try:
         texts = get_texts(callback.from_user.language_code or settings.DEFAULT_LANGUAGE)
-        monitoring_status = texts.t('ADMIN_MON_STATUS_RUNNING') if monitoring_service.is_running else texts.t(
-            'ADMIN_MON_STATUS_STOPPED'
+        monitoring_status = (
+            texts.t('ADMIN_MON_STATUS_RUNNING')
+            if monitoring_service.is_running
+            else texts.t('ADMIN_MON_STATUS_STOPPED')
         )
         notifications_status = (
             texts.t('ADMIN_MON_NOTIFICATIONS_ENABLED')
@@ -1089,8 +1105,8 @@ async def monitoring_statistics_callback(callback: CallbackQuery):
                 pending_count = nalogo_status.get('pending_verification_count', 0)
                 pending_amount = nalogo_status.get('pending_verification_amount', 0)
 
-                nalogo_service_status = texts.t('ADMIN_MON_STATUS_RUNNING') if running else texts.t(
-                    'ADMIN_MON_STATUS_STOPPED'
+                nalogo_service_status = (
+                    texts.t('ADMIN_MON_STATUS_RUNNING') if running else texts.t('ADMIN_MON_STATUS_STOPPED')
                 )
                 nalogo_section = texts.t('ADMIN_MON_NALOGO_SECTION').format(
                     service_status=nalogo_service_status,
@@ -1115,9 +1131,7 @@ async def monitoring_statistics_callback(callback: CallbackQuery):
                 if nalogo_status.get('queue_length', 0) > 0:
                     nalogo_buttons.append(
                         InlineKeyboardButton(
-                            text=texts.t('ADMIN_MON_NALOGO_SEND_BUTTON').format(
-                                count=nalogo_status['queue_length']
-                            ),
+                            text=texts.t('ADMIN_MON_NALOGO_SEND_BUTTON').format(count=nalogo_status['queue_length']),
                             callback_data='admin_mon_nalogo_force_process',
                         )
                     )
@@ -1159,7 +1173,9 @@ async def nalogo_force_process_callback(callback: CallbackQuery):
         result = await nalogo_queue_service.force_process()
 
         if 'error' in result:
-            await callback.answer(texts.t('ADMIN_MON_NALOGO_PROCESS_ERROR').format(error=result['error']), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_MON_NALOGO_PROCESS_ERROR').format(error=result['error']), show_alert=True
+            )
             return
 
         processed = result.get('processed', 0)
@@ -1220,8 +1236,8 @@ async def nalogo_force_process_callback(callback: CallbackQuery):
                 total_amount = nalogo_status.get('total_amount', 0)
                 running = nalogo_status.get('running', False)
 
-                nalogo_service_status = texts.t('ADMIN_MON_STATUS_RUNNING') if running else texts.t(
-                    'ADMIN_MON_STATUS_STOPPED'
+                nalogo_service_status = (
+                    texts.t('ADMIN_MON_STATUS_RUNNING') if running else texts.t('ADMIN_MON_STATUS_STOPPED')
                 )
                 nalogo_section = texts.t('ADMIN_MON_NALOGO_SECTION').format(
                     service_status=nalogo_service_status,
@@ -1239,9 +1255,7 @@ async def nalogo_force_process_callback(callback: CallbackQuery):
                 if nalogo_status.get('queue_length', 0) > 0:
                     nalogo_buttons.append(
                         InlineKeyboardButton(
-                            text=texts.t('ADMIN_MON_NALOGO_SEND_BUTTON').format(
-                                count=nalogo_status['queue_length']
-                            ),
+                            text=texts.t('ADMIN_MON_NALOGO_SEND_BUTTON').format(count=nalogo_status['queue_length']),
                             callback_data='admin_mon_nalogo_force_process',
                         )
                     )
@@ -1377,7 +1391,9 @@ async def nalogo_retry_callback(callback: CallbackQuery):
         receipt_uuid = await nalogo_service.retry_pending_receipt(payment_id)
 
         if receipt_uuid:
-            await callback.answer(texts.t('ADMIN_MON_NALOGO_RECEIPT_CREATED').format(receipt_uuid=receipt_uuid), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_MON_NALOGO_RECEIPT_CREATED').format(receipt_uuid=receipt_uuid), show_alert=True
+            )
             # Обновляем список
             await nalogo_pending_callback(callback)
         else:
@@ -1571,7 +1587,11 @@ async def _do_reconcile_logs(callback: CallbackQuery):
                     parse_mode='HTML',
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [InlineKeyboardButton(text=texts.t('ADMIN_MON_REFRESH_BUTTON'), callback_data='admin_mon_reconcile_logs')],
+                            [
+                                InlineKeyboardButton(
+                                    text=texts.t('ADMIN_MON_REFRESH_BUTTON'), callback_data='admin_mon_reconcile_logs'
+                                )
+                            ],
                             [InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_mon_statistics')],
                         ]
                     ),
@@ -1668,8 +1688,17 @@ async def _do_reconcile_logs(callback: CallbackQuery):
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text=texts.t('ADMIN_MON_REFRESH_BUTTON'), callback_data='admin_mon_reconcile_logs')],
-                [InlineKeyboardButton(text=texts.t('ADMIN_MON_RECONCILE_DETAILS_BUTTON'), callback_data='admin_mon_reconcile_logs_details')],
+                [
+                    InlineKeyboardButton(
+                        text=texts.t('ADMIN_MON_REFRESH_BUTTON'), callback_data='admin_mon_reconcile_logs'
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text=texts.t('ADMIN_MON_RECONCILE_DETAILS_BUTTON'),
+                        callback_data='admin_mon_reconcile_logs_details',
+                    )
+                ],
                 [InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_mon_statistics')],
             ]
         )
@@ -1787,6 +1816,7 @@ async def receipts_reconcile_logs_details_callback(callback: CallbackQuery):
 
 def get_monitoring_logs_keyboard(current_page: int, total_pages: int, language: str):
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
     texts = get_texts(language)
 
     keyboard = []
@@ -1819,6 +1849,7 @@ def get_monitoring_logs_keyboard(current_page: int, total_pages: int, language: 
 
 def get_monitoring_logs_back_keyboard(language: str):
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
     texts = get_texts(language)
 
     return InlineKeyboardMarkup(
@@ -1841,8 +1872,8 @@ async def monitoring_command(message: Message):
             status = await monitoring_service.get_monitoring_status(db)
             texts = get_texts(message.from_user.language_code or settings.DEFAULT_LANGUAGE)
 
-            running_status = texts.t('ADMIN_MON_STATUS_RUNNING') if status['is_running'] else texts.t(
-                'ADMIN_MON_STATUS_STOPPED'
+            running_status = (
+                texts.t('ADMIN_MON_STATUS_RUNNING') if status['is_running'] else texts.t('ADMIN_MON_STATUS_STOPPED')
             )
 
             text = texts.t('ADMIN_MON_QUICK_STATUS_TEXT').format(
@@ -1967,7 +1998,9 @@ def _build_traffic_settings_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=texts.t('ADMIN_TRAFFIC_FAST_TOGGLE_BUTTON').format(status=_format_traffic_toggle(fast_enabled)),
+                    text=texts.t('ADMIN_TRAFFIC_FAST_TOGGLE_BUTTON').format(
+                        status=_format_traffic_toggle(fast_enabled)
+                    ),
                     callback_data='admin_traffic_toggle_fast',
                 )
             ],
@@ -2077,7 +2110,9 @@ async def toggle_fast_check(callback: CallbackQuery):
             await BotConfigurationService.set_value(db, 'TRAFFIC_FAST_CHECK_ENABLED', new_value)
             await db.commit()
 
-        await callback.answer(texts.t('ADMIN_MON_TOGGLE_ENABLED') if new_value else texts.t('ADMIN_MON_TOGGLE_DISABLED'))
+        await callback.answer(
+            texts.t('ADMIN_MON_TOGGLE_ENABLED') if new_value else texts.t('ADMIN_MON_TOGGLE_DISABLED')
+        )
 
         # Обновляем отображение
         text = _build_traffic_settings_text()
@@ -2105,7 +2140,9 @@ async def toggle_daily_check(callback: CallbackQuery):
             await BotConfigurationService.set_value(db, 'TRAFFIC_DAILY_CHECK_ENABLED', new_value)
             await db.commit()
 
-        await callback.answer(texts.t('ADMIN_MON_TOGGLE_ENABLED') if new_value else texts.t('ADMIN_MON_TOGGLE_DISABLED'))
+        await callback.answer(
+            texts.t('ADMIN_MON_TOGGLE_ENABLED') if new_value else texts.t('ADMIN_MON_TOGGLE_DISABLED')
+        )
 
         text = _build_traffic_settings_text()
         keyboard = _build_traffic_settings_keyboard()

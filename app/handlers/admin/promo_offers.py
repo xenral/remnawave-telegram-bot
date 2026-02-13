@@ -383,33 +383,21 @@ def _format_promo_offer_log_entry(
 
     description = details.get('description')
     if description:
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_LOGS_DESCRIPTION').format(
-                description=html.escape(str(description))
-            )
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_LOGS_DESCRIPTION').format(description=html.escape(str(description))))
 
     amount = details.get('amount_kopeks')
     if isinstance(amount, int):
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_LOGS_AMOUNT').format(amount=texts.format_price(amount))
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_LOGS_AMOUNT').format(amount=texts.format_price(amount)))
 
     squad_uuid = details.get('squad_uuid')
     if squad_uuid:
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_LOGS_SQUAD').format(squad=html.escape(str(squad_uuid)))
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_LOGS_SQUAD').format(squad=html.escape(str(squad_uuid))))
 
     new_squads = details.get('new_squads')
     if isinstance(new_squads, (list, tuple)):
         filtered = [html.escape(str(item)) for item in new_squads if item]
         if filtered:
-            lines.append(
-                texts.t('ADMIN_PROMO_OFFER_LOGS_NEW_SQUADS').format(
-                    squads=', '.join(filtered)
-                )
-            )
+            lines.append(texts.t('ADMIN_PROMO_OFFER_LOGS_NEW_SQUADS').format(squads=', '.join(filtered)))
 
     return '\n'.join(lines)
 
@@ -563,15 +551,11 @@ async def _render_send_user_list(
     ]
 
     if query:
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_SEND_USER_SEARCH_QUERY').format(query=html.escape(query))
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_SEARCH_QUERY').format(query=html.escape(query)))
 
     if not users:
         lines.append('')
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_SEND_USER_EMPTY')
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_EMPTY'))
 
     keyboard_rows: list[list[InlineKeyboardButton]] = []
     for user in users:
@@ -610,10 +594,10 @@ async def _render_send_user_list(
 
     keyboard_rows.append(
         [
-                InlineKeyboardButton(
-                    text=texts.t('ADMIN_PROMO_OFFER_SEND_USER_SEARCH'),
-                    callback_data=f'promo_offer_send_user_search_{template_id}',
-                )
+            InlineKeyboardButton(
+                text=texts.t('ADMIN_PROMO_OFFER_SEND_USER_SEARCH'),
+                callback_data=f'promo_offer_send_user_search_{template_id}',
+            )
         ]
     )
 
@@ -724,9 +708,7 @@ def _describe_offer(
             lines.append(texts.t('ADMIN_PROMO_OFFER_TEST_SQUAD_NAME').format(name=server_name))
         elif squads:
             lines.append(
-                texts.t('ADMIN_PROMO_OFFER_TEST_SQUADS').format(
-                    squads=', '.join(str(item) for item in squads)
-                )
+                texts.t('ADMIN_PROMO_OFFER_TEST_SQUADS').format(squads=', '.join(str(item) for item in squads))
             )
         elif server_uuid:
             lines.append(texts.t('ADMIN_PROMO_OFFER_TEST_SQUADS').format(squads=server_uuid))
@@ -1000,9 +982,7 @@ async def _render_squad_selection(
 
     lines = [header, '', current, '', hint]
     if total_pages > 1:
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_SELECT_SQUAD_PAGE').format(page=page, total=total_pages)
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_SELECT_SQUAD_PAGE').format(page=page, total=total_pages))
 
     text = '\n'.join(lines)
 
@@ -1251,9 +1231,7 @@ async def prompt_send_user_search(callback: CallbackQuery, db_user: User, db: As
     await state.update_data(promo_offer_user_search_template=template_id)
 
     texts = get_texts(db_user.language)
-    prompt_message = await callback.message.answer(
-        texts.t('ADMIN_PROMO_OFFER_SEND_USER_SEARCH_PROMPT')
-    )
+    prompt_message = await callback.message.answer(texts.t('ADMIN_PROMO_OFFER_SEND_USER_SEARCH_PROMPT'))
     await state.update_data(
         promo_offer_user_search_prompt={
             'chat_id': prompt_message.chat.id,
@@ -1439,9 +1417,7 @@ async def show_selected_user_details(
 
     lines = [
         texts.t('ADMIN_PROMO_OFFER_SEND_USER_PROFILE').format(name=name),
-        texts.t('ADMIN_PROMO_OFFER_SEND_USER_TELEGRAM').format(
-            telegram_id=user.telegram_id or '—'
-        ),
+        texts.t('ADMIN_PROMO_OFFER_SEND_USER_TELEGRAM').format(telegram_id=user.telegram_id or '—'),
     ]
 
     if username:
@@ -1451,11 +1427,7 @@ async def show_selected_user_details(
     lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_STATUS').format(status=status_label))
 
     if balance:
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_SEND_USER_BALANCE').format(
-                amount=settings.format_price(balance)
-            )
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_BALANCE').format(amount=settings.format_price(balance)))
 
     subscription = getattr(user, 'subscription', None)
     if subscription:
@@ -1469,9 +1441,7 @@ async def show_selected_user_details(
             if subscription.end_date
             else texts.t('ADMIN_PROMO_OFFER_SEND_USER_SUBSCRIPTION_END_UNKNOWN')
         )
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_SEND_USER_SUBSCRIPTION_END').format(date=end_date_text)
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_SUBSCRIPTION_END').format(date=end_date_text))
         lines.append(
             texts.t('ADMIN_PROMO_OFFER_SEND_USER_SUBSCRIPTION_TRAFFIC').format(
                 used=subscription.traffic_used_gb or 0,
@@ -1480,9 +1450,7 @@ async def show_selected_user_details(
         )
         connected = subscription.connected_squads or []
         if connected:
-            lines.append(
-                texts.t('ADMIN_PROMO_OFFER_SEND_USER_SUBSCRIPTION_SQUADS').format(count=len(connected))
-            )
+            lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_SUBSCRIPTION_SQUADS').format(count=len(connected)))
     else:
         lines.append('')
         lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_NO_SUBSCRIPTION'))
@@ -1526,9 +1494,7 @@ async def show_selected_user_details(
 
     if template.offer_type == 'test_access':
         duration_hours = template.test_duration_hours or 0
-        lines.append(
-            texts.t('ADMIN_PROMO_OFFER_SEND_USER_TEMPLATE_TEST_DURATION').format(hours=duration_hours)
-        )
+        lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_TEMPLATE_TEST_DURATION').format(hours=duration_hours))
     else:
         if template.discount_percent:
             lines.append(
@@ -1537,9 +1503,7 @@ async def show_selected_user_details(
 
         active_hours = template.active_discount_hours or 0
         if active_hours:
-            lines.append(
-                texts.t('ADMIN_PROMO_OFFER_SEND_USER_TEMPLATE_ACTIVE_DURATION').format(hours=active_hours)
-            )
+            lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_TEMPLATE_ACTIVE_DURATION').format(hours=active_hours))
 
     active_offers = await list_discount_offers(db, user_id=user.id, is_active=True)
     if active_offers:
@@ -1576,30 +1540,22 @@ async def show_selected_user_details(
                     )
                 )
             description = ', '.join(parts) or offer.effect_type
-            lines.append(
-                texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_ITEM_HEADER').format(description=description)
-            )
+            lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_ITEM_HEADER').format(description=description))
 
             expires_text = (
                 format_datetime(offer.expires_at)
                 if offer.expires_at
                 else texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_NO_EXPIRY')
             )
-            lines.append(
-                texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_EXPIRES').format(expires=expires_text)
-            )
+            lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_EXPIRES').format(expires=expires_text))
 
             status_label = texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_STATUS_ACCEPTED')
             if not offer.claimed_at:
                 status_label = texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_STATUS_PENDING')
-            lines.append(
-                texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_STATUS').format(status=status_label)
-            )
+            lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_STATUS').format(status=status_label))
 
             time_left = _format_offer_remaining(offer, texts)
-            lines.append(
-                texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_TIME_LEFT').format(time=time_left)
-            )
+            lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_TIME_LEFT').format(time=time_left))
 
             offer_template = None
             offer_template_id = _extract_template_id_from_notification(offer.notification_type)
@@ -1683,9 +1639,7 @@ async def show_selected_user_details(
                 else texts.t('ADMIN_PROMO_OFFER_SEND_USER_OFFER_NO_EXPIRY')
             )
             lines.append(
-                texts.t('ADMIN_PROMO_OFFER_SEND_USER_TEST_ACCESS_ITEM').format(
-                    squad=squad_label, expires=expires_text
-                )
+                texts.t('ADMIN_PROMO_OFFER_SEND_USER_TEST_ACCESS_ITEM').format(squad=squad_label, expires=expires_text)
             )
 
     keyboard_rows = [
@@ -2043,9 +1997,7 @@ async def send_offer_to_user(callback: CallbackQuery, db_user: User, db: AsyncSe
     ]
 
     if skipped:
-        summary_lines.append(
-            texts.t('ADMIN_PROMO_OFFER_SEND_USER_SKIPPED').format(skipped=skipped)
-        )
+        summary_lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_SKIPPED').format(skipped=skipped))
 
     if not users_to_send and not skipped:
         summary_lines.append(texts.t('ADMIN_PROMO_OFFER_SEND_USER_EMPTY_RESULT'))

@@ -89,7 +89,9 @@ async def show_subscriptions_menu(callback: types.CallbackQuery, db_user: User, 
         ],
         [
             types.InlineKeyboardButton(text=texts.t('ADMIN_SUBS_STATS_BUTTON'), callback_data='admin_subs_stats'),
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SUBS_COUNTRIES_BUTTON'), callback_data='admin_subs_countries'),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SUBS_COUNTRIES_BUTTON'), callback_data='admin_subs_countries'
+            ),
         ],
         [types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_panel')],
     ]
@@ -124,7 +126,9 @@ async def show_subscriptions_list(callback: types.CallbackQuery, db_user: User, 
             status = texts.t('ADMIN_SUBS_STATUS_ACTIVE') if sub.is_active else texts.t('ADMIN_SUBS_STATUS_INACTIVE')
 
             text += f'{i}. {sub_type} {user_info}\n'
-            text += texts.t('ADMIN_SUBS_LIST_ENTRY_STATUS').format(status=status, end_date=format_datetime(sub.end_date))
+            text += texts.t('ADMIN_SUBS_LIST_ENTRY_STATUS').format(
+                status=status, end_date=format_datetime(sub.end_date)
+            )
             if sub.device_limit > 0:
                 text += texts.t('ADMIN_SUBS_LIST_ENTRY_DEVICES').format(device_limit=sub.device_limit)
             text += '\n'
@@ -202,7 +206,11 @@ async def show_expiring_subscriptions(callback: types.CallbackQuery, db_user: Us
         text += texts.t('ADMIN_SUBS_AND_MORE').format(count=len(expiring_1d) - 5)
 
     keyboard = [
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_SUBS_SEND_REMINDERS_BUTTON'), callback_data='admin_send_expiry_reminders')],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SUBS_SEND_REMINDERS_BUTTON'), callback_data='admin_send_expiry_reminders'
+            )
+        ],
         [types.InlineKeyboardButton(text=texts.t('ADMIN_SUBS_REFRESH_BUTTON'), callback_data='admin_subs_expiring')],
         [types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_subscriptions')],
     ]

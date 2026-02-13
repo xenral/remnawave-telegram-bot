@@ -55,8 +55,10 @@ def _tf(texts, key: str, **kwargs) -> str:
 
 
 def _format_campaign_summary(campaign, texts) -> str:
-    status = _tf(texts, 'ADMIN_CAMPAIGN_STATUS_ACTIVE') if campaign.is_active else _tf(
-        texts, 'ADMIN_CAMPAIGN_STATUS_DISABLED'
+    status = (
+        _tf(texts, 'ADMIN_CAMPAIGN_STATUS_ACTIVE')
+        if campaign.is_active
+        else _tf(texts, 'ADMIN_CAMPAIGN_STATUS_DISABLED')
     )
 
     if campaign.is_balance_bonus:
@@ -272,7 +274,11 @@ async def show_campaigns_list(
                             callback_data='admin_campaigns_create',
                         )
                     ],
-                    [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns'
+                        )
+                    ],
                 ]
             ),
         )
@@ -285,14 +291,11 @@ async def show_campaigns_list(
         registrations = len(campaign.registrations or [])
         total_balance = sum(r.balance_bonus_kopeks or 0 for r in campaign.registrations or [])
         status = '🟢' if campaign.is_active else '⚪'
-        line = (
-            f'{status} <b>{campaign.name}</b> — <code>{campaign.start_parameter}</code>\n'
-            + _t(
-                db_user,
-                'ADMIN_CAMPAIGNS_LIST_ITEM_BASE',
-                registrations=registrations,
-                balance=texts.format_price(total_balance),
-            )
+        line = f'{status} <b>{campaign.name}</b> — <code>{campaign.start_parameter}</code>\n' + _t(
+            db_user,
+            'ADMIN_CAMPAIGNS_LIST_ITEM_BASE',
+            registrations=registrations,
+            balance=texts.format_price(total_balance),
         )
         if campaign.is_subscription_bonus:
             line += _t(
@@ -1195,8 +1198,10 @@ async def toggle_campaign_status(
 
     new_status = not campaign.is_active
     await update_campaign(db, campaign, is_active=new_status)
-    status_text = _t(db_user, 'ADMIN_CAMPAIGN_STATUS_ENABLED') if new_status else _t(
-        db_user, 'ADMIN_CAMPAIGN_STATUS_DISABLED_SHORT'
+    status_text = (
+        _t(db_user, 'ADMIN_CAMPAIGN_STATUS_ENABLED')
+        if new_status
+        else _t(db_user, 'ADMIN_CAMPAIGN_STATUS_DISABLED_SHORT')
     )
     logger.info('🔄 Кампания %s переключена: %s', campaign_id, status_text)
 
@@ -1222,7 +1227,9 @@ async def show_campaign_stats(
     text = [_t(db_user, 'ADMIN_CAMPAIGN_STATS_PAGE_HEADER')]
     text.append(_format_campaign_summary(campaign, texts))
     text.append(_t(db_user, 'ADMIN_CAMPAIGN_STATS_REGISTRATIONS_PLAIN', registrations=stats['registrations']))
-    text.append(_t(db_user, 'ADMIN_CAMPAIGN_STATS_BALANCE_ISSUED_PLAIN', balance=texts.format_price(stats['balance_issued'])))
+    text.append(
+        _t(db_user, 'ADMIN_CAMPAIGN_STATS_BALANCE_ISSUED_PLAIN', balance=texts.format_price(stats['balance_issued']))
+    )
     text.append(_t(db_user, 'ADMIN_CAMPAIGN_STATS_SUBS_ISSUED_PLAIN', subscriptions=stats['subscription_issued']))
     if stats['last_registration']:
         text.append(
@@ -1262,13 +1269,11 @@ async def confirm_delete_campaign(
         await callback.answer(_t(db_user, 'ADMIN_CAMPAIGN_NOT_FOUND'), show_alert=True)
         return
 
-    text = (
-        _t(
-            db_user,
-            'ADMIN_CAMPAIGN_DELETE_CONFIRM',
-            name=campaign.name,
-            start_parameter=campaign.start_parameter,
-        )
+    text = _t(
+        db_user,
+        'ADMIN_CAMPAIGN_DELETE_CONFIRM',
+        name=campaign.name,
+        start_parameter=campaign.start_parameter,
     )
 
     await callback.message.edit_text(
@@ -1314,7 +1319,9 @@ async def start_campaign_creation(
     await callback.message.edit_text(
         _t(db_user, 'ADMIN_CAMPAIGN_CREATE_PROMPT_NAME'),
         reply_markup=types.InlineKeyboardMarkup(
-            inline_keyboard=[[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')]]
+            inline_keyboard=[
+                [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')]
+            ]
         ),
     )
     await state.set_state(AdminStates.creating_campaign_name)
@@ -1394,7 +1401,13 @@ async def select_campaign_bonus_type(
         await callback.message.edit_text(
             _t(db_user, 'ADMIN_CAMPAIGN_CREATE_PROMPT_BALANCE'),
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')]]
+                inline_keyboard=[
+                    [
+                        types.InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns'
+                        )
+                    ]
+                ]
             ),
         )
     elif bonus_type == 'subscription':
@@ -1402,7 +1415,13 @@ async def select_campaign_bonus_type(
         await callback.message.edit_text(
             _t(db_user, 'ADMIN_CAMPAIGN_CREATE_PROMPT_SUB_DAYS'),
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')]]
+                inline_keyboard=[
+                    [
+                        types.InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns'
+                        )
+                    ]
+                ]
             ),
         )
     elif bonus_type == 'tariff':
@@ -1425,7 +1444,9 @@ async def select_campaign_bonus_type(
                     )
                 ]
             )
-        keyboard.append([types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')])
+        keyboard.append(
+            [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')]
+        )
 
         await state.set_state(AdminStates.creating_campaign_tariff_select)
         await callback.message.edit_text(
@@ -1543,7 +1564,9 @@ async def process_campaign_subscription_traffic(
 
     await state.update_data(campaign_subscription_traffic=traffic)
     await state.set_state(AdminStates.creating_campaign_subscription_devices)
-    await message.answer(_t(db_user, 'ADMIN_CAMPAIGN_CREATE_PROMPT_SUB_DEVICES', max_devices=settings.MAX_DEVICES_LIMIT))
+    await message.answer(
+        _t(db_user, 'ADMIN_CAMPAIGN_CREATE_PROMPT_SUB_DEVICES', max_devices=settings.MAX_DEVICES_LIMIT)
+    )
 
 
 @admin_required
@@ -1676,7 +1699,9 @@ async def select_campaign_tariff(
     await callback.message.edit_text(
         _t(db_user, 'ADMIN_CAMPAIGN_CREATE_PROMPT_TARIFF_DAYS', tariff_name=tariff.name),
         reply_markup=types.InlineKeyboardMarkup(
-            inline_keyboard=[[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')]]
+            inline_keyboard=[
+                [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data='admin_campaigns')]
+            ]
         ),
     )
     await callback.answer()
@@ -1771,7 +1796,13 @@ async def start_edit_campaign_tariff(
                 )
             ]
         )
-    keyboard.append([types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data=f'admin_campaign_edit_{campaign_id}')])
+    keyboard.append(
+        [
+            types.InlineKeyboardButton(
+                text=_t(db_user, 'ADMIN_CAMPAIGN_BACK'), callback_data=f'admin_campaign_edit_{campaign_id}'
+            )
+        ]
+    )
 
     current_tariff_name = _t(db_user, 'ADMIN_CAMPAIGN_NOT_SELECTED')
     if campaign.tariff:

@@ -193,9 +193,7 @@ async def handle_potential_referral_code(message: types.Message, state: FSMConte
         data['promocode'] = potential_code
         await state.set_data(data)
 
-        await message.answer(
-            texts.t('PROMOCODE_ACCEPTED_WILL_ACTIVATE')
-        )
+        await message.answer(texts.t('PROMOCODE_ACCEPTED_WILL_ACTIVATE'))
         logger.info(f'✅ Промокод {potential_code} сохранен для активации для пользователя {message.from_user.id}')
 
         if current_state != RegistrationStates.waiting_for_referral_code.state:
@@ -212,9 +210,7 @@ async def handle_potential_referral_code(message: types.Message, state: FSMConte
         return True
 
     # Ни реферальный код, ни промокод не найдены
-    await message.answer(
-        texts.t('REFERRAL_OR_PROMO_CODE_INVALID_HELP')
-    )
+    await message.answer(texts.t('REFERRAL_OR_PROMO_CODE_INVALID_HELP'))
     return True
 
 
@@ -409,15 +405,11 @@ async def cmd_start(message: types.Message, state: FSMContext, db: AsyncSession,
         texts = get_texts(user.language)
 
         if referral_code and not user.referred_by_id:
-            await message.answer(
-                texts.t('ALREADY_REGISTERED_REFERRAL')
-            )
+            await message.answer(texts.t('ALREADY_REGISTERED_REFERRAL'))
 
         if campaign:
             try:
-                await message.answer(
-                    texts.t('CAMPAIGN_EXISTING_USERL')
-                )
+                await message.answer(texts.t('CAMPAIGN_EXISTING_USERL'))
             except Exception as e:
                 logger.error(f'Ошибка отправки уведомления о рекламной кампании: {e}')
 
@@ -605,13 +597,9 @@ async def process_language_selection(
         texts = get_texts(normalized_default)
 
         try:
-            await callback.message.edit_text(
-                texts.t('LANGUAGE_SELECTION_DISABLED')
-            )
+            await callback.message.edit_text(texts.t('LANGUAGE_SELECTION_DISABLED'))
         except Exception:
-            await callback.message.answer(
-                texts.t('LANGUAGE_SELECTION_DISABLED')
-            )
+            await callback.message.answer(texts.t('LANGUAGE_SELECTION_DISABLED'))
 
         await callback.answer()
 
@@ -945,9 +933,7 @@ async def process_referral_code_input(message: types.Message, state: FSMContext,
         # Промокод валиден - сохраняем его в state для активации после создания пользователя
         data['promocode'] = code
         await state.set_data(data)
-        await message.answer(
-            texts.t('PROMOCODE_ACCEPTED_WILL_ACTIVATE')
-        )
+        await message.answer(texts.t('PROMOCODE_ACCEPTED_WILL_ACTIVATE'))
         logger.info(f'✅ Промокод сохранен для активации: {code}')
         await complete_registration(message, state, db)
         return
@@ -972,9 +958,7 @@ async def process_referral_code_skip(callback: types.CallbackQuery, state: FSMCo
     except Exception as e:
         logger.warning(f'⚠️ Не удалось удалить сообщение с вопросом о реферальном коде: {e}')
         try:
-            await callback.message.edit_text(
-                texts.t('REGISTRATION_COMPLETING'), reply_markup=None
-            )
+            await callback.message.edit_text(texts.t('REGISTRATION_COMPLETING'), reply_markup=None)
         except:
             pass
 
@@ -992,9 +976,7 @@ async def complete_registration_from_callback(callback: types.CallbackQuery, sta
 
         data = await state.get_data() or {}
         if data.get('referral_code') and not existing_user.referred_by_id:
-            await callback.message.answer(
-                texts.t('ALREADY_REGISTERED_REFERRAL')
-            )
+            await callback.message.answer(texts.t('ALREADY_REGISTERED_REFERRAL'))
 
         await db.refresh(existing_user, ['subscription'])
 
@@ -1032,9 +1014,7 @@ async def complete_registration_from_callback(callback: types.CallbackQuery, sta
             await _send_pinned_message(callback.bot, db, existing_user)
         except Exception as e:
             logger.error(f'Ошибка при показе главного меню существующему пользователю: {e}')
-            await callback.message.answer(
-                texts.t('WELCOME_FALLBACK').format(user_name=existing_user.full_name)
-            )
+            await callback.message.answer(texts.t('WELCOME_FALLBACK').format(user_name=existing_user.full_name))
 
         await state.clear()
         return
@@ -1229,9 +1209,7 @@ async def complete_registration_from_callback(callback: types.CallbackQuery, sta
             logger.info(f'✅ Главное меню показано пользователю {user.telegram_id}')
         except Exception as e:
             logger.error(f'Ошибка при показе главного меню: {e}')
-            await callback.message.answer(
-                texts.t('WELCOME_FALLBACK').format(user_name=user.full_name)
-            )
+            await callback.message.answer(texts.t('WELCOME_FALLBACK').format(user_name=user.full_name))
 
     logger.info(f'✅ Регистрация завершена для пользователя: {user.telegram_id}')
 
@@ -1247,9 +1225,7 @@ async def complete_registration(message: types.Message, state: FSMContext, db: A
 
         data = await state.get_data() or {}
         if data.get('referral_code') and not existing_user.referred_by_id:
-            await message.answer(
-                texts.t('ALREADY_REGISTERED_REFERRAL')
-            )
+            await message.answer(texts.t('ALREADY_REGISTERED_REFERRAL'))
 
         await db.refresh(existing_user, ['subscription'])
 
@@ -1287,9 +1263,7 @@ async def complete_registration(message: types.Message, state: FSMContext, db: A
             await _send_pinned_message(message.bot, db, existing_user)
         except Exception as e:
             logger.error(f'Ошибка при показе главного меню существующему пользователю: {e}')
-            await message.answer(
-                texts.t('WELCOME_FALLBACK').format(user_name=existing_user.full_name)
-            )
+            await message.answer(texts.t('WELCOME_FALLBACK').format(user_name=existing_user.full_name))
 
         await state.clear()
         return
@@ -1383,9 +1357,7 @@ async def complete_registration(message: types.Message, state: FSMContext, db: A
 
             if promocode_result['success']:
                 await message.answer(
-                    texts.t('PROMOCODE_ACTIVATED_AT_REGISTRATION').format(
-                        description=promocode_result['description']
-                    )
+                    texts.t('PROMOCODE_ACTIVATED_AT_REGISTRATION').format(description=promocode_result['description'])
                 )
                 logger.info(f'✅ Промокод {promocode_to_activate} активирован для пользователя {user.id}')
             else:
@@ -1513,9 +1485,7 @@ async def complete_registration(message: types.Message, state: FSMContext, db: A
             await _send_pinned_message(message.bot, db, user)
         except Exception as e:
             logger.error(f'Ошибка при показе главного меню: {e}')
-            await message.answer(
-                texts.t('WELCOME_FALLBACK').format(user_name=user.full_name)
-            )
+            await message.answer(texts.t('WELCOME_FALLBACK').format(user_name=user.full_name))
 
     logger.info(f'✅ Регистрация завершена для пользователя: {user.telegram_id}')
 
@@ -1592,9 +1562,7 @@ def get_referral_code_keyboard(language: str):
 
     texts = get_texts(language)
     return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=texts.t('REFERRAL_CODE_SKIP'), callback_data='referral_skip')]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(text=texts.t('REFERRAL_CODE_SKIP'), callback_data='referral_skip')]]
     )
 
 

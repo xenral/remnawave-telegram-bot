@@ -44,8 +44,10 @@ async def show_maintenance_panel(callback: types.CallbackQuery, db_user: User, d
     )
 
     api_emoji = '✅' if status_info['api_status'] else '❌'
-    api_text = texts.t('ADMIN_MAINTENANCE_API_AVAILABLE') if status_info['api_status'] else texts.t(
-        'ADMIN_MAINTENANCE_API_UNAVAILABLE'
+    api_text = (
+        texts.t('ADMIN_MAINTENANCE_API_AVAILABLE')
+        if status_info['api_status']
+        else texts.t('ADMIN_MAINTENANCE_API_UNAVAILABLE')
     )
 
     monitoring_emoji = '🔄' if status_info['monitoring_active'] else '⏹️'
@@ -121,7 +123,9 @@ async def toggle_maintenance_mode(callback: types.CallbackQuery, db_user: User, 
         await callback.message.edit_text(
             texts.t('ADMIN_MAINTENANCE_ENABLE_PROMPT'),
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_CANCEL'), callback_data='maintenance_panel')]]
+                inline_keyboard=[
+                    [types.InlineKeyboardButton(text=texts.t('ADMIN_CANCEL'), callback_data='maintenance_panel')]
+                ]
             ),
         )
 
@@ -157,7 +161,13 @@ async def process_maintenance_reason(message: types.Message, db_user: User, db: 
     await message.answer(
         texts.t('ADMIN_MAINTENANCE_BACK_TO_PANEL_PROMPT'),
         reply_markup=types.InlineKeyboardMarkup(
-            inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_MAINTENANCE_PANEL_BUTTON'), callback_data='maintenance_panel')]]
+            inline_keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_MAINTENANCE_PANEL_BUTTON'), callback_data='maintenance_panel'
+                    )
+                ]
+            ]
         ),
     )
 
@@ -170,13 +180,17 @@ async def toggle_monitoring(callback: types.CallbackQuery, db_user: User, db: As
 
     if status_info['monitoring_active']:
         success = await maintenance_service.stop_monitoring()
-        message = texts.t('ADMIN_MAINTENANCE_MONITORING_STOPPED_ALERT') if success else texts.t(
-            'ADMIN_MAINTENANCE_MONITORING_STOP_ERROR_ALERT'
+        message = (
+            texts.t('ADMIN_MAINTENANCE_MONITORING_STOPPED_ALERT')
+            if success
+            else texts.t('ADMIN_MAINTENANCE_MONITORING_STOP_ERROR_ALERT')
         )
     else:
         success = await maintenance_service.start_monitoring()
-        message = texts.t('ADMIN_MAINTENANCE_MONITORING_STARTED_ALERT') if success else texts.t(
-            'ADMIN_MAINTENANCE_MONITORING_START_ERROR_ALERT'
+        message = (
+            texts.t('ADMIN_MAINTENANCE_MONITORING_STARTED_ALERT')
+            if success
+            else texts.t('ADMIN_MAINTENANCE_MONITORING_START_ERROR_ALERT')
         )
 
     await callback.answer(message, show_alert=True)
@@ -193,8 +207,10 @@ async def force_api_check(callback: types.CallbackQuery, db_user: User, db: Asyn
     check_result = await maintenance_service.force_api_check()
 
     if check_result['success']:
-        status_text = texts.t('ADMIN_MAINTENANCE_API_AVAILABLE_PLAIN') if check_result['api_available'] else texts.t(
-            'ADMIN_MAINTENANCE_API_UNAVAILABLE_PLAIN'
+        status_text = (
+            texts.t('ADMIN_MAINTENANCE_API_AVAILABLE_PLAIN')
+            if check_result['api_available']
+            else texts.t('ADMIN_MAINTENANCE_API_UNAVAILABLE_PLAIN')
         )
         message = texts.t('ADMIN_MAINTENANCE_API_CHECK_RESULT').format(
             status=status_text, response_time=check_result['response_time']
@@ -262,12 +278,21 @@ async def send_manual_notification(callback: types.CallbackQuery, db_user: User,
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                types.InlineKeyboardButton(text=texts.t('ADMIN_MAINTENANCE_NOTIFY_ONLINE_BUTTON'), callback_data='manual_notify_online'),
-                types.InlineKeyboardButton(text=texts.t('ADMIN_MAINTENANCE_NOTIFY_OFFLINE_BUTTON'), callback_data='manual_notify_offline'),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_MAINTENANCE_NOTIFY_ONLINE_BUTTON'), callback_data='manual_notify_online'
+                ),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_MAINTENANCE_NOTIFY_OFFLINE_BUTTON'), callback_data='manual_notify_offline'
+                ),
             ],
             [
-                types.InlineKeyboardButton(text=texts.t('ADMIN_MAINTENANCE_NOTIFY_DEGRADED_BUTTON'), callback_data='manual_notify_degraded'),
-                types.InlineKeyboardButton(text=texts.t('ADMIN_MAINTENANCE_NOTIFY_MAINTENANCE_BUTTON'), callback_data='manual_notify_maintenance'),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_MAINTENANCE_NOTIFY_DEGRADED_BUTTON'), callback_data='manual_notify_degraded'
+                ),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_MAINTENANCE_NOTIFY_MAINTENANCE_BUTTON'),
+                    callback_data='manual_notify_maintenance',
+                ),
             ],
             [types.InlineKeyboardButton(text=texts.t('ADMIN_CANCEL'), callback_data='maintenance_panel')],
         ]
@@ -307,7 +332,9 @@ async def handle_manual_notification(callback: types.CallbackQuery, db_user: Use
     await callback.message.edit_text(
         texts.t('ADMIN_MAINTENANCE_MANUAL_NOTIFY_MESSAGE_PROMPT').format(status=status_names[status]),
         reply_markup=types.InlineKeyboardMarkup(
-            inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_CANCEL'), callback_data='maintenance_panel')]]
+            inline_keyboard=[
+                [types.InlineKeyboardButton(text=texts.t('ADMIN_CANCEL'), callback_data='maintenance_panel')]
+            ]
         ),
     )
 
@@ -354,7 +381,13 @@ async def process_notification_message(message: types.Message, db_user: User, db
     await message.answer(
         texts.t('ADMIN_MAINTENANCE_BACK_TO_PANEL_SHORT'),
         reply_markup=types.InlineKeyboardMarkup(
-            inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_MAINTENANCE_PANEL_BUTTON'), callback_data='maintenance_panel')]]
+            inline_keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_MAINTENANCE_PANEL_BUTTON'), callback_data='maintenance_panel'
+                    )
+                ]
+            ]
         ),
     )
 

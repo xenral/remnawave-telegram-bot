@@ -265,9 +265,7 @@ def _build_edit_menu_content(
     period_lines = _format_period_discounts_lines(texts, group, language)
     lines.extend(period_lines)
 
-    lines.append(
-        texts.t('ADMIN_PROMO_GROUP_EDIT_MENU_HINT')
-    )
+    lines.append(texts.t('ADMIN_PROMO_GROUP_EDIT_MENU_HINT'))
 
     text = '\n'.join(line for line in lines if line)
 
@@ -402,9 +400,7 @@ async def show_promo_groups_menu(
             ]
             group_lines.extend(_format_discount_lines(texts, group))
             group_lines.append(_format_auto_assign_line(texts, group))
-            group_lines.append(
-                texts.t('ADMIN_PROMO_GROUPS_MEMBERS_COUNT').format(count=member_count)
-            )
+            group_lines.append(texts.t('ADMIN_PROMO_GROUPS_MEMBERS_COUNT').format(count=member_count))
 
             period_lines = _format_period_discounts_lines(texts, group, db_user.language)
             group_lines.extend(period_lines)
@@ -424,7 +420,11 @@ async def show_promo_groups_menu(
         keyboard_rows = []
 
     keyboard_rows.append(
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_GROUP_CREATE_BUTTON'), callback_data='admin_promo_group_create')]
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_PROMO_GROUP_CREATE_BUTTON'), callback_data='admin_promo_group_create'
+            )
+        ]
     )
     keyboard_rows.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_submenu_promo')])
 
@@ -466,14 +466,10 @@ async def show_promo_group_details(
 
     default_note = texts.t('ADMIN_PROMO_GROUP_DETAILS_DEFAULT') if group.is_default else ''
 
-    lines = [
-        texts.t('ADMIN_PROMO_GROUP_DETAILS_TITLE').format(name=group.name)
-    ]
+    lines = [texts.t('ADMIN_PROMO_GROUP_DETAILS_TITLE').format(name=group.name)]
     lines.extend(_format_discount_lines(texts, group))
     lines.append(_format_auto_assign_line(texts, group))
-    lines.append(
-        texts.t('ADMIN_PROMO_GROUP_DETAILS_MEMBERS').format(count=member_count)
-    )
+    lines.append(texts.t('ADMIN_PROMO_GROUP_DETAILS_MEMBERS').format(count=member_count))
 
     period_lines = _format_period_discounts_lines(texts, group, db_user.language)
     lines.extend(period_lines)
@@ -571,9 +567,7 @@ async def process_create_group_name(message: types.Message, state: FSMContext):
     await state.update_data(new_group_name=name)
     await state.set_state(AdminStates.creating_promo_group_priority)
     texts = get_texts((await state.get_data()).get('language', 'ru'))
-    await message.answer(
-        texts.t('ADMIN_PROMO_GROUP_CREATE_PRIORITY_PROMPT')
-    )
+    await message.answer(texts.t('ADMIN_PROMO_GROUP_CREATE_PRIORITY_PROMPT'))
 
 
 async def process_create_group_priority(message: types.Message, state: FSMContext):
@@ -583,9 +577,7 @@ async def process_create_group_priority(message: types.Message, state: FSMContex
         if priority < 0:
             raise ValueError
     except (ValueError, TypeError):
-        await message.answer(
-            texts.t('ADMIN_PROMO_GROUP_INVALID_PRIORITY')
-        )
+        await message.answer(texts.t('ADMIN_PROMO_GROUP_INVALID_PRIORITY'))
         return
 
     await state.update_data(new_group_priority=priority)
@@ -676,9 +668,7 @@ async def process_create_group_period_discounts(
     try:
         period_discounts = _parse_period_discounts_input(message.text)
     except ValueError:
-        await message.answer(
-            texts.t('ADMIN_PROMO_GROUP_INVALID_PERIOD_DISCOUNTS')
-        )
+        await message.answer(texts.t('ADMIN_PROMO_GROUP_INVALID_PERIOD_DISCOUNTS'))
         return
 
     await state.update_data(new_group_period_discounts=period_discounts)
@@ -706,9 +696,7 @@ async def process_create_group_auto_assign(
     try:
         auto_assign_kopeks = _parse_auto_assign_threshold_input(message.text)
     except ValueError:
-        await message.answer(
-            texts.t('ADMIN_PROMO_GROUP_INVALID_AUTO_ASSIGN')
-        )
+        await message.answer(texts.t('ADMIN_PROMO_GROUP_INVALID_AUTO_ASSIGN'))
         return
 
     try:
@@ -814,10 +802,14 @@ async def prompt_edit_promo_group_field(
     elif field == 'periods':
         await state.set_state(AdminStates.editing_promo_group_period_discount)
         current_discounts = _normalize_periods_dict(getattr(group, 'period_discounts', None))
-        prompt = texts.t('ADMIN_PROMO_GROUP_EDIT_PERIOD_PROMPT').format(current=_format_period_discounts_value(current_discounts))
+        prompt = texts.t('ADMIN_PROMO_GROUP_EDIT_PERIOD_PROMPT').format(
+            current=_format_period_discounts_value(current_discounts)
+        )
     elif field == 'auto':
         await state.set_state(AdminStates.editing_promo_group_auto_assign)
-        prompt = texts.t('ADMIN_PROMO_GROUP_EDIT_AUTO_ASSIGN_PROMPT').format(current=_format_auto_assign_value(group.auto_assign_total_spent_kopeks))
+        prompt = texts.t('ADMIN_PROMO_GROUP_EDIT_AUTO_ASSIGN_PROMPT').format(
+            current=_format_auto_assign_value(group.auto_assign_total_spent_kopeks)
+        )
     else:
         await callback.answer(texts.t('ADMIN_PROMO_GROUP_UNKNOWN_FIELD_ALERT'), show_alert=True)
         return
@@ -876,9 +868,7 @@ async def process_edit_group_priority(
         if priority < 0:
             raise ValueError
     except (ValueError, TypeError):
-        await message.answer(
-            texts.t('ADMIN_PROMO_GROUP_INVALID_PRIORITY')
-        )
+        await message.answer(texts.t('ADMIN_PROMO_GROUP_INVALID_PRIORITY'))
         return
 
     group = await get_promo_group_by_id(db, data.get('edit_group_id'))
@@ -1018,9 +1008,7 @@ async def process_edit_group_period_discounts(
     try:
         period_discounts = _parse_period_discounts_input(message.text)
     except ValueError:
-        await message.answer(
-            texts.t('ADMIN_PROMO_GROUP_INVALID_PERIOD_DISCOUNTS')
-        )
+        await message.answer(texts.t('ADMIN_PROMO_GROUP_INVALID_PERIOD_DISCOUNTS'))
         return
 
     group = await get_promo_group_by_id(db, data.get('edit_group_id'))
@@ -1055,9 +1043,7 @@ async def process_edit_group_auto_assign(
     try:
         auto_assign_kopeks = _parse_auto_assign_threshold_input(message.text)
     except ValueError:
-        await message.answer(
-            texts.t('ADMIN_PROMO_GROUP_INVALID_AUTO_ASSIGN')
-        )
+        await message.answer(texts.t('ADMIN_PROMO_GROUP_INVALID_AUTO_ASSIGN'))
         return
 
     group = await get_promo_group_by_id(db, data.get('edit_group_id'))

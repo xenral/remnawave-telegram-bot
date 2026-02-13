@@ -151,16 +151,8 @@ def get_admin_support_submenu_keyboard(language: str = 'ru') -> InlineKeyboardMa
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SUPPORT_TICKETS'), callback_data='admin_tickets'
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SUPPORT_AUDIT'), callback_data='admin_support_audit'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_SUPPORT_TICKETS'), callback_data='admin_tickets')],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_SUPPORT_AUDIT'), callback_data='admin_support_audit')],
             [
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_SUPPORT_SETTINGS'),
@@ -195,9 +187,7 @@ def get_admin_settings_submenu_keyboard(language: str = 'ru') -> InlineKeyboardM
             ],
             [
                 InlineKeyboardButton(text=texts.ADMIN_RULES, callback_data='admin_rules'),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SETTINGS_MAINTENANCE'), callback_data='maintenance_panel'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SETTINGS_MAINTENANCE'), callback_data='maintenance_panel'),
             ],
             [
                 InlineKeyboardButton(
@@ -228,9 +218,7 @@ def get_admin_system_submenu_keyboard(language: str = 'ru') -> InlineKeyboardMar
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SYSTEM_UPDATES'), callback_data='admin_updates'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SYSTEM_UPDATES'), callback_data='admin_updates'),
                 InlineKeyboardButton(text=_t(texts, 'ADMIN_SYSTEM_BACKUPS'), callback_data='backup_panel'),
             ],
             [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYSTEM_LOGS'), callback_data='admin_system_logs')],
@@ -261,21 +249,9 @@ def get_admin_reports_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_REPORTS_PREVIOUS_DAY'), callback_data='admin_reports_daily'
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_REPORTS_LAST_WEEK'), callback_data='admin_reports_weekly'
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_REPORTS_LAST_MONTH'), callback_data='admin_reports_monthly'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_REPORTS_PREVIOUS_DAY'), callback_data='admin_reports_daily')],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_REPORTS_LAST_WEEK'), callback_data='admin_reports_weekly')],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_REPORTS_LAST_MONTH'), callback_data='admin_reports_monthly')],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_panel')],
         ]
     )
@@ -285,9 +261,7 @@ def get_admin_report_result_keyboard(language: str = 'ru') -> InlineKeyboardMark
     texts = get_texts(language)
 
     return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=texts.t('REPORT_CLOSE'), callback_data='admin_close_report')]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(text=texts.t('REPORT_CLOSE'), callback_data='admin_close_report')]]
     )
 
 
@@ -297,35 +271,21 @@ def get_admin_users_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USERS_ALL'), callback_data='admin_users_list'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USERS_SEARCH'), callback_data='admin_users_search'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_USERS_ALL'), callback_data='admin_users_list'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_USERS_SEARCH'), callback_data='admin_users_search'),
             ],
             [
                 InlineKeyboardButton(text=texts.ADMIN_STATISTICS, callback_data='admin_users_stats'),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USERS_INACTIVE'), callback_data='admin_users_inactive'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_USERS_INACTIVE'), callback_data='admin_users_inactive'),
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USERS_FILTERS'), callback_data='admin_users_filters'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_USERS_FILTERS'), callback_data='admin_users_filters')],
             [
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_USERS_BLACKLIST'),
                     callback_data='admin_blacklist_settings',
                 )
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USERS_BULK_BAN'), callback_data='admin_bulk_ban_start'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_USERS_BULK_BAN'), callback_data='admin_bulk_ban_start')],
             [
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_USERS_BLOCKED_CHECK'),
@@ -377,9 +337,7 @@ def get_admin_subscriptions_keyboard(language: str = 'ru') -> InlineKeyboardMark
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SUBSCRIPTIONS_ALL'), callback_data='admin_subs_list'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SUBSCRIPTIONS_ALL'), callback_data='admin_subs_list'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_SUBSCRIPTIONS_EXPIRING'), callback_data='admin_subs_expiring'
                 ),
@@ -402,12 +360,8 @@ def get_admin_promocodes_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_PROMOCODES_ALL'), callback_data='admin_promo_list'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_PROMOCODES_CREATE'), callback_data='admin_promo_create'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_PROMOCODES_ALL'), callback_data='admin_promo_list'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_PROMOCODES_CREATE'), callback_data='admin_promo_create'),
             ],
             [
                 InlineKeyboardButton(
@@ -426,12 +380,8 @@ def get_admin_campaigns_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_CAMPAIGNS_LIST'), callback_data='admin_campaigns_list'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_CAMPAIGNS_CREATE'), callback_data='admin_campaigns_create'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_CAMPAIGNS_LIST'), callback_data='admin_campaigns_list'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_CAMPAIGNS_CREATE'), callback_data='admin_campaigns_create'),
             ],
             [
                 InlineKeyboardButton(
@@ -521,11 +471,7 @@ def get_daily_contest_manage_keyboard(
     language: str = 'ru',
 ) -> InlineKeyboardMarkup:
     texts = get_texts(language)
-    toggle_text = (
-        _t(texts, 'ADMIN_CONTEST_DISABLE')
-        if is_enabled
-        else _t(texts, 'ADMIN_CONTEST_ENABLE')
-    )
+    toggle_text = _t(texts, 'ADMIN_CONTEST_DISABLE') if is_enabled else _t(texts, 'ADMIN_CONTEST_ENABLE')
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -608,11 +554,7 @@ def get_referral_contest_manage_keyboard(
     language: str = 'ru',
 ) -> InlineKeyboardMarkup:
     texts = get_texts(language)
-    toggle_text = (
-        _t(texts, 'ADMIN_CONTEST_DISABLE')
-        if is_active
-        else _t(texts, 'ADMIN_CONTEST_ENABLE')
-    )
+    toggle_text = _t(texts, 'ADMIN_CONTEST_DISABLE') if is_active else _t(texts, 'ADMIN_CONTEST_ENABLE')
 
     rows = [
         [
@@ -679,11 +621,7 @@ def get_referral_contest_manage_keyboard(
 
 def get_campaign_management_keyboard(campaign_id: int, is_active: bool, language: str = 'ru') -> InlineKeyboardMarkup:
     texts = get_texts(language)
-    status_text = (
-        _t(texts, 'ADMIN_CAMPAIGN_DISABLE')
-        if is_active
-        else _t(texts, 'ADMIN_CAMPAIGN_ENABLE')
-    )
+    status_text = _t(texts, 'ADMIN_CAMPAIGN_DISABLE') if is_active else _t(texts, 'ADMIN_CAMPAIGN_ENABLE')
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -709,11 +647,7 @@ def get_campaign_management_keyboard(campaign_id: int, is_active: bool, language
                     callback_data=f'admin_campaign_delete_{campaign_id}',
                 )
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BACK_TO_LIST'), callback_data='admin_campaigns_list'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_BACK_TO_LIST'), callback_data='admin_campaigns_list')],
         ]
     )
 
@@ -819,9 +753,7 @@ def get_campaign_bonus_type_keyboard(language: str = 'ru') -> InlineKeyboardMark
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_CAMPAIGN_BONUS_TARIFF'), callback_data='campaign_bonus_tariff'
                 ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_CAMPAIGN_BONUS_NONE'), callback_data='campaign_bonus_none'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_CAMPAIGN_BONUS_NONE'), callback_data='campaign_bonus_none'),
             ],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_campaigns')],
         ]
@@ -834,26 +766,18 @@ def get_promocode_management_keyboard(promo_id: int, language: str = 'ru') -> In
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_PROMOCODE_EDIT'), callback_data=f'promo_edit_{promo_id}'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_PROMOCODE_EDIT'), callback_data=f'promo_edit_{promo_id}'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_PROMOCODE_TOGGLE'), callback_data=f'promo_toggle_{promo_id}'
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_PROMOCODE_STATS'), callback_data=f'promo_stats_{promo_id}'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_PROMOCODE_STATS'), callback_data=f'promo_stats_{promo_id}'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_PROMOCODE_DELETE'), callback_data=f'promo_delete_{promo_id}'
                 ),
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BACK_TO_LIST'), callback_data='admin_promo_list'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_BACK_TO_LIST'), callback_data='admin_promo_list')],
         ]
     )
 
@@ -864,21 +788,15 @@ def get_admin_messages_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MESSAGES_ALL_USERS'), callback_data='admin_msg_all'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MESSAGES_ALL_USERS'), callback_data='admin_msg_all'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_MESSAGES_BY_SUBSCRIPTIONS'),
                     callback_data='admin_msg_by_sub',
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MESSAGES_BY_CRITERIA'), callback_data='admin_msg_custom'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MESSAGES_HISTORY'), callback_data='admin_msg_history'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MESSAGES_BY_CRITERIA'), callback_data='admin_msg_custom'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MESSAGES_HISTORY'), callback_data='admin_msg_history'),
             ],
             [
                 InlineKeyboardButton(
@@ -899,16 +817,12 @@ def get_pinned_message_keyboard(
     texts = get_texts(language)
 
     position_label = (
-        _t(texts, 'ADMIN_PINNED_POSITION_BEFORE')
-        if send_before_menu
-        else _t(texts, 'ADMIN_PINNED_POSITION_AFTER')
+        _t(texts, 'ADMIN_PINNED_POSITION_BEFORE') if send_before_menu else _t(texts, 'ADMIN_PINNED_POSITION_AFTER')
     )
     toggle_callback = 'admin_pinned_message_position'
 
     start_mode_label = (
-        _t(texts, 'ADMIN_PINNED_START_EVERY_TIME')
-        if send_on_every_start
-        else _t(texts, 'ADMIN_PINNED_START_ONCE')
+        _t(texts, 'ADMIN_PINNED_START_EVERY_TIME') if send_on_every_start else _t(texts, 'ADMIN_PINNED_START_ONCE')
     )
     start_mode_callback = 'admin_pinned_message_start_mode'
 
@@ -974,20 +888,12 @@ def get_admin_monitoring_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_START'), callback_data='admin_mon_start'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_STOP'), callback_data='admin_mon_stop'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_START'), callback_data='admin_mon_start'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_STOP'), callback_data='admin_mon_stop'),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_STATUS'), callback_data='admin_mon_status'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_LOGS'), callback_data='admin_mon_logs'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_STATUS'), callback_data='admin_mon_status'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_LOGS'), callback_data='admin_mon_logs'),
             ],
             [
                 InlineKeyboardButton(
@@ -1016,24 +922,14 @@ def get_admin_remnawave_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_REMNAWAVE_SYNC'), callback_data='admin_rw_sync'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_REMNAWAVE_SYNC'), callback_data='admin_rw_sync'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_REMNAWAVE_MANAGE_SQUADS'),
                     callback_data='admin_rw_squads',
                 ),
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_REMNAWAVE_MIGRATION'), callback_data='admin_rw_migration'
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_REMNAWAVE_TRAFFIC'), callback_data='admin_rw_traffic'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_REMNAWAVE_MIGRATION'), callback_data='admin_rw_migration')],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_REMNAWAVE_TRAFFIC'), callback_data='admin_rw_traffic')],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_submenu_settings')],
         ]
     )
@@ -1045,26 +941,14 @@ def get_admin_statistics_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_STATS_USERS'), callback_data='admin_stats_users'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_STATS_SUBSCRIPTIONS'), callback_data='admin_stats_subs'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_STATS_USERS'), callback_data='admin_stats_users'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_STATS_SUBSCRIPTIONS'), callback_data='admin_stats_subs'),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_STATS_REVENUE'), callback_data='admin_stats_revenue'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_STATS_REFERRALS'), callback_data='admin_stats_referrals'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_STATS_REVENUE'), callback_data='admin_stats_revenue'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_STATS_REFERRALS'), callback_data='admin_stats_referrals'),
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_STATS_SUMMARY'), callback_data='admin_stats_summary'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_STATS_SUMMARY'), callback_data='admin_stats_summary')],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_submenu_promo')],
         ]
     )
@@ -1077,9 +961,7 @@ def get_user_management_keyboard(
 
     keyboard = [
         [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_USER_BALANCE'), callback_data=f'admin_user_balance_{user_id}'
-            ),
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_USER_BALANCE'), callback_data=f'admin_user_balance_{user_id}'),
             InlineKeyboardButton(
                 text=_t(texts, 'ADMIN_USER_SUBSCRIPTION_SETTINGS'),
                 callback_data=f'admin_user_subscription_{user_id}',
@@ -1132,12 +1014,8 @@ def get_user_management_keyboard(
     if user_status == 'active':
         keyboard.append(
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USER_BLOCK'), callback_data=f'admin_user_block_{user_id}'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USER_DELETE'), callback_data=f'admin_user_delete_{user_id}'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_USER_BLOCK'), callback_data=f'admin_user_block_{user_id}'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_USER_DELETE'), callback_data=f'admin_user_delete_{user_id}'),
             ]
         )
     elif user_status == 'blocked':
@@ -1147,19 +1025,11 @@ def get_user_management_keyboard(
                     text=_t(texts, 'ADMIN_USER_UNBLOCK'),
                     callback_data=f'admin_user_unblock_{user_id}',
                 ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USER_DELETE'), callback_data=f'admin_user_delete_{user_id}'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_USER_DELETE'), callback_data=f'admin_user_delete_{user_id}'),
             ]
         )
     elif user_status == 'deleted':
-        keyboard.append(
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_USER_ALREADY_DELETED'), callback_data='noop'
-                )
-            ]
-        )
+        keyboard.append([InlineKeyboardButton(text=_t(texts, 'ADMIN_USER_ALREADY_DELETED'), callback_data='noop')])
 
     keyboard.append([InlineKeyboardButton(text=texts.BACK, callback_data=back_callback)])
 
@@ -1274,14 +1144,10 @@ def get_promocode_type_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_PROMOCODE_TYPE_BALANCE'), callback_data='promo_type_balance'
                 ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_PROMOCODE_TYPE_DAYS'), callback_data='promo_type_days'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_PROMOCODE_TYPE_DAYS'), callback_data='promo_type_days'),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_PROMOCODE_TYPE_TRIAL'), callback_data='promo_type_trial'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_PROMOCODE_TYPE_TRIAL'), callback_data='promo_type_trial'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_PROMOCODE_TYPE_PROMO_GROUP'),
                     callback_data='promo_type_group',
@@ -1331,11 +1197,7 @@ def get_promocode_list_keyboard(
 
     keyboard.extend(
         [
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_PROMOCODES_CREATE'), callback_data='admin_promo_create'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_PROMOCODES_CREATE'), callback_data='admin_promo_create')],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_promocodes')],
         ]
     )
@@ -1349,20 +1211,12 @@ def get_broadcast_target_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_TARGET_ALL'), callback_data='broadcast_all'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_TARGET_ACTIVE'), callback_data='broadcast_active'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_TARGET_ALL'), callback_data='broadcast_all'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_TARGET_ACTIVE'), callback_data='broadcast_active'),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_TARGET_TRIAL'), callback_data='broadcast_trial'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_TARGET_NO_SUB'), callback_data='broadcast_no_sub'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_TARGET_TRIAL'), callback_data='broadcast_trial'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_TARGET_NO_SUB'), callback_data='broadcast_no_sub'),
             ],
             [
                 InlineKeyboardButton(
@@ -1400,17 +1254,11 @@ def get_custom_criteria_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_CRITERIA_TODAY'), callback_data='criteria_today'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_CRITERIA_WEEK'), callback_data='criteria_week'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_CRITERIA_TODAY'), callback_data='criteria_today'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_CRITERIA_WEEK'), callback_data='criteria_week'),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_CRITERIA_MONTH'), callback_data='criteria_month'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_CRITERIA_MONTH'), callback_data='criteria_month'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_CRITERIA_ACTIVE_TODAY'),
                     callback_data='criteria_active_today',
@@ -1427,19 +1275,13 @@ def get_custom_criteria_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_CRITERIA_REFERRALS'), callback_data='criteria_referrals'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_CRITERIA_REFERRALS'), callback_data='criteria_referrals'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_CRITERIA_PROMOCODES'),
                     callback_data='criteria_promocodes',
                 ),
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_CRITERIA_DIRECT'), callback_data='criteria_direct'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_CRITERIA_DIRECT'), callback_data='criteria_direct')],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_messages')],
         ]
     )
@@ -1464,11 +1306,7 @@ def get_broadcast_history_keyboard(page: int, total_pages: int, language: str = 
 
     keyboard.extend(
         [
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_HISTORY_REFRESH'), callback_data='admin_msg_history'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_HISTORY_REFRESH'), callback_data='admin_msg_history')],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_messages')],
         ]
     )
@@ -1479,35 +1317,15 @@ def get_broadcast_history_keyboard(page: int, total_pages: int, language: str = 
 def get_sync_options_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     texts = get_texts(language)
     keyboard = [
-        [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_SYNC_FULL'), callback_data='sync_all_users'
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_SYNC_TO_PANEL'), callback_data='sync_to_panel'
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_SYNC_ONLY_NEW'), callback_data='sync_new_users'
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_SYNC_UPDATE'), callback_data='sync_update_data'
-            )
-        ],
+        [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_FULL'), callback_data='sync_all_users')],
+        [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_TO_PANEL'), callback_data='sync_to_panel')],
+        [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_ONLY_NEW'), callback_data='sync_new_users')],
+        [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_UPDATE'), callback_data='sync_update_data')],
         [
             InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_VALIDATE'), callback_data='sync_validate'),
             InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_CLEANUP'), callback_data='sync_cleanup'),
         ],
-        [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_SYNC_RECOMMENDATIONS'), callback_data='sync_recommendations'
-            )
-        ],
+        [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_RECOMMENDATIONS'), callback_data='sync_recommendations')],
         [InlineKeyboardButton(text=texts.BACK, callback_data='admin_remnawave')],
     ]
 
@@ -1517,11 +1335,7 @@ def get_sync_options_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
 def get_sync_confirmation_keyboard(sync_type: str, language: str = 'ru') -> InlineKeyboardMarkup:
     texts = get_texts(language)
     keyboard = [
-        [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_SYNC_CONFIRM'), callback_data=f'confirm_{sync_type}'
-            )
-        ],
+        [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_CONFIRM'), callback_data=f'confirm_{sync_type}')],
         [InlineKeyboardButton(text=_t(texts, 'ADMIN_CANCEL'), callback_data='admin_rw_sync')],
     ]
 
@@ -1533,43 +1347,19 @@ def get_sync_result_keyboard(sync_type: str, has_errors: bool = False, language:
     keyboard = []
 
     if has_errors:
-        keyboard.append(
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SYNC_RETRY'), callback_data=f'sync_{sync_type}'
-                )
-            ]
-        )
+        keyboard.append([InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_RETRY'), callback_data=f'sync_{sync_type}')])
 
     if sync_type != 'all_users':
-        keyboard.append(
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SYNC_FULL'), callback_data='sync_all_users'
-                )
-            ]
-        )
+        keyboard.append([InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_FULL'), callback_data='sync_all_users')])
 
     keyboard.extend(
         [
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_STATS_BUTTON'), callback_data='admin_rw_system'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SYNC_VALIDATE'), callback_data='sync_validate'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_STATS_BUTTON'), callback_data='admin_rw_system'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_VALIDATE'), callback_data='sync_validate'),
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SYNC_BACK'), callback_data='admin_rw_sync'
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BACK_TO_MAIN'), callback_data='admin_remnawave'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_BACK'), callback_data='admin_rw_sync')],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_BACK_TO_MAIN'), callback_data='admin_remnawave')],
         ]
     )
 
@@ -1583,9 +1373,7 @@ def get_period_selection_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(text=_t(texts, 'ADMIN_PERIOD_TODAY'), callback_data='period_today'),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_PERIOD_YESTERDAY'), callback_data='period_yesterday'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_PERIOD_YESTERDAY'), callback_data='period_yesterday'),
             ],
             [
                 InlineKeyboardButton(text=_t(texts, 'ADMIN_PERIOD_WEEK'), callback_data='period_week'),
@@ -1603,20 +1391,12 @@ def get_node_management_keyboard(node_uuid: str, language: str = 'ru') -> Inline
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_NODE_ENABLE'), callback_data=f'node_enable_{node_uuid}'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_NODE_DISABLE'), callback_data=f'node_disable_{node_uuid}'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_NODE_ENABLE'), callback_data=f'node_enable_{node_uuid}'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_NODE_DISABLE'), callback_data=f'node_disable_{node_uuid}'),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_NODE_RESTART'), callback_data=f'node_restart_{node_uuid}'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_NODE_STATS'), callback_data=f'node_stats_{node_uuid}'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_NODE_RESTART'), callback_data=f'node_restart_{node_uuid}'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_NODE_STATS'), callback_data=f'node_stats_{node_uuid}'),
             ],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_rw_nodes')],
         ]
@@ -1641,12 +1421,8 @@ def get_squad_management_keyboard(squad_uuid: str, language: str = 'ru') -> Inli
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SQUAD_EDIT'), callback_data=f'squad_edit_{squad_uuid}'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SQUAD_DELETE'), callback_data=f'squad_delete_{squad_uuid}'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SQUAD_EDIT'), callback_data=f'squad_edit_{squad_uuid}'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SQUAD_DELETE'), callback_data=f'squad_delete_{squad_uuid}'),
             ],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_rw_squads')],
         ]
@@ -1665,9 +1441,7 @@ def get_squad_edit_keyboard(squad_uuid: str, language: str = 'ru') -> InlineKeyb
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SQUAD_RENAME'), callback_data=f'squad_rename_{squad_uuid}'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SQUAD_RENAME'), callback_data=f'squad_rename_{squad_uuid}'),
             ],
             [
                 InlineKeyboardButton(
@@ -1685,12 +1459,8 @@ def get_monitoring_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_START'), callback_data='admin_mon_start'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_STOP_HARD'), callback_data='admin_mon_stop'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_START'), callback_data='admin_mon_start'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_STOP_HARD'), callback_data='admin_mon_stop'),
             ],
             [
                 InlineKeyboardButton(
@@ -1703,9 +1473,7 @@ def get_monitoring_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_LOGS'), callback_data='admin_mon_logs'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_LOGS'), callback_data='admin_mon_logs'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_MONITORING_STATISTICS'), callback_data='admin_mon_statistics'
                 ),
@@ -1720,11 +1488,7 @@ def get_monitoring_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
                     callback_data='admin_mon_traffic_settings',
                 ),
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BACK_TO_ADMIN'), callback_data='admin_panel'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_BACK_TO_ADMIN'), callback_data='admin_panel')],
         ]
     )
 
@@ -1735,9 +1499,7 @@ def get_monitoring_logs_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_HISTORY_REFRESH'), callback_data='admin_mon_logs'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_HISTORY_REFRESH'), callback_data='admin_mon_logs'),
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_MONITORING_CLEAR_OLD'),
                     callback_data='admin_mon_clear_logs',
@@ -1769,17 +1531,13 @@ def get_monitoring_logs_navigation_keyboard(
 
     management_row = []
 
-    refresh_button = InlineKeyboardButton(
-        text=_t(texts, 'ADMIN_HISTORY_REFRESH'), callback_data='admin_mon_logs'
-    )
+    refresh_button = InlineKeyboardButton(text=_t(texts, 'ADMIN_HISTORY_REFRESH'), callback_data='admin_mon_logs')
 
     if has_logs:
         management_row.extend(
             [
                 refresh_button,
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_CLEAR'), callback_data='admin_mon_clear_logs'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_CLEAR'), callback_data='admin_mon_clear_logs'),
             ]
         )
     else:
@@ -1788,11 +1546,7 @@ def get_monitoring_logs_navigation_keyboard(
     keyboard.append(management_row)
 
     keyboard.append(
-        [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_BACK_TO_MONITORING'), callback_data='admin_monitoring'
-            )
-        ]
+        [InlineKeyboardButton(text=_t(texts, 'ADMIN_BACK_TO_MONITORING'), callback_data='admin_monitoring')]
     )
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -1851,19 +1605,13 @@ def get_monitoring_status_keyboard(
     if is_running:
         control_row.extend(
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_STOP_HARD'), callback_data='admin_mon_stop'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_RESTART'), callback_data='admin_mon_restart'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_STOP_HARD'), callback_data='admin_mon_stop'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_RESTART'), callback_data='admin_mon_restart'),
             ]
         )
     else:
         control_row.append(
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_MONITORING_START'), callback_data='admin_mon_start'
-            )
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_START'), callback_data='admin_mon_start')
         )
 
     keyboard.append(control_row)
@@ -1889,9 +1637,7 @@ def get_monitoring_status_keyboard(
 
     info_row = [
         InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_LOGS'), callback_data='admin_mon_logs'),
-        InlineKeyboardButton(
-            text=_t(texts, 'ADMIN_MONITORING_STATISTICS'), callback_data='admin_mon_statistics'
-        ),
+        InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_STATISTICS'), callback_data='admin_mon_statistics'),
     ]
     keyboard.append(info_row)
 
@@ -1933,11 +1679,7 @@ def get_monitoring_settings_keyboard(language: str = 'ru') -> InlineKeyboardMark
                     callback_data='admin_mon_auto_cleanup',
                 ),
             ],
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BACK_TO_MONITORING'), callback_data='admin_monitoring'
-                )
-            ],
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_BACK_TO_MONITORING'), callback_data='admin_monitoring')],
         ]
     )
 
@@ -1968,9 +1710,7 @@ def get_log_type_filter_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_MONITORING_ALL_LOGS'), callback_data='admin_mon_logs'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_MONITORING_ALL_LOGS'), callback_data='admin_mon_logs'),
                 InlineKeyboardButton(text=texts.BACK, callback_data='admin_monitoring'),
             ],
         ]
@@ -1983,20 +1723,12 @@ def get_admin_servers_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SERVERS_LIST'), callback_data='admin_servers_list'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SERVERS_SYNC'), callback_data='admin_servers_sync'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SERVERS_LIST'), callback_data='admin_servers_list'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SERVERS_SYNC'), callback_data='admin_servers_sync'),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SERVERS_ADD'), callback_data='admin_servers_add'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_SERVERS_STATS'), callback_data='admin_servers_stats'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SERVERS_ADD'), callback_data='admin_servers_add'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_SERVERS_STATS'), callback_data='admin_servers_stats'),
             ],
             [InlineKeyboardButton(text=texts.BACK, callback_data='admin_subscriptions')],
         ]
@@ -2006,11 +1738,7 @@ def get_admin_servers_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
 def get_server_edit_keyboard(server_id: int, is_available: bool, language: str = 'ru') -> InlineKeyboardMarkup:
     texts = get_texts(language)
 
-    toggle_text = (
-        _t(texts, 'ADMIN_SERVER_DISABLE')
-        if is_available
-        else _t(texts, 'ADMIN_SERVER_ENABLE')
-    )
+    toggle_text = _t(texts, 'ADMIN_SERVER_DISABLE') if is_available else _t(texts, 'ADMIN_SERVER_ENABLE')
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -2121,12 +1849,9 @@ def get_maintenance_keyboard(
 
     keyboard.append(
         [
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_MAINTENANCE_CHECK_API'), callback_data='maintenance_check_api'),
             InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_MAINTENANCE_CHECK_API'), callback_data='maintenance_check_api'
-            ),
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_MAINTENANCE_PANEL_STATUS')
-                + ('⚠️' if panel_has_issues else ''),
+                text=_t(texts, 'ADMIN_MAINTENANCE_PANEL_STATUS') + ('⚠️' if panel_has_issues else ''),
                 callback_data='maintenance_check_panel',
             ),
         ]
@@ -2154,11 +1879,7 @@ def get_maintenance_keyboard(
 def get_sync_simplified_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     texts = get_texts(language)
     keyboard = [
-        [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_SYNC_FULL'), callback_data='sync_all_users'
-            )
-        ],
+        [InlineKeyboardButton(text=_t(texts, 'ADMIN_SYNC_FULL'), callback_data='sync_all_users')],
         [InlineKeyboardButton(text=texts.BACK, callback_data='admin_remnawave')],
     ]
 
@@ -2167,38 +1888,22 @@ def get_sync_simplified_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
 
 def get_welcome_text_keyboard(language: str = 'ru', is_enabled: bool = True) -> InlineKeyboardMarkup:
     texts = get_texts(language)
-    toggle_text = (
-        _t(texts, 'ADMIN_WELCOME_DISABLE')
-        if is_enabled
-        else _t(texts, 'ADMIN_WELCOME_ENABLE')
-    )
+    toggle_text = _t(texts, 'ADMIN_WELCOME_DISABLE') if is_enabled else _t(texts, 'ADMIN_WELCOME_ENABLE')
     toggle_callback = 'toggle_welcome_text'
 
     keyboard = [
         [InlineKeyboardButton(text=toggle_text, callback_data=toggle_callback)],
         [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_WELCOME_EDIT'), callback_data='edit_welcome_text'
-            ),
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_WELCOME_SHOW'), callback_data='show_welcome_text'
-            ),
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_WELCOME_EDIT'), callback_data='edit_welcome_text'),
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_WELCOME_SHOW'), callback_data='show_welcome_text'),
         ],
         [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_WELCOME_PREVIEW'), callback_data='preview_welcome_text'
-            ),
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_WELCOME_RESET'), callback_data='reset_welcome_text'
-            ),
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_WELCOME_PREVIEW'), callback_data='preview_welcome_text'),
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_WELCOME_RESET'), callback_data='reset_welcome_text'),
         ],
         [
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_WELCOME_HTML'), callback_data='show_formatting_help'
-            ),
-            InlineKeyboardButton(
-                text=_t(texts, 'ADMIN_WELCOME_PLACEHOLDERS'), callback_data='show_placeholders_help'
-            ),
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_WELCOME_HTML'), callback_data='show_formatting_help'),
+            InlineKeyboardButton(text=_t(texts, 'ADMIN_WELCOME_PLACEHOLDERS'), callback_data='show_placeholders_help'),
         ],
         [InlineKeyboardButton(text=texts.BACK, callback_data='admin_submenu_communications')],
     ]
@@ -2278,21 +1983,15 @@ def get_broadcast_media_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_ADD_PHOTO'), callback_data='add_media_photo'
-                ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_ADD_VIDEO'), callback_data='add_media_video'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_ADD_PHOTO'), callback_data='add_media_photo'),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_ADD_VIDEO'), callback_data='add_media_video'),
             ],
             [
                 InlineKeyboardButton(
                     text=_t(texts, 'ADMIN_BROADCAST_ADD_DOCUMENT'),
                     callback_data='add_media_document',
                 ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_SKIP_MEDIA'), callback_data='skip_media'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_SKIP_MEDIA'), callback_data='skip_media'),
             ],
             [InlineKeyboardButton(text=_t(texts, 'ADMIN_CANCEL'), callback_data='admin_messages')],
         ]
@@ -2308,14 +2007,10 @@ def get_media_confirm_keyboard(language: str = 'ru') -> InlineKeyboardMarkup:
                     text=_t(texts, 'ADMIN_BROADCAST_USE_MEDIA'),
                     callback_data='confirm_media',
                 ),
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_REPLACE_MEDIA'), callback_data='replace_media'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_REPLACE_MEDIA'), callback_data='replace_media'),
             ],
             [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_NO_MEDIA'), callback_data='skip_media'
-                ),
+                InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_NO_MEDIA'), callback_data='skip_media'),
                 InlineKeyboardButton(text=_t(texts, 'ADMIN_CANCEL'), callback_data='admin_messages'),
             ],
         ]
@@ -2349,11 +2044,7 @@ def get_updated_message_buttons_selector_keyboard_with_media(
 
     if has_media:
         keyboard.append(
-            [
-                InlineKeyboardButton(
-                    text=_t(texts, 'ADMIN_BROADCAST_CHANGE_MEDIA'), callback_data='change_media'
-                )
-            ]
+            [InlineKeyboardButton(text=_t(texts, 'ADMIN_BROADCAST_CHANGE_MEDIA'), callback_data='change_media')]
         )
 
     keyboard.extend(

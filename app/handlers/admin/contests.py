@@ -865,7 +865,11 @@ async def sync_contest(
 
     back_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=texts.t('ADMIN_CONTEST_BACK_TO_CONTEST'), callback_data=f'admin_contest_view_{contest_id}')]
+            [
+                InlineKeyboardButton(
+                    text=texts.t('ADMIN_CONTEST_BACK_TO_CONTEST'), callback_data=f'admin_contest_view_{contest_id}'
+                )
+            ]
         ]
     )
 
@@ -978,7 +982,11 @@ async def debug_contest_transactions(
 
     back_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=texts.t('ADMIN_CONTEST_BACK_TO_CONTEST'), callback_data=f'admin_contest_view_{contest_id}')]
+            [
+                InlineKeyboardButton(
+                    text=texts.t('ADMIN_CONTEST_BACK_TO_CONTEST'), callback_data=f'admin_contest_view_{contest_id}'
+                )
+            ]
         ]
     )
 

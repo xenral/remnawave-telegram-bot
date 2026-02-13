@@ -147,11 +147,7 @@ async def show_admin_tickets(callback: types.CallbackQuery, db_user: User, db: A
         )
 
     # Итоговые страницы уже посчитаны выше
-    header_text = (
-        texts.t('ADMIN_TICKETS_TITLE_OPEN')
-        if scope == 'open'
-        else texts.t('ADMIN_TICKETS_TITLE_CLOSED')
-    )
+    header_text = texts.t('ADMIN_TICKETS_TITLE_OPEN') if scope == 'open' else texts.t('ADMIN_TICKETS_TITLE_CLOSED')
     # Determine proper back target for moderators
     back_cb = 'admin_submenu_support'
     try:
@@ -422,9 +418,7 @@ async def handle_admin_ticket_reply(message: types.Message, state: FSMContext, d
 
     if len(reply_text) < 1 and not media_file_id:
         texts = get_texts(db_user.language)
-        await message.answer(
-            texts.t('TICKET_REPLY_TOO_SHORT')
-        )
+        await message.answer(texts.t('TICKET_REPLY_TOO_SHORT'))
         return
 
     data = await state.get_data()
@@ -490,11 +484,7 @@ async def handle_admin_ticket_reply(message: types.Message, state: FSMContext, d
                             callback_data=f'admin_view_ticket_{ticket_id}',
                         )
                     ],
-                    [
-                        types.InlineKeyboardButton(
-                            text=texts.t('BACK_TO_TICKETS'), callback_data='admin_tickets'
-                        )
-                    ],
+                    [types.InlineKeyboardButton(text=texts.t('BACK_TO_TICKETS'), callback_data='admin_tickets')],
                 ]
             ),
         )
@@ -508,9 +498,7 @@ async def handle_admin_ticket_reply(message: types.Message, state: FSMContext, d
     except Exception as e:
         logger.error(f'Error adding admin ticket reply: {e}')
         texts = get_texts(db_user.language)
-        await message.answer(
-            texts.t('TICKET_REPLY_ERROR')
-        )
+        await message.answer(texts.t('TICKET_REPLY_ERROR'))
 
 
 async def mark_ticket_as_answered(callback: types.CallbackQuery, db_user: User, db: AsyncSession, state: FSMContext):
@@ -522,9 +510,7 @@ async def mark_ticket_as_answered(callback: types.CallbackQuery, db_user: User, 
 
         if success:
             texts = get_texts(db_user.language)
-            await callback.answer(
-                texts.t('TICKET_MARKED_ANSWERED'), show_alert=True
-            )
+            await callback.answer(texts.t('TICKET_MARKED_ANSWERED'), show_alert=True)
 
             # Обновляем сообщение
             await view_admin_ticket(callback, db_user, db, state)
@@ -557,9 +543,7 @@ async def close_all_open_admin_tickets(callback: types.CallbackQuery, db_user: U
     closed_count = len(closed_ticket_ids)
 
     if closed_count == 0:
-        await callback.answer(
-            texts.t('ADMIN_CLOSE_ALL_OPEN_TICKETS_EMPTY'), show_alert=True
-        )
+        await callback.answer(texts.t('ADMIN_CLOSE_ALL_OPEN_TICKETS_EMPTY'), show_alert=True)
         return
 
     try:
@@ -585,12 +569,12 @@ async def close_all_open_admin_tickets(callback: types.CallbackQuery, db_user: U
     # Обновляем список тикетов
     await show_admin_tickets(callback, db_user, db)
 
-    success_text = texts.t('ADMIN_CLOSE_ALL_OPEN_TICKETS_SUCCESS').format(
-        count=closed_count
-    )
+    success_text = texts.t('ADMIN_CLOSE_ALL_OPEN_TICKETS_SUCCESS').format(count=closed_count)
 
     notification_keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('DELETE_MESSAGE'), callback_data='admin_support_delete_msg')]]
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text=texts.t('DELETE_MESSAGE'), callback_data='admin_support_delete_msg')]
+        ]
     )
 
     try:
@@ -652,7 +636,11 @@ async def close_admin_ticket(callback: types.CallbackQuery, db_user: User, db: A
                     texts.t('TICKET_CLOSED'),
                     reply_markup=types.InlineKeyboardMarkup(
                         inline_keyboard=[
-                            [types.InlineKeyboardButton(text=texts.t('DELETE_MESSAGE'), callback_data='admin_support_delete_msg')]
+                            [
+                                types.InlineKeyboardButton(
+                                    text=texts.t('DELETE_MESSAGE'), callback_data='admin_support_delete_msg'
+                                )
+                            ]
                         ]
                     ),
                 )
@@ -687,11 +675,7 @@ async def cancel_admin_ticket_reply(callback: types.CallbackQuery, state: FSMCon
         texts.t('TICKET_REPLY_CANCELLED'),
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    types.InlineKeyboardButton(
-                        text=texts.t('BACK_TO_TICKETS'), callback_data='admin_tickets'
-                    )
-                ]
+                [types.InlineKeyboardButton(text=texts.t('BACK_TO_TICKETS'), callback_data='admin_tickets')]
             ]
         ),
     )
@@ -714,11 +698,7 @@ async def block_user_in_ticket(callback: types.CallbackQuery, state: FSMContext,
         texts.t('ENTER_BLOCK_MINUTES'),
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    types.InlineKeyboardButton(
-                        text=texts.t('CANCEL_REPLY'), callback_data='cancel_admin_ticket_reply'
-                    )
-                ]
+                [types.InlineKeyboardButton(text=texts.t('CANCEL_REPLY'), callback_data='cancel_admin_ticket_reply')]
             ]
         ),
     )
@@ -860,9 +840,13 @@ async def handle_admin_block_duration_input(message: types.Message, state: FSMCo
                     safe_username = html.escape(updated.user.username)
                     buttons_row = []
                     pm_url = f'tg://resolve?domain={safe_username}'
-                    buttons_row.append(types.InlineKeyboardButton(text=texts.t('ADMIN_TICKET_WRITE_DM_BUTTON'), url=pm_url))
+                    buttons_row.append(
+                        types.InlineKeyboardButton(text=texts.t('ADMIN_TICKET_WRITE_DM_BUTTON'), url=pm_url)
+                    )
                     profile_url = f'tg://user?id={updated.user.telegram_id}'
-                    buttons_row.append(types.InlineKeyboardButton(text=texts.t('ADMIN_TICKET_PROFILE_BUTTON'), url=profile_url))
+                    buttons_row.append(
+                        types.InlineKeyboardButton(text=texts.t('ADMIN_TICKET_PROFILE_BUTTON'), url=profile_url)
+                    )
                     if buttons_row:
                         kb.inline_keyboard.insert(0, buttons_row)
             except Exception:
@@ -931,7 +915,11 @@ async def unblock_user_in_ticket(callback: types.CallbackQuery, db_user: User, d
                 texts.t('ADMIN_TICKET_BLOCK_REMOVED'),
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [types.InlineKeyboardButton(text=texts.t('DELETE_MESSAGE'), callback_data='admin_support_delete_msg')]
+                        [
+                            types.InlineKeyboardButton(
+                                text=texts.t('DELETE_MESSAGE'), callback_data='admin_support_delete_msg'
+                            )
+                        ]
                     ]
                 ),
             )
@@ -986,7 +974,11 @@ async def block_user_permanently(callback: types.CallbackQuery, db_user: User, d
                 texts.t('ADMIN_TICKET_BLOCKED_PERMANENT'),
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [types.InlineKeyboardButton(text=texts.t('DELETE_MESSAGE'), callback_data='admin_support_delete_msg')]
+                        [
+                            types.InlineKeyboardButton(
+                                text=texts.t('DELETE_MESSAGE'), callback_data='admin_support_delete_msg'
+                            )
+                        ]
                     ]
                 ),
             )
@@ -1065,11 +1057,7 @@ async def notify_user_about_ticket_reply(bot: Bot, ticket: Ticket, reply_text: s
         ).format(ticket_id=ticket.id, reply_preview=reply_text[:100] + '...' if len(reply_text) > 100 else reply_text)
         keyboard = types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    types.InlineKeyboardButton(
-                        text=texts.t('VIEW_TICKET'), callback_data=f'view_ticket_{ticket.id}'
-                    )
-                ],
+                [types.InlineKeyboardButton(text=texts.t('VIEW_TICKET'), callback_data=f'view_ticket_{ticket.id}')],
                 [
                     types.InlineKeyboardButton(
                         text=texts.t('CLOSE_NOTIFICATION'),

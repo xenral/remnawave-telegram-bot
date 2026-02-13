@@ -41,8 +41,10 @@ def _t_lang(language: str, key: str, **kwargs) -> str:
 
 def _build_server_edit_view(server, language: str):
     texts = get_texts(language)
-    status_emoji = _t_lang(language, 'ADMIN_SERVER_STATUS_AVAILABLE') if server.is_available else _t_lang(
-        language, 'ADMIN_SERVER_STATUS_UNAVAILABLE'
+    status_emoji = (
+        _t_lang(language, 'ADMIN_SERVER_STATUS_AVAILABLE')
+        if server.is_available
+        else _t_lang(language, 'ADMIN_SERVER_STATUS_UNAVAILABLE')
     )
     price_text = f'{int(server.price_rubles)} ₽' if server.price_kopeks > 0 else _t_lang(language, 'ADMIN_SERVER_FREE')
     promo_groups_text = (
@@ -51,8 +53,10 @@ def _build_server_edit_view(server, language: str):
         else _t_lang(language, 'ADMIN_SERVER_PROMO_GROUPS_NOT_SELECTED')
     )
 
-    trial_status = _t_lang(language, 'ADMIN_SERVER_TRIAL_YES') if server.is_trial_eligible else _t_lang(
-        language, 'ADMIN_SERVER_TRIAL_NO'
+    trial_status = (
+        _t_lang(language, 'ADMIN_SERVER_TRIAL_YES')
+        if server.is_trial_eligible
+        else _t_lang(language, 'ADMIN_SERVER_TRIAL_NO')
     )
 
     text = f"""
@@ -81,25 +85,41 @@ def _build_server_edit_view(server, language: str):
 
     keyboard = [
         [
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_EDIT_NAME'), callback_data=f'admin_server_edit_name_{server.id}'),
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_EDIT_PRICE'), callback_data=f'admin_server_edit_price_{server.id}'),
-        ],
-        [
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_EDIT_COUNTRY'), callback_data=f'admin_server_edit_country_{server.id}'),
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_EDIT_LIMIT'), callback_data=f'admin_server_edit_limit_{server.id}'),
-        ],
-        [
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_EDIT_USERS'), callback_data=f'admin_server_users_{server.id}'),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_EDIT_NAME'), callback_data=f'admin_server_edit_name_{server.id}'
+            ),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_EDIT_PRICE'), callback_data=f'admin_server_edit_price_{server.id}'
+            ),
         ],
         [
             types.InlineKeyboardButton(
-                text=texts.t('ADMIN_SERVER_TRIAL_ENABLE') if not server.is_trial_eligible else texts.t('ADMIN_SERVER_TRIAL_DISABLE'),
+                text=texts.t('ADMIN_SERVER_EDIT_COUNTRY'), callback_data=f'admin_server_edit_country_{server.id}'
+            ),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_EDIT_LIMIT'), callback_data=f'admin_server_edit_limit_{server.id}'
+            ),
+        ],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_EDIT_USERS'), callback_data=f'admin_server_users_{server.id}'
+            ),
+        ],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_TRIAL_ENABLE')
+                if not server.is_trial_eligible
+                else texts.t('ADMIN_SERVER_TRIAL_DISABLE'),
                 callback_data=f'admin_server_trial_{server.id}',
             ),
         ],
         [
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_EDIT_PROMO_GROUPS'), callback_data=f'admin_server_edit_promo_{server.id}'),
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_EDIT_DESCRIPTION'), callback_data=f'admin_server_edit_desc_{server.id}'),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_EDIT_PROMO_GROUPS'), callback_data=f'admin_server_edit_promo_{server.id}'
+            ),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_EDIT_DESCRIPTION'), callback_data=f'admin_server_edit_desc_{server.id}'
+            ),
         ],
         [
             types.InlineKeyboardButton(
@@ -108,7 +128,9 @@ def _build_server_edit_view(server, language: str):
             )
         ],
         [
-            types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_DELETE'), callback_data=f'admin_server_delete_{server.id}'),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_DELETE'), callback_data=f'admin_server_delete_{server.id}'
+            ),
             types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_BACK'), callback_data='admin_servers_list'),
         ],
     ]
@@ -131,9 +153,15 @@ def _build_server_promo_groups_keyboard(server_id: int, promo_groups, selected_i
         )
 
     keyboard.append(
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_SAVE'), callback_data=f'admin_server_promo_save_{server_id}')]
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_SERVER_SAVE'), callback_data=f'admin_server_promo_save_{server_id}'
+            )
+        ]
     )
-    keyboard.append([types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_BACK'), callback_data=f'admin_server_edit_{server_id}')])
+    keyboard.append(
+        [types.InlineKeyboardButton(text=texts.t('ADMIN_SERVER_BACK'), callback_data=f'admin_server_edit_{server_id}')]
+    )
 
     return types.InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -155,12 +183,20 @@ async def show_servers_menu(callback: types.CallbackQuery, db_user: User, db: As
 
     keyboard = [
         [
-            types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_LIST_BUTTON'), callback_data='admin_servers_list'),
-            types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_SYNC_BUTTON'), callback_data='admin_servers_sync'),
+            types.InlineKeyboardButton(
+                text=_t(db_user, 'ADMIN_SERVER_LIST_BUTTON'), callback_data='admin_servers_list'
+            ),
+            types.InlineKeyboardButton(
+                text=_t(db_user, 'ADMIN_SERVER_SYNC_BUTTON'), callback_data='admin_servers_sync'
+            ),
         ],
         [
-            types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_SYNC_COUNTS_BUTTON'), callback_data='admin_servers_sync_counts'),
-            types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_DETAILED_STATS_BUTTON'), callback_data='admin_servers_stats'),
+            types.InlineKeyboardButton(
+                text=_t(db_user, 'ADMIN_SERVER_SYNC_COUNTS_BUTTON'), callback_data='admin_servers_sync_counts'
+            ),
+            types.InlineKeyboardButton(
+                text=_t(db_user, 'ADMIN_SERVER_DETAILED_STATS_BUTTON'), callback_data='admin_servers_stats'
+            ),
         ],
         [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_panel')],
     ]
@@ -182,7 +218,9 @@ async def show_servers_list(callback: types.CallbackQuery, db_user: User, db: As
 
         for i, server in enumerate(servers, 1 + (page - 1) * 10):
             status_emoji = '✅' if server.is_available else '❌'
-            price_text = f'{int(server.price_rubles)} ₽' if server.price_kopeks > 0 else _t(db_user, 'ADMIN_SERVER_FREE')
+            price_text = (
+                f'{int(server.price_rubles)} ₽' if server.price_kopeks > 0 else _t(db_user, 'ADMIN_SERVER_FREE')
+            )
 
             text += f'{i}. {status_emoji} {server.display_name}\n'
             text += _t(db_user, 'ADMIN_SERVER_LIST_PRICE_LINE', price=price_text)
@@ -218,7 +256,9 @@ async def show_servers_list(callback: types.CallbackQuery, db_user: User, db: As
 
         keyboard.append(nav_row)
 
-    keyboard.extend([[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')]])
+    keyboard.extend(
+        [[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')]]
+    )
 
     await callback.message.edit_text(
         text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard), parse_mode='HTML'
@@ -242,7 +282,13 @@ async def sync_servers_with_remnawave(callback: types.CallbackQuery, db_user: Us
             await callback.message.edit_text(
                 _t(db_user, 'ADMIN_SERVER_SYNC_FETCH_FAILED'),
                 reply_markup=types.InlineKeyboardMarkup(
-                    inline_keyboard=[[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')]]
+                    inline_keyboard=[
+                        [
+                            types.InlineKeyboardButton(
+                                text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers'
+                            )
+                        ]
+                    ]
                 ),
             )
             return
@@ -262,8 +308,12 @@ async def sync_servers_with_remnawave(callback: types.CallbackQuery, db_user: Us
 
         keyboard = [
             [
-                types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_LIST_BUTTON'), callback_data='admin_servers_list'),
-                types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_RETRY_BUTTON'), callback_data='admin_servers_sync'),
+                types.InlineKeyboardButton(
+                    text=_t(db_user, 'ADMIN_SERVER_LIST_BUTTON'), callback_data='admin_servers_list'
+                ),
+                types.InlineKeyboardButton(
+                    text=_t(db_user, 'ADMIN_SERVER_RETRY_BUTTON'), callback_data='admin_servers_sync'
+                ),
             ],
             [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')],
         ]
@@ -275,7 +325,9 @@ async def sync_servers_with_remnawave(callback: types.CallbackQuery, db_user: Us
         await callback.message.edit_text(
             _t(db_user, 'ADMIN_SERVER_SYNC_ERROR', error=e),
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')]]
+                inline_keyboard=[
+                    [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')]
+                ]
             ),
         )
 
@@ -371,7 +423,9 @@ async def show_server_users(callback: types.CallbackQuery, db_user: User, db: As
         if len(display_name) > 30:
             display_name = display_name[:27] + '...'
 
-        subscription_status = user.subscription.status_display if user.subscription else _t(db_user, 'ADMIN_SERVER_NO_SUBSCRIPTION')
+        subscription_status = (
+            user.subscription.status_display if user.subscription else _t(db_user, 'ADMIN_SERVER_NO_SUBSCRIPTION')
+        )
         status_icon = _get_status_icon(subscription_status)
 
         if status_icon:
@@ -416,9 +470,17 @@ async def show_server_users(callback: types.CallbackQuery, db_user: User, db: As
 
         keyboard.append(navigation_buttons)
 
-    keyboard.append([types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_TO_SERVER_SHORT'), callback_data=f'admin_server_edit_{server_id}')])
+    keyboard.append(
+        [
+            types.InlineKeyboardButton(
+                text=_t(db_user, 'ADMIN_SERVER_TO_SERVER_SHORT'), callback_data=f'admin_server_edit_{server_id}'
+            )
+        ]
+    )
 
-    keyboard.append([types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_TO_LIST'), callback_data='admin_servers_list')])
+    keyboard.append(
+        [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_TO_LIST'), callback_data='admin_servers_list')]
+    )
 
     await callback.message.edit_text(
         text,
@@ -444,7 +506,9 @@ async def toggle_server_availability(callback: types.CallbackQuery, db_user: Use
 
     await cache.delete_pattern('available_countries*')
 
-    status_text = _t(db_user, 'ADMIN_SERVER_STATUS_ENABLED') if new_status else _t(db_user, 'ADMIN_SERVER_STATUS_DISABLED')
+    status_text = (
+        _t(db_user, 'ADMIN_SERVER_STATUS_ENABLED') if new_status else _t(db_user, 'ADMIN_SERVER_STATUS_DISABLED')
+    )
     await callback.answer(_t(db_user, 'ADMIN_SERVER_STATUS_UPDATED', status=status_text))
 
     server = await get_server_squad_by_id(db, server_id)
@@ -500,7 +564,11 @@ async def start_server_edit_price(callback: types.CallbackQuery, state: FSMConte
         _t(db_user, 'ADMIN_SERVER_EDIT_PRICE_PROMPT', current_price=current_price),
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}')]
+                [
+                    types.InlineKeyboardButton(
+                        text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}'
+                    )
+                ]
             ]
         ),
         parse_mode='HTML',
@@ -541,7 +609,8 @@ async def process_server_price_edit(message: types.Message, state: FSMContext, d
                     inline_keyboard=[
                         [
                             types.InlineKeyboardButton(
-                                text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}'
+                                text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'),
+                                callback_data=f'admin_server_edit_{server_id}',
                             )
                         ]
                     ]
@@ -572,7 +641,11 @@ async def start_server_edit_name(callback: types.CallbackQuery, state: FSMContex
         _t(db_user, 'ADMIN_SERVER_EDIT_NAME_PROMPT', current_name=server.display_name),
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}')]
+                [
+                    types.InlineKeyboardButton(
+                        text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}'
+                    )
+                ]
             ]
         ),
         parse_mode='HTML',
@@ -607,7 +680,11 @@ async def process_server_name_edit(message: types.Message, state: FSMContext, db
             _t(db_user, 'ADMIN_SERVER_NAME_UPDATED', name=new_name),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}'
+                        )
+                    ]
                 ]
             ),
             parse_mode='HTML',
@@ -640,8 +717,13 @@ async def delete_server_confirm(callback: types.CallbackQuery, db_user: User, db
 
     keyboard = [
         [
-            types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_DELETE_CONFIRM_BUTTON'), callback_data=f'admin_server_delete_confirm_{server_id}'),
-            types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}'),
+            types.InlineKeyboardButton(
+                text=_t(db_user, 'ADMIN_SERVER_DELETE_CONFIRM_BUTTON'),
+                callback_data=f'admin_server_delete_confirm_{server_id}',
+            ),
+            types.InlineKeyboardButton(
+                text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}'
+            ),
         ]
     ]
 
@@ -670,7 +752,11 @@ async def delete_server_execute(callback: types.CallbackQuery, db_user: User, db
             _t(db_user, 'ADMIN_SERVER_DELETE_SUCCESS', name=server.display_name),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_TO_LIST_FULL'), callback_data='admin_servers_list')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_SERVER_TO_LIST_FULL'), callback_data='admin_servers_list'
+                        )
+                    ]
                 ]
             ),
             parse_mode='HTML',
@@ -680,7 +766,11 @@ async def delete_server_execute(callback: types.CallbackQuery, db_user: User, db
             _t(db_user, 'ADMIN_SERVER_DELETE_FAILED', name=server.display_name),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}'
+                        )
+                    ]
                 ]
             ),
             parse_mode='HTML',
@@ -746,7 +836,11 @@ async def start_server_edit_country(callback: types.CallbackQuery, state: FSMCon
         _t(db_user, 'ADMIN_SERVER_EDIT_COUNTRY_PROMPT', current_country=current_country),
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}')]
+                [
+                    types.InlineKeyboardButton(
+                        text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}'
+                    )
+                ]
             ]
         ),
         parse_mode='HTML',
@@ -780,7 +874,11 @@ async def process_server_country_edit(message: types.Message, state: FSMContext,
             _t(db_user, 'ADMIN_SERVER_COUNTRY_UPDATED', country=country_text),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}'
+                        )
+                    ]
                 ]
             ),
             parse_mode='HTML',
@@ -808,7 +906,11 @@ async def start_server_edit_limit(callback: types.CallbackQuery, state: FSMConte
         _t(db_user, 'ADMIN_SERVER_EDIT_LIMIT_PROMPT', current_limit=current_limit),
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}')]
+                [
+                    types.InlineKeyboardButton(
+                        text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}'
+                    )
+                ]
             ]
         ),
         parse_mode='HTML',
@@ -840,8 +942,10 @@ async def process_server_limit_edit(message: types.Message, state: FSMContext, d
         if server:
             await state.clear()
 
-            limit_text = _t(db_user, 'ADMIN_SERVER_LIMIT_USERS_VALUE', limit=limit) if limit > 0 else _t(
-                db_user, 'ADMIN_SERVER_NO_LIMIT'
+            limit_text = (
+                _t(db_user, 'ADMIN_SERVER_LIMIT_USERS_VALUE', limit=limit)
+                if limit > 0
+                else _t(db_user, 'ADMIN_SERVER_NO_LIMIT')
             )
             await message.answer(
                 _t(db_user, 'ADMIN_SERVER_LIMIT_UPDATED', limit=limit_text),
@@ -849,7 +953,8 @@ async def process_server_limit_edit(message: types.Message, state: FSMContext, d
                     inline_keyboard=[
                         [
                             types.InlineKeyboardButton(
-                                text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}'
+                                text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'),
+                                callback_data=f'admin_server_edit_{server_id}',
                             )
                         ]
                     ]
@@ -884,7 +989,11 @@ async def start_server_edit_description(
         _t(db_user, 'ADMIN_SERVER_EDIT_DESCRIPTION_PROMPT', current_description=current_desc),
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}')]
+                [
+                    types.InlineKeyboardButton(
+                        text=_t(db_user, 'ADMIN_SERVER_CANCEL'), callback_data=f'admin_server_edit_{server_id}'
+                    )
+                ]
             ]
         ),
         parse_mode='HTML',
@@ -917,7 +1026,11 @@ async def process_server_description_edit(message: types.Message, state: FSMCont
             _t(db_user, 'ADMIN_SERVER_DESCRIPTION_UPDATED', description=desc_text),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=_t(db_user, 'ADMIN_SERVER_TO_SERVER'), callback_data=f'admin_server_edit_{server_id}'
+                        )
+                    ]
                 ]
             ),
             parse_mode='HTML',
@@ -966,9 +1079,7 @@ async def start_server_edit_promo_groups(
         }
     )
 
-    text = (
-        _t(db_user, 'ADMIN_SERVER_PROMO_CONFIG', server_name=server.display_name)
-    )
+    text = _t(db_user, 'ADMIN_SERVER_PROMO_CONFIG', server_name=server.display_name)
 
     await callback.message.edit_text(
         text,
@@ -1073,8 +1184,12 @@ async def sync_server_user_counts_handler(callback: types.CallbackQuery, db_user
 
         keyboard = [
             [
-                types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_LIST_BUTTON'), callback_data='admin_servers_list'),
-                types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_RETRY_BUTTON'), callback_data='admin_servers_sync_counts'),
+                types.InlineKeyboardButton(
+                    text=_t(db_user, 'ADMIN_SERVER_LIST_BUTTON'), callback_data='admin_servers_list'
+                ),
+                types.InlineKeyboardButton(
+                    text=_t(db_user, 'ADMIN_SERVER_RETRY_BUTTON'), callback_data='admin_servers_sync_counts'
+                ),
             ],
             [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')],
         ]
@@ -1086,7 +1201,9 @@ async def sync_server_user_counts_handler(callback: types.CallbackQuery, db_user
         await callback.message.edit_text(
             _t(db_user, 'ADMIN_SERVER_SYNC_ERROR', error=e),
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')]]
+                inline_keyboard=[
+                    [types.InlineKeyboardButton(text=_t(db_user, 'ADMIN_SERVER_BACK'), callback_data='admin_servers')]
+                ]
             ),
         )
 

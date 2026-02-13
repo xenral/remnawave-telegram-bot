@@ -771,7 +771,11 @@ async def show_users_statistics(callback: types.CallbackQuery, db_user: User, db
         text,
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=texts.t('ADMIN_USERS_REFRESH_BUTTON'), callback_data='admin_users_stats')],
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_USERS_REFRESH_BUTTON'), callback_data='admin_users_stats'
+                    )
+                ],
                 [types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_users')],
             ]
         ),
@@ -849,7 +853,9 @@ async def _render_user_subscription_overview(
                     if server:
                         text += f'• {server.display_name}\n'
                     else:
-                        text += f'• {texts.t("ADMIN_USER_SUBSCRIPTION_SERVER_UNKNOWN").format(short_uuid=squad_uuid[:8])}\n'
+                        text += (
+                            f'• {texts.t("ADMIN_USER_SUBSCRIPTION_SERVER_UNKNOWN").format(short_uuid=squad_uuid[:8])}\n'
+                        )
                 except Exception as e:
                     logger.error('Failed to load server %s: %s', squad_uuid, e)
                     text += (
@@ -860,8 +866,12 @@ async def _render_user_subscription_overview(
 
         keyboard = [
             [
-                types.InlineKeyboardButton(text=texts.t('ADMIN_USER_SUB_BUTTON_EXTEND'), callback_data=f'admin_sub_extend_{user_id}'),
-                types.InlineKeyboardButton(text=texts.t('ADMIN_USER_SUB_BUTTON_BUY'), callback_data=f'admin_sub_buy_{user_id}'),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_USER_SUB_BUTTON_EXTEND'), callback_data=f'admin_sub_extend_{user_id}'
+                ),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_USER_SUB_BUTTON_BUY'), callback_data=f'admin_sub_buy_{user_id}'
+                ),
             ],
             [
                 types.InlineKeyboardButton(
@@ -955,7 +965,11 @@ async def _render_user_subscription_overview(
         ]
 
     keyboard.append(
-        [types.InlineKeyboardButton(text=texts.ADMIN_USER_PROMO_GROUP_BACK, callback_data=f'admin_user_manage_{user_id}')]
+        [
+            types.InlineKeyboardButton(
+                text=texts.ADMIN_USER_PROMO_GROUP_BACK, callback_data=f'admin_user_manage_{user_id}'
+            )
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard))
@@ -1385,9 +1399,7 @@ async def _build_user_referrals_view(
 
         if len(referrals) > limit:
             remaining = len(referrals) - limit
-            lines.append(
-                texts.t('ADMIN_USER_REFERRALS_LIST_TRUNCATED').format(count=remaining)
-            )
+            lines.append(texts.t('ADMIN_USER_REFERRALS_LIST_TRUNCATED').format(count=remaining))
     else:
         lines.append(texts.t('ADMIN_USER_REFERRALS_EMPTY'))
 
@@ -1475,9 +1487,7 @@ async def start_edit_referral_percent(
     effective_percent = get_effective_referral_commission_percent(user)
     default_percent = settings.REFERRAL_COMMISSION_PERCENT
 
-    prompt = texts.t('ADMIN_USER_REFERRAL_COMMISSION_PROMPT').format(
-        current=effective_percent, default=default_percent
-    )
+    prompt = texts.t('ADMIN_USER_REFERRAL_COMMISSION_PROMPT').format(current=effective_percent, default=default_percent)
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -1994,7 +2004,9 @@ async def start_balance_edit(callback: types.CallbackQuery, db_user: User, state
     await callback.message.edit_text(
         texts.t('ADMIN_USER_BALANCE_EDIT_PROMPT'),
         reply_markup=types.InlineKeyboardMarkup(
-            inline_keyboard=[[types.InlineKeyboardButton(text=texts.CANCEL, callback_data=f'admin_user_manage_{user_id}')]]
+            inline_keyboard=[
+                [types.InlineKeyboardButton(text=texts.CANCEL, callback_data=f'admin_user_manage_{user_id}')]
+            ]
         ),
     )
 
@@ -2025,7 +2037,9 @@ async def start_send_user_message(
     await callback.message.edit_text(
         prompt,
         reply_markup=types.InlineKeyboardMarkup(
-            inline_keyboard=[[types.InlineKeyboardButton(text=texts.CANCEL, callback_data=f'admin_user_manage_{user_id}')]]
+            inline_keyboard=[
+                [types.InlineKeyboardButton(text=texts.CANCEL, callback_data=f'admin_user_manage_{user_id}')]
+            ]
         ),
         parse_mode='HTML',
     )
@@ -2064,7 +2078,11 @@ async def process_send_user_message(
 
     confirmation_keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}')]
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}'
+                )
+            ]
         ]
     )
 
@@ -2200,7 +2218,11 @@ async def block_user(callback: types.CallbackQuery, db_user: User, db: AsyncSess
             texts.t('ADMIN_USER_BLOCK_SUCCESS'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}'
+                        )
+                    ]
                 ]
             ),
         )
@@ -2209,7 +2231,11 @@ async def block_user(callback: types.CallbackQuery, db_user: User, db: AsyncSess
             texts.t('ADMIN_USER_BLOCK_ERROR'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}'
+                        )
+                    ]
                 ]
             ),
         )
@@ -2279,8 +2305,10 @@ async def toggle_user_restriction_topup(callback: types.CallbackQuery, db_user: 
     user.restriction_topup = not current_value
     await db.commit()
 
-    action = texts.t('ADMIN_USER_RESTRICTION_ACTION_SET') if user.restriction_topup else texts.t(
-        'ADMIN_USER_RESTRICTION_ACTION_UNSET'
+    action = (
+        texts.t('ADMIN_USER_RESTRICTION_ACTION_SET')
+        if user.restriction_topup
+        else texts.t('ADMIN_USER_RESTRICTION_ACTION_UNSET')
     )
     await callback.answer(texts.t('ADMIN_USER_RESTRICTION_TOPUP_TOGGLED').format(action=action), show_alert=False)
 
@@ -2305,8 +2333,10 @@ async def toggle_user_restriction_subscription(callback: types.CallbackQuery, db
     user.restriction_subscription = not current_value
     await db.commit()
 
-    action = texts.t('ADMIN_USER_RESTRICTION_ACTION_SET') if user.restriction_subscription else texts.t(
-        'ADMIN_USER_RESTRICTION_ACTION_UNSET'
+    action = (
+        texts.t('ADMIN_USER_RESTRICTION_ACTION_SET')
+        if user.restriction_subscription
+        else texts.t('ADMIN_USER_RESTRICTION_ACTION_UNSET')
     )
     await callback.answer(
         texts.t('ADMIN_USER_RESTRICTION_SUBSCRIPTION_TOGGLED').format(action=action), show_alert=False
@@ -2448,9 +2478,12 @@ async def show_inactive_users(callback: types.CallbackQuery, db_user: User, db: 
     will_delete = len(inactive_users) - with_active_sub
 
     text = texts.t('ADMIN_INACTIVE_USERS_TITLE') + '\n'
-    text += texts.t('ADMIN_INACTIVE_USERS_SUMMARY').format(
-        months=settings.INACTIVE_USER_DELETE_MONTHS, count=len(inactive_users)
-    ) + '\n'
+    text += (
+        texts.t('ADMIN_INACTIVE_USERS_SUMMARY').format(
+            months=settings.INACTIVE_USER_DELETE_MONTHS, count=len(inactive_users)
+        )
+        + '\n'
+    )
     if with_active_sub > 0:
         text += f'🛡️ С активной подпиской (не будут удалены): {with_active_sub}\n'
         text += f'🗑️ Будет удалено: {will_delete}\n'
@@ -2468,7 +2501,9 @@ async def show_inactive_users(callback: types.CallbackQuery, db_user: User, db: 
         text += f'👤 {user_link}{sub_badge}\n'
         text += f'🆔 <code>{user_id_display}</code>\n'
         last_activity_display = (
-            format_time_ago(user.last_activity, db_user.language) if user.last_activity else texts.t('ADMIN_INACTIVE_USERS_NEVER')
+            format_time_ago(user.last_activity, db_user.language)
+            if user.last_activity
+            else texts.t('ADMIN_INACTIVE_USERS_NEVER')
         )
         text += f'📅 {last_activity_display}\n\n'
 
@@ -2476,7 +2511,11 @@ async def show_inactive_users(callback: types.CallbackQuery, db_user: User, db: 
         text += texts.t('ADMIN_INACTIVE_USERS_MORE').format(count=len(inactive_users) - 10)
 
     keyboard = [
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_INACTIVE_USERS_CLEANUP_ALL'), callback_data='admin_cleanup_inactive')],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_INACTIVE_USERS_CLEANUP_ALL'), callback_data='admin_cleanup_inactive'
+            )
+        ],
         [types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_users')],
     ]
 
@@ -2513,7 +2552,11 @@ async def unblock_user(callback: types.CallbackQuery, db_user: User, db: AsyncSe
             texts.t('ADMIN_USER_UNBLOCK_SUCCESS'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}'
+                        )
+                    ]
                 ]
             ),
         )
@@ -2522,7 +2565,11 @@ async def unblock_user(callback: types.CallbackQuery, db_user: User, db: AsyncSe
             texts.t('ADMIN_USER_UNBLOCK_ERROR'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}'
+                        )
+                    ]
                 ]
             ),
         )
@@ -2569,8 +2616,10 @@ async def show_user_statistics(callback: types.CallbackQuery, db_user: User, db:
 
     text += texts.t('ADMIN_USER_STATS_SUBSCRIPTION_SECTION') + '\n'
     if subscription:
-        sub_status = texts.t('ADMIN_USER_STATS_SUB_ACTIVE') if subscription.is_active else texts.t(
-            'ADMIN_USER_STATS_SUB_INACTIVE'
+        sub_status = (
+            texts.t('ADMIN_USER_STATS_SUB_ACTIVE')
+            if subscription.is_active
+            else texts.t('ADMIN_USER_STATS_SUB_INACTIVE')
         )
         sub_type = (
             texts.t('ADMIN_USER_STATS_SUB_TYPE_TRIAL_SUFFIX')
@@ -2578,10 +2627,13 @@ async def show_user_statistics(callback: types.CallbackQuery, db_user: User, db:
             else texts.t('ADMIN_USER_STATS_SUB_TYPE_PAID_SUFFIX')
         )
         text += texts.t('ADMIN_USER_STATS_STATUS').format(status=f'{sub_status}{sub_type}') + '\n'
-        text += texts.t('ADMIN_USER_STATS_TRAFFIC').format(
-            used=f'{subscription.traffic_used_gb:.1f}',
-            limit=subscription.traffic_limit_gb,
-        ) + '\n'
+        text += (
+            texts.t('ADMIN_USER_STATS_TRAFFIC').format(
+                used=f'{subscription.traffic_used_gb:.1f}',
+                limit=subscription.traffic_limit_gb,
+            )
+            + '\n'
+        )
         text += texts.t('ADMIN_USER_STATS_DEVICES').format(count=subscription.device_limit) + '\n'
         text += texts.t('ADMIN_USER_STATS_COUNTRIES').format(count=len(subscription.connected_squads)) + '\n'
     else:
@@ -2596,15 +2648,20 @@ async def show_user_statistics(callback: types.CallbackQuery, db_user: User, db:
         else:
             text += texts.t('ADMIN_USER_STATS_REFERRED_BY_MISSING') + '\n'
         if campaign_registration and campaign_registration.campaign:
-            text += texts.t('ADMIN_USER_STATS_CAMPAIGN_ADDITIONAL').format(
-                name=campaign_registration.campaign.name
-            ) + '\n'
+            text += (
+                texts.t('ADMIN_USER_STATS_CAMPAIGN_ADDITIONAL').format(name=campaign_registration.campaign.name) + '\n'
+            )
     elif campaign_registration and campaign_registration.campaign:
-        text += texts.t('ADMIN_USER_STATS_CAMPAIGN_REGISTRATION').format(name=campaign_registration.campaign.name) + '\n'
+        text += (
+            texts.t('ADMIN_USER_STATS_CAMPAIGN_REGISTRATION').format(name=campaign_registration.campaign.name) + '\n'
+        )
         if campaign_registration.created_at:
-            text += texts.t('ADMIN_USER_STATS_CAMPAIGN_REG_DATE').format(
-                date=campaign_registration.created_at.strftime('%d.%m.%Y %H:%M')
-            ) + '\n'
+            text += (
+                texts.t('ADMIN_USER_STATS_CAMPAIGN_REG_DATE').format(
+                    date=campaign_registration.created_at.strftime('%d.%m.%Y %H:%M')
+                )
+                + '\n'
+            )
     else:
         text += texts.t('ADMIN_USER_STATS_DIRECT_REG') + '\n'
 
@@ -2619,39 +2676,61 @@ async def show_user_statistics(callback: types.CallbackQuery, db_user: User, db:
             )
         text += '\n'
         text += texts.t('ADMIN_USER_STATS_CAMPAIGN_TOTAL_REG').format(count=campaign_stats['registrations']) + '\n'
-        text += texts.t('ADMIN_USER_STATS_CAMPAIGN_TOTAL_REVENUE').format(
-            amount=settings.format_price(campaign_stats['total_revenue_kopeks'])
-        ) + '\n'
-        text += texts.t('ADMIN_USER_STATS_CAMPAIGN_TRIAL_USERS').format(
-            total=campaign_stats['trial_users_count'],
-            active=campaign_stats['active_trials_count'],
-        ) + '\n'
-        text += texts.t('ADMIN_USER_STATS_CAMPAIGN_PAID_CONV').format(
-            total=campaign_stats['conversion_count'],
-            paid=campaign_stats['paid_users_count'],
-        ) + '\n'
+        text += (
+            texts.t('ADMIN_USER_STATS_CAMPAIGN_TOTAL_REVENUE').format(
+                amount=settings.format_price(campaign_stats['total_revenue_kopeks'])
+            )
+            + '\n'
+        )
+        text += (
+            texts.t('ADMIN_USER_STATS_CAMPAIGN_TRIAL_USERS').format(
+                total=campaign_stats['trial_users_count'],
+                active=campaign_stats['active_trials_count'],
+            )
+            + '\n'
+        )
+        text += (
+            texts.t('ADMIN_USER_STATS_CAMPAIGN_PAID_CONV').format(
+                total=campaign_stats['conversion_count'],
+                paid=campaign_stats['paid_users_count'],
+            )
+            + '\n'
+        )
         text += texts.t('ADMIN_USER_STATS_CAMPAIGN_CONV_RATE').format(rate=campaign_stats['conversion_rate']) + '\n'
-        text += texts.t('ADMIN_USER_STATS_CAMPAIGN_TRIAL_CONV_RATE').format(
-            rate=campaign_stats['trial_conversion_rate']
-        ) + '\n'
-        text += texts.t('ADMIN_USER_STATS_CAMPAIGN_ARPU').format(
-            amount=settings.format_price(campaign_stats['avg_revenue_per_user_kopeks'])
-        ) + '\n'
-        text += texts.t('ADMIN_USER_STATS_CAMPAIGN_AVG_FIRST_PAYMENT').format(
-            amount=settings.format_price(campaign_stats['avg_first_payment_kopeks'])
-        ) + '\n'
+        text += (
+            texts.t('ADMIN_USER_STATS_CAMPAIGN_TRIAL_CONV_RATE').format(rate=campaign_stats['trial_conversion_rate'])
+            + '\n'
+        )
+        text += (
+            texts.t('ADMIN_USER_STATS_CAMPAIGN_ARPU').format(
+                amount=settings.format_price(campaign_stats['avg_revenue_per_user_kopeks'])
+            )
+            + '\n'
+        )
+        text += (
+            texts.t('ADMIN_USER_STATS_CAMPAIGN_AVG_FIRST_PAYMENT').format(
+                amount=settings.format_price(campaign_stats['avg_first_payment_kopeks'])
+            )
+            + '\n'
+        )
         text += '\n'
 
     if referral_stats['invited_count'] > 0:
         text += texts.t('ADMIN_USER_STATS_REF_EARNINGS_SECTION') + '\n'
         text += texts.t('ADMIN_USER_STATS_REF_INVITED_TOTAL').format(count=referral_stats['invited_count']) + '\n'
         text += texts.t('ADMIN_USER_STATS_REF_ACTIVE').format(count=referral_stats['active_referrals']) + '\n'
-        text += texts.t('ADMIN_USER_STATS_REF_TOTAL_EARNED').format(
-            amount=settings.format_price(referral_stats['total_earned_kopeks'])
-        ) + '\n'
-        text += texts.t('ADMIN_USER_STATS_REF_MONTH_EARNED').format(
-            amount=settings.format_price(referral_stats['month_earned_kopeks'])
-        ) + '\n'
+        text += (
+            texts.t('ADMIN_USER_STATS_REF_TOTAL_EARNED').format(
+                amount=settings.format_price(referral_stats['total_earned_kopeks'])
+            )
+            + '\n'
+        )
+        text += (
+            texts.t('ADMIN_USER_STATS_REF_MONTH_EARNED').format(
+                amount=settings.format_price(referral_stats['month_earned_kopeks'])
+            )
+            + '\n'
+        )
 
         if referral_stats['referrals_detail']:
             text += '\n' + texts.t('ADMIN_USER_STATS_REF_DETAILS_SECTION') + '\n'
@@ -2662,9 +2741,10 @@ async def show_user_statistics(callback: types.CallbackQuery, db_user: User, db:
                 text += f'• {status} {referral_name}: {earned}\n'
 
             if len(referral_stats['referrals_detail']) > 5:
-                text += texts.t('ADMIN_USER_STATS_REF_MORE').format(
-                    count=len(referral_stats['referrals_detail']) - 5
-                ) + '\n'
+                text += (
+                    texts.t('ADMIN_USER_STATS_REF_MORE').format(count=len(referral_stats['referrals_detail']) - 5)
+                    + '\n'
+                )
     else:
         text += texts.t('ADMIN_USER_STATS_REFERRAL_SECTION') + '\n'
         text += texts.t('ADMIN_USER_STATS_REF_NONE') + '\n'
@@ -2674,7 +2754,11 @@ async def show_user_statistics(callback: types.CallbackQuery, db_user: User, db:
         text,
         reply_markup=types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}')]
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_USER_BACK_TO_USER'), callback_data=f'admin_user_manage_{user_id}'
+                    )
+                ]
             ]
         ),
     )
@@ -4286,7 +4370,11 @@ async def change_subscription_type(callback: types.CallbackQuery, db_user: User,
 
     if subscription.is_trial:
         keyboard.append(
-            [InlineKeyboardButton(text=texts.t('ADMIN_USER_SUB_TYPE_MAKE_PAID'), callback_data=f'admin_sub_type_paid_{user_id}')]
+            [
+                InlineKeyboardButton(
+                    text=texts.t('ADMIN_USER_SUB_TYPE_MAKE_PAID'), callback_data=f'admin_sub_type_paid_{user_id}'
+                )
+            ]
         )
     else:
         keyboard.append(
@@ -4377,9 +4465,10 @@ async def admin_buy_subscription(callback: types.CallbackQuery, db_user: User, d
         target_user_link = f'<b>{target_user.full_name}</b>'
         target_user_id_display = target_user.email or f'#{target_user.id}'
     text += f'👤 {target_user_link} (ID: {target_user_id_display})\n'
-    text += texts.t('ADMIN_USER_SUB_USER_BALANCE_LINE').format(
-        balance=settings.format_price(target_user.balance_kopeks)
-    ) + '\n\n'
+    text += (
+        texts.t('ADMIN_USER_SUB_USER_BALANCE_LINE').format(balance=settings.format_price(target_user.balance_kopeks))
+        + '\n\n'
+    )
     traffic_text = (
         texts.t('ADMIN_USER_SUB_UNLIMITED_TEXT')
         if (subscription.traffic_limit_gb or 0) <= 0
@@ -4480,9 +4569,10 @@ async def admin_buy_subscription_confirm(callback: types.CallbackQuery, db_user:
     text += f'👤 {target_user_link} (ID: {target_user_id_display})\n'
     text += texts.t('ADMIN_USER_SUB_PERIOD_LINE').format(days=period_days) + '\n'
     text += texts.t('ADMIN_USER_SUB_PRICE_LINE').format(price=settings.format_price(price_kopeks)) + '\n'
-    text += texts.t('ADMIN_USER_SUB_USER_BALANCE_LINE').format(
-        balance=settings.format_price(target_user.balance_kopeks)
-    ) + '\n\n'
+    text += (
+        texts.t('ADMIN_USER_SUB_USER_BALANCE_LINE').format(balance=settings.format_price(target_user.balance_kopeks))
+        + '\n\n'
+    )
     traffic_text = (
         texts.t('ADMIN_USER_SUB_UNLIMITED_TEXT')
         if (subscription.traffic_limit_gb or 0) <= 0
@@ -4802,7 +4892,9 @@ async def admin_buy_tariff(callback: types.CallbackQuery, db_user: User, db: Asy
         target_user_id_display = target_user.email or f'#{target_user.id}'
     text = texts.t('ADMIN_TARIFF_BUY_TITLE') + '\n\n'
     text += f'👤 {target_user_link} (ID: {target_user_id_display})\n'
-    text += texts.t('ADMIN_TARIFF_BALANCE_LINE').format(balance=settings.format_price(target_user.balance_kopeks)) + '\n\n'
+    text += (
+        texts.t('ADMIN_TARIFF_BALANCE_LINE').format(balance=settings.format_price(target_user.balance_kopeks)) + '\n\n'
+    )
     text += texts.t('ADMIN_TARIFF_SELECT_PROMPT') + '\n\n'
 
     for tariff in tariffs:
@@ -4813,12 +4905,15 @@ async def admin_buy_tariff(callback: types.CallbackQuery, db_user: User, db: Asy
         )
         prices = tariff.period_prices or {}
         min_price = min(prices.values()) if prices else 0
-        text += texts.t('ADMIN_TARIFF_LIST_ITEM').format(
-            name=tariff.name,
-            traffic=traffic,
-            devices=tariff.device_limit,
-            price=settings.format_price(min_price),
-        ) + '\n'
+        text += (
+            texts.t('ADMIN_TARIFF_LIST_ITEM').format(
+                name=tariff.name,
+                traffic=traffic,
+                devices=tariff.device_limit,
+                price=settings.format_price(min_price),
+            )
+            + '\n'
+        )
 
     keyboard = []
     for tariff in tariffs:
@@ -4831,7 +4926,11 @@ async def admin_buy_tariff(callback: types.CallbackQuery, db_user: User, db: Asy
         )
 
     keyboard.append(
-        [types.InlineKeyboardButton(text=texts.t('BACK_TO_SUBSCRIPTION'), callback_data=f'admin_user_subscription_{user_id}')]
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('BACK_TO_SUBSCRIPTION'), callback_data=f'admin_user_subscription_{user_id}'
+            )
+        ]
     )
 
     await callback.message.edit_text(
@@ -4880,11 +4979,16 @@ async def admin_buy_tariff_period(callback: types.CallbackQuery, db_user: User, 
 
     text = texts.t('ADMIN_TARIFF_BUY_TITLE') + '\n\n'
     text += f'👤 {target_user_link} (ID: {target_user_id_display})\n'
-    text += texts.t('ADMIN_TARIFF_BALANCE_LINE').format(balance=settings.format_price(target_user.balance_kopeks)) + '\n\n'
+    text += (
+        texts.t('ADMIN_TARIFF_BALANCE_LINE').format(balance=settings.format_price(target_user.balance_kopeks)) + '\n\n'
+    )
     text += texts.t('ADMIN_TARIFF_LINE').format(name=tariff.name) + '\n'
     text += texts.t('ADMIN_TARIFF_TRAFFIC_LINE').format(traffic=traffic) + '\n'
     text += texts.t('ADMIN_TARIFF_DEVICES_LINE').format(count=tariff.device_limit) + '\n'
-    text += texts.t('ADMIN_TARIFF_SERVERS_LINE').format(count=len(tariff.allowed_squads) if tariff.allowed_squads else 0) + '\n\n'
+    text += (
+        texts.t('ADMIN_TARIFF_SERVERS_LINE').format(count=len(tariff.allowed_squads) if tariff.allowed_squads else 0)
+        + '\n\n'
+    )
     text += texts.t('ADMIN_TARIFF_SELECT_PERIOD_ONLY_PROMPT')
 
     prices = tariff.period_prices or {}
@@ -4904,7 +5008,13 @@ async def admin_buy_tariff_period(callback: types.CallbackQuery, db_user: User, 
             ]
         )
 
-    keyboard.append([types.InlineKeyboardButton(text=texts.t('ADMIN_TARIFF_BACK_TO_LIST'), callback_data=f'admin_tariff_buy_{user_id}')])
+    keyboard.append(
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_TARIFF_BACK_TO_LIST'), callback_data=f'admin_tariff_buy_{user_id}'
+            )
+        ]
+    )
 
     await callback.message.edit_text(
         text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard), parse_mode='HTML'
@@ -4978,7 +5088,9 @@ async def admin_buy_tariff_confirm(callback: types.CallbackQuery, db_user: User,
 
     text = texts.t('ADMIN_TARIFF_BUY_CONFIRM_TITLE') + '\n\n'
     text += f'👤 {target_user_link} (ID: {target_user_id_display})\n'
-    text += texts.t('ADMIN_TARIFF_BALANCE_LINE').format(balance=settings.format_price(target_user.balance_kopeks)) + '\n\n'
+    text += (
+        texts.t('ADMIN_TARIFF_BALANCE_LINE').format(balance=settings.format_price(target_user.balance_kopeks)) + '\n\n'
+    )
     text += texts.t('ADMIN_TARIFF_LINE').format(name=tariff.name) + '\n'
     text += texts.t('ADMIN_TARIFF_TRAFFIC_LINE').format(traffic=traffic) + '\n'
     text += texts.t('ADMIN_TARIFF_DEVICES_LINE').format(count=tariff.device_limit) + '\n'
@@ -5349,7 +5461,11 @@ async def show_admin_tariff_change(callback: types.CallbackQuery, db_user: User,
         )
 
     keyboard.append(
-        [types.InlineKeyboardButton(text=texts.t('BACK_TO_SUBSCRIPTION'), callback_data=f'admin_user_subscription_{user_id}')]
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('BACK_TO_SUBSCRIPTION'), callback_data=f'admin_user_subscription_{user_id}'
+            )
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard))

@@ -97,7 +97,9 @@ def _build_auto_sync_view(status: RemnaWaveAutoSyncStatus, texts) -> tuple[str, 
 
     if status.last_run_finished_at:
         finished_text = format_datetime(status.last_run_finished_at)
-        started_text = format_datetime(status.last_run_started_at) if status.last_run_started_at else texts.t('ADMIN_RW_DASH')
+        started_text = (
+            format_datetime(status.last_run_started_at) if status.last_run_started_at else texts.t('ADMIN_RW_DASH')
+        )
         duration = status.last_run_finished_at - status.last_run_started_at if status.last_run_started_at else None
         duration_text = (
             texts.t('ADMIN_RW_DURATION_WRAPPED').format(duration=_format_duration(duration.total_seconds(), texts))
@@ -138,9 +140,7 @@ def _build_auto_sync_view(status: RemnaWaveAutoSyncStatus, texts) -> tuple[str, 
 
     running_text = texts.t('ADMIN_RW_SYNC_RUNNING') if status.is_running else texts.t('ADMIN_RW_SYNC_WAITING')
     toggle_text = (
-        texts.t('ADMIN_RW_AUTO_SYNC_DISABLE_BUTTON')
-        if status.enabled
-        else texts.t('ADMIN_RW_AUTO_SYNC_ENABLE_BUTTON')
+        texts.t('ADMIN_RW_AUTO_SYNC_DISABLE_BUTTON') if status.enabled else texts.t('ADMIN_RW_AUTO_SYNC_ENABLE_BUTTON')
     )
 
     text = texts.t('ADMIN_RW_AUTO_SYNC_VIEW').format(
@@ -556,7 +556,9 @@ async def handle_migration_target_selection(
         '',
         texts.t('ADMIN_SQUAD_MIGRATION_CONFIRM_DETAILS'),
         texts.t('ADMIN_SQUAD_MIGRATION_CONFIRM_SOURCE').format(source=source_display),
-        texts.t('ADMIN_SQUAD_MIGRATION_CONFIRM_TARGET').format(target=_format_migration_server_label(texts, target_server)),
+        texts.t('ADMIN_SQUAD_MIGRATION_CONFIRM_TARGET').format(
+            target=_format_migration_server_label(texts, target_server)
+        ),
         texts.t('ADMIN_SQUAD_MIGRATION_CONFIRM_COUNT').format(count=users_to_move),
         '',
         texts.t('ADMIN_SQUAD_MIGRATION_CONFIRM_PROMPT'),
@@ -731,13 +733,9 @@ async def confirm_squad_migration(
     panel_failed = result.get('panel_failed', 0)
 
     if panel_updated:
-        message_lines.append(
-            texts.t('ADMIN_SQUAD_MIGRATION_RESULT_PANEL_UPDATED').format(count=panel_updated)
-        )
+        message_lines.append(texts.t('ADMIN_SQUAD_MIGRATION_RESULT_PANEL_UPDATED').format(count=panel_updated))
     if panel_failed:
-        message_lines.append(
-            texts.t('ADMIN_SQUAD_MIGRATION_RESULT_PANEL_FAILED').format(count=panel_failed)
-        )
+        message_lines.append(texts.t('ADMIN_SQUAD_MIGRATION_RESULT_PANEL_FAILED').format(count=panel_failed))
 
     reply_markup = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -1098,7 +1096,11 @@ async def show_nodes_management(callback: types.CallbackQuery, db_user: User, db
 
     keyboard.extend(
         [
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_RESTART_ALL_NODES_BUTTON'), callback_data='admin_restart_all_nodes')],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_RW_RESTART_ALL_NODES_BUTTON'), callback_data='admin_restart_all_nodes'
+                )
+            ],
             [types.InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_remnawave')],
         ]
     )
@@ -1123,10 +1125,14 @@ async def show_node_details(callback: types.CallbackQuery, db_user: User, db: As
     status_emoji = '🟢' if node['is_node_online'] else '🔴'
     xray_emoji = '✅' if node['is_xray_running'] else '❌'
 
-    status_change = format_datetime(node['last_status_change']) if node.get('last_status_change') else texts.t('ADMIN_RW_DASH')
+    status_change = (
+        format_datetime(node['last_status_change']) if node.get('last_status_change') else texts.t('ADMIN_RW_DASH')
+    )
     created_at = format_datetime(node['created_at']) if node.get('created_at') else texts.t('ADMIN_RW_DASH')
     updated_at = format_datetime(node['updated_at']) if node.get('updated_at') else texts.t('ADMIN_RW_DASH')
-    notify_percent = f'{node["notify_percent"]}%' if node.get('notify_percent') is not None else texts.t('ADMIN_RW_DASH')
+    notify_percent = (
+        f'{node["notify_percent"]}%' if node.get('notify_percent') is not None else texts.t('ADMIN_RW_DASH')
+    )
     cpu_info = node.get('cpu_model') or texts.t('ADMIN_RW_DASH')
     if node.get('cpu_count'):
         cpu_info = f'{node["cpu_count"]}x {cpu_info}'
@@ -1239,7 +1245,9 @@ async def show_node_statistics(callback: types.CallbackQuery, db_user: User, db:
         )
         created_at = format_datetime(node['created_at']) if node.get('created_at') else texts.t('ADMIN_RW_DASH')
         updated_at = format_datetime(node['updated_at']) if node.get('updated_at') else texts.t('ADMIN_RW_DASH')
-        notify_percent = f'{node["notify_percent"]}%' if node.get('notify_percent') is not None else texts.t('ADMIN_RW_DASH')
+        notify_percent = (
+            f'{node["notify_percent"]}%' if node.get('notify_percent') is not None else texts.t('ADMIN_RW_DASH')
+        )
         cpu_info = node.get('cpu_model') or texts.t('ADMIN_RW_DASH')
         if node.get('cpu_count'):
             cpu_info = f'{node["cpu_count"]}x {cpu_info}'
@@ -1310,7 +1318,11 @@ async def show_node_statistics(callback: types.CallbackQuery, db_user: User, db:
 
         keyboard = types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_REFRESH_BUTTON'), callback_data=f'node_stats_{node_uuid}')],
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_RW_REFRESH_BUTTON'), callback_data=f'node_stats_{node_uuid}'
+                    )
+                ],
                 [types.InlineKeyboardButton(text=texts.t('BACK'), callback_data=f'admin_node_manage_{node_uuid}')],
             ]
         )
@@ -1333,7 +1345,9 @@ async def show_node_statistics(callback: types.CallbackQuery, db_user: User, db:
             xray_text=xray_text,
             users_online=node['users_online'] or 0,
             status_change=(
-                format_datetime(node.get('last_status_change')) if node.get('last_status_change') else texts.t('ADMIN_RW_DASH')
+                format_datetime(node.get('last_status_change'))
+                if node.get('last_status_change')
+                else texts.t('ADMIN_RW_DASH')
             ),
             status_message=node.get('last_status_message') or texts.t('ADMIN_RW_DASH'),
             xray_uptime=node.get('xray_uptime') or texts.t('ADMIN_RW_DASH'),
@@ -1356,7 +1370,11 @@ async def show_node_statistics(callback: types.CallbackQuery, db_user: User, db:
 
         keyboard = types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_TRY_AGAIN_BUTTON'), callback_data=f'node_stats_{node_uuid}')],
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_RW_TRY_AGAIN_BUTTON'), callback_data=f'node_stats_{node_uuid}'
+                    )
+                ],
                 [types.InlineKeyboardButton(text=texts.t('BACK'), callback_data=f'admin_node_manage_{node_uuid}')],
             ]
         )
@@ -1426,7 +1444,11 @@ async def manage_squad_action(callback: types.CallbackQuery, db_user: User, db: 
                 texts.t('ADMIN_RW_SQUAD_DELETED'),
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads')]
+                        [
+                            types.InlineKeyboardButton(
+                                text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads'
+                            )
+                        ]
                     ]
                 ),
             )
@@ -1512,7 +1534,11 @@ async def show_squad_inbounds_selection(callback: types.CallbackQuery, db_user: 
 
     keyboard.extend(
         [
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SAVE_CHANGES_BUTTON'), callback_data=f'sqd_save_{squad_uuid[:8]}')],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_RW_SAVE_CHANGES_BUTTON'), callback_data=f'sqd_save_{squad_uuid[:8]}'
+                )
+            ],
             [types.InlineKeyboardButton(text=texts.t('BACK'), callback_data=f'sqd_edit_{squad_uuid[:8]}')],
         ]
     )
@@ -1600,10 +1626,15 @@ async def process_squad_new_name(message: types.Message, db_user: User, db: Asyn
                 inline_keyboard=[
                     [
                         types.InlineKeyboardButton(
-                            text=texts.t('ADMIN_RW_SQUAD_DETAILS_BUTTON'), callback_data=f'admin_squad_manage_{squad_uuid}'
+                            text=texts.t('ADMIN_RW_SQUAD_DETAILS_BUTTON'),
+                            callback_data=f'admin_squad_manage_{squad_uuid}',
                         )
                     ],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads'
+                        )
+                    ],
                 ]
             ),
         )
@@ -1678,7 +1709,11 @@ async def toggle_squad_inbound(callback: types.CallbackQuery, db_user: User, db:
 
     keyboard.extend(
         [
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SAVE_CHANGES_BUTTON'), callback_data=f'sqd_save_{short_squad_uuid}')],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_RW_SAVE_CHANGES_BUTTON'), callback_data=f'sqd_save_{short_squad_uuid}'
+                )
+            ],
             [types.InlineKeyboardButton(text=texts.t('BACK'), callback_data=f'sqd_edit_{short_squad_uuid}')],
         ]
     )
@@ -1722,7 +1757,11 @@ async def save_squad_inbounds(callback: types.CallbackQuery, db_user: User, db: 
                 ),
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads')],
+                        [
+                            types.InlineKeyboardButton(
+                                text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads'
+                            )
+                        ],
                         [
                             types.InlineKeyboardButton(
                                 text=texts.t('ADMIN_RW_SQUAD_DETAILS_BUTTON'),
@@ -1813,7 +1852,11 @@ async def process_squad_name(message: types.Message, db_user: User, db: AsyncSes
             texts.t('ADMIN_RW_SQUAD_CREATE_NO_INBOUNDS'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads'
+                        )
+                    ]
                 ]
             ),
         )
@@ -1838,7 +1881,11 @@ async def process_squad_name(message: types.Message, db_user: User, db: AsyncSes
 
     keyboard.extend(
         [
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_CREATE_SQUAD_BUTTON'), callback_data='create_squad_finish')],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_RW_CREATE_SQUAD_BUTTON'), callback_data='create_squad_finish'
+                )
+            ],
             [types.InlineKeyboardButton(text=texts.CANCEL, callback_data='cancel_squad_create')],
         ]
     )
@@ -1898,7 +1945,11 @@ async def toggle_create_inbound(callback: types.CallbackQuery, db_user: User, db
 
     keyboard.extend(
         [
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_CREATE_SQUAD_BUTTON'), callback_data='create_squad_finish')],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_RW_CREATE_SQUAD_BUTTON'), callback_data='create_squad_finish'
+                )
+            ],
             [types.InlineKeyboardButton(text=texts.CANCEL, callback_data='cancel_squad_create')],
         ]
     )
@@ -1935,8 +1986,16 @@ async def finish_squad_creation(callback: types.CallbackQuery, db_user: User, db
             texts.t('ADMIN_RW_SQUAD_CREATED_SUCCESS').format(name=squad_name, count=len(selected_inbounds)),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SQUADS_LIST_BUTTON'), callback_data='admin_rw_squads')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_PANEL_BUTTON'), callback_data='admin_remnawave')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RW_SQUADS_LIST_BUTTON'), callback_data='admin_rw_squads'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RW_BACK_TO_PANEL_BUTTON'), callback_data='admin_remnawave'
+                        )
+                    ],
                 ]
             ),
         )
@@ -1946,8 +2005,16 @@ async def finish_squad_creation(callback: types.CallbackQuery, db_user: User, db
             texts.t('ADMIN_RW_SQUAD_CREATE_ERROR').format(name=squad_name),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_TRY_AGAIN_BUTTON'), callback_data='admin_squad_create')],
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RW_TRY_AGAIN_BUTTON'), callback_data='admin_squad_create'
+                        )
+                    ],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RW_BACK_TO_SQUADS_BUTTON'), callback_data='admin_rw_squads'
+                        )
+                    ],
                 ]
             ),
         )
@@ -1976,14 +2043,26 @@ async def restart_all_nodes(callback: types.CallbackQuery, db_user: User, db: As
         await callback.message.edit_text(
             texts.t('ADMIN_RW_RESTART_ALL_NODES_SENT'),
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_NODES_BUTTON'), callback_data='admin_rw_nodes')]]
+                inline_keyboard=[
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RW_BACK_TO_NODES_BUTTON'), callback_data='admin_rw_nodes'
+                        )
+                    ]
+                ]
             ),
         )
     else:
         await callback.message.edit_text(
             texts.t('ADMIN_RW_RESTART_ALL_NODES_ERROR'),
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_NODES_BUTTON'), callback_data='admin_rw_nodes')]]
+                inline_keyboard=[
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_RW_BACK_TO_NODES_BUTTON'), callback_data='admin_rw_nodes'
+                        )
+                    ]
+                ]
             ),
         )
 
@@ -2131,7 +2210,9 @@ async def prompt_auto_sync_schedule(
 ):
     texts = get_texts(db_user.language)
     status = remnawave_sync_service.get_status()
-    current_schedule = ', '.join(t.strftime('%H:%M') for t in status.times) if status.times else texts.t('ADMIN_RW_DASH')
+    current_schedule = (
+        ', '.join(t.strftime('%H:%M') for t in status.times) if status.times else texts.t('ADMIN_RW_DASH')
+    )
 
     instructions = texts.t('ADMIN_RW_AUTO_SYNC_SCHEDULE_PROMPT').format(schedule=current_schedule)
 
@@ -2359,12 +2440,16 @@ async def sync_all_users(callback: types.CallbackQuery, db_user: User, db: Async
     keyboard = []
 
     if stats['errors'] > 0:
-        keyboard.append([types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYNC_RETRY_BUTTON'), callback_data='sync_all_users')])
+        keyboard.append(
+            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYNC_RETRY_BUTTON'), callback_data='sync_all_users')]
+        )
 
     keyboard.extend(
         [
             [
-                types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYSTEM_STATS_BUTTON'), callback_data='admin_rw_system'),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_RW_SYSTEM_STATS_BUTTON'), callback_data='admin_rw_system'
+                ),
                 types.InlineKeyboardButton(text=texts.t('ADMIN_RW_NODES_SHORT_BUTTON'), callback_data='admin_rw_nodes'),
             ],
             [types.InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_remnawave')],
@@ -2599,7 +2684,11 @@ async def force_cleanup_all_orphaned_users(callback: types.CallbackQuery, db_use
         text += texts.t('ADMIN_RW_ERRORS_DETECTED_BLOCK')
 
     keyboard = [
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_CLEANUP_RETRY_BUTTON'), callback_data='force_cleanup_orphaned')],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_RW_CLEANUP_RETRY_BUTTON'), callback_data='force_cleanup_orphaned'
+            )
+        ],
         [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYNC_RUN_FULL_BUTTON'), callback_data='sync_all_users')],
         [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_BACK_TO_SYNC_BUTTON'), callback_data='admin_rw_sync')],
     ]
@@ -2615,7 +2704,11 @@ async def confirm_force_cleanup(callback: types.CallbackQuery, db_user: User, db
     text = texts.t('ADMIN_RW_FORCE_CLEANUP_CONFIRM_TEXT')
 
     keyboard = [
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_FORCE_CLEANUP_CONFIRM_BUTTON'), callback_data='force_cleanup_orphaned')],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_RW_FORCE_CLEANUP_CONFIRM_BUTTON'), callback_data='force_cleanup_orphaned'
+            )
+        ],
         [types.InlineKeyboardButton(text=texts.CANCEL, callback_data='admin_rw_sync')],
     ]
 
@@ -2697,15 +2790,21 @@ async def sync_users(callback: types.CallbackQuery, db_user: User, db: AsyncSess
     keyboard = []
 
     if stats['errors'] > 0:
-        keyboard.append([types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYNC_RETRY_BUTTON'), callback_data=callback.data)])
+        keyboard.append(
+            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYNC_RETRY_BUTTON'), callback_data=callback.data)]
+        )
 
     if sync_type != 'all_users':
-        keyboard.append([types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYNC_RUN_FULL_BUTTON'), callback_data='sync_all_users')])
+        keyboard.append(
+            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYNC_RUN_FULL_BUTTON'), callback_data='sync_all_users')]
+        )
 
     keyboard.extend(
         [
             [
-                types.InlineKeyboardButton(text=texts.t('ADMIN_RW_SYSTEM_STATS_BUTTON'), callback_data='admin_rw_system'),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_RW_SYSTEM_STATS_BUTTON'), callback_data='admin_rw_system'
+                ),
                 types.InlineKeyboardButton(text=texts.t('ADMIN_RW_NODES_SHORT_BUTTON'), callback_data='admin_rw_nodes'),
             ],
             [types.InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_remnawave')],
@@ -2744,7 +2843,11 @@ async def show_squads_management(callback: types.CallbackQuery, db_user: User, d
 
     keyboard.extend(
         [
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_RW_CREATE_SQUAD_SHORT_BUTTON'), callback_data='admin_squad_create')],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_RW_CREATE_SQUAD_SHORT_BUTTON'), callback_data='admin_squad_create'
+                )
+            ],
             [types.InlineKeyboardButton(text=texts.t('BACK'), callback_data='admin_remnawave')],
         ]
     )

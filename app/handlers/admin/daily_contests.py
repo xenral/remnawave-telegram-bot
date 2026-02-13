@@ -70,7 +70,11 @@ async def show_daily_contests(
     keyboard_rows = []
     if templates:
         keyboard_rows.append(
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_DAILY_CLOSE_ALL_ROUNDS_BUTTON'), callback_data='admin_daily_close_all')]
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_DAILY_CLOSE_ALL_ROUNDS_BUTTON'), callback_data='admin_daily_close_all'
+                )
+            ]
         )
         keyboard_rows.append(
             [
@@ -128,7 +132,9 @@ async def show_daily_contest(
     lines = [
         texts.t('ADMIN_DAILY_CONTEST_TITLE_LINE').format(name=tpl.name, slug=tpl.slug),
         f'{texts.t("ADMIN_CONTEST_STATUS_ACTIVE") if tpl.is_enabled else texts.t("ADMIN_CONTEST_STATUS_INACTIVE")}',
-        texts.t('ADMIN_DAILY_CONTEST_PRIZE_LINE').format(prize_type=tpl.prize_type or 'days', prize_value=tpl.prize_value or '1'),
+        texts.t('ADMIN_DAILY_CONTEST_PRIZE_LINE').format(
+            prize_type=tpl.prize_type or 'days', prize_value=tpl.prize_value or '1'
+        ),
         texts.t('ADMIN_DAILY_CONTEST_MAX_WINNERS_LINE').format(value=tpl.max_winners),
         texts.t('ADMIN_DAILY_CONTEST_ATTEMPTS_LINE').format(value=tpl.attempts_per_user),
         texts.t('ADMIN_DAILY_CONTEST_TIMES_PER_DAY_LINE').format(value=tpl.times_per_day),
@@ -363,8 +369,7 @@ async def edit_payload(
         ]
     )
     await callback.message.edit_text(
-        texts.t('ADMIN_CONTEST_PAYLOAD_PROMPT')
-        + f'<code>{payload_json}</code>',
+        texts.t('ADMIN_CONTEST_PAYLOAD_PROMPT') + f'<code>{payload_json}</code>',
         reply_markup=kb,
     )
     await callback.answer()

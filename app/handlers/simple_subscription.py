@@ -48,7 +48,9 @@ async def start_simple_subscription_purchase(
         support_url = settings.get_support_contact_url()
         keyboard = []
         if support_url:
-            keyboard.append([types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)])
+            keyboard.append(
+                [types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)]
+            )
         keyboard.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='subscription')])
 
         await callback.message.edit_text(
@@ -627,7 +629,9 @@ async def handle_simple_subscription_pay_with_balance(
         if happ_row:
             keyboard_rows.append(happ_row)
 
-        keyboard_rows.append([types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='back_to_menu')])
+        keyboard_rows.append(
+            [types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='back_to_menu')]
+        )
 
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
 
@@ -991,7 +995,11 @@ async def handle_simple_subscription_payment_method(
             # Добавляем кнопку оплаты, если доступна ссылка
             if confirmation_url:
                 keyboard_buttons.append(
-                    [types.InlineKeyboardButton(text=texts.t('SIMPLE_SUB_PAYMENT_GO_TO_PAY_BUTTON'), url=confirmation_url)]
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('SIMPLE_SUB_PAYMENT_GO_TO_PAY_BUTTON'), url=confirmation_url
+                        )
+                    ]
                 )
             else:
                 # Если ссылка недоступна, предлагаем оплатить через ID платежа в приложении банка
@@ -2346,7 +2354,9 @@ async def confirm_simple_subscription_purchase(
         if happ_row:
             keyboard_rows.append(happ_row)
 
-        keyboard_rows.append([types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='back_to_menu')])
+        keyboard_rows.append(
+            [types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='back_to_menu')]
+        )
 
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
 

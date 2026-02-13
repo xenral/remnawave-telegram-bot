@@ -72,7 +72,13 @@ async def show_promocodes_list(callback: types.CallbackQuery, db_user: User, db:
         await callback.message.edit_text(
             texts.t('ADMIN_PROMO_LIST_EMPTY'),
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data='admin_promocodes')]]
+                inline_keyboard=[
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data='admin_promocodes'
+                        )
+                    ]
+                ]
             ),
         )
         await callback.answer()
@@ -201,12 +207,18 @@ async def show_promocode_management(callback: types.CallbackQuery, db_user: User
     keyboard = [
         [
             types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_EDIT_BUTTON'), callback_data=f'promo_edit_{promo.id}'),
-            types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_TOGGLE_STATUS_BUTTON'), callback_data=f'promo_toggle_{promo.id}'),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_PROMO_TOGGLE_STATUS_BUTTON'), callback_data=f'promo_toggle_{promo.id}'
+            ),
         ],
         [types.InlineKeyboardButton(text=first_purchase_btn_text, callback_data=f'promo_toggle_first_{promo.id}')],
         [
-            types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_STATS_BUTTON'), callback_data=f'promo_stats_{promo.id}'),
-            types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_DELETE_BUTTON'), callback_data=f'promo_delete_{promo.id}'),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_PROMO_STATS_BUTTON'), callback_data=f'promo_stats_{promo.id}'
+            ),
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_PROMO_DELETE_BUTTON'), callback_data=f'promo_delete_{promo.id}'
+            ),
         ],
         [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_BACK_TO_LIST_BUTTON'), callback_data='admin_promo_list')],
     ]
@@ -251,20 +263,46 @@ async def show_promocode_edit_menu(callback: types.CallbackQuery, db_user: User,
     text += '\nВыберите параметр для изменения:'
 
     keyboard = [
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_EDIT_DATE_BUTTON'), callback_data=f'promo_edit_date_{promo.id}')],
-        [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_EDIT_USES_BUTTON'), callback_data=f'promo_edit_uses_{promo.id}')],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_PROMO_EDIT_DATE_BUTTON'), callback_data=f'promo_edit_date_{promo.id}'
+            )
+        ],
+        [
+            types.InlineKeyboardButton(
+                text=texts.t('ADMIN_PROMO_EDIT_USES_BUTTON'), callback_data=f'promo_edit_uses_{promo.id}'
+            )
+        ],
     ]
 
     if promo.type == PromoCodeType.BALANCE.value:
         keyboard.insert(
-            1, [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_EDIT_AMOUNT_BUTTON'), callback_data=f'promo_edit_amount_{promo.id}')]
+            1,
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_EDIT_AMOUNT_BUTTON'), callback_data=f'promo_edit_amount_{promo.id}'
+                )
+            ],
         )
     elif promo.type in [PromoCodeType.SUBSCRIPTION_DAYS.value, PromoCodeType.TRIAL_SUBSCRIPTION.value]:
         keyboard.insert(
-            1, [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_EDIT_DAYS_BUTTON'), callback_data=f'promo_edit_days_{promo.id}')]
+            1,
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_EDIT_DAYS_BUTTON'), callback_data=f'promo_edit_days_{promo.id}'
+                )
+            ],
         )
 
-    keyboard.extend([[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data=f'promo_manage_{promo.id}')]])
+    keyboard.extend(
+        [
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data=f'promo_manage_{promo.id}'
+                )
+            ]
+        ]
+    )
 
     await callback.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard))
     await callback.answer()
@@ -295,7 +333,13 @@ ID промокода: {promo_id}
 """
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_edit_{promo_id}')]]
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_edit_{promo_id}'
+                )
+            ]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -325,7 +369,13 @@ ID промокода: {promo_id}
 """
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_edit_{promo_id}')]]
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_edit_{promo_id}'
+                )
+            ]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -356,7 +406,13 @@ ID промокода: {promo_id}
 """
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_edit_{promo_id}')]]
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_edit_{promo_id}'
+                )
+            ]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -389,7 +445,13 @@ ID промокода: {promo_id}
 """
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_edit_{promo_id}')]]
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_edit_{promo_id}'
+                )
+            ]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -427,7 +489,13 @@ async def select_promocode_type(callback: types.CallbackQuery, db_user: User, st
     await callback.message.edit_text(
         texts.t('ADMIN_PROMO_CREATE_CODE_PROMPT').format(type_name=type_names.get(promo_type, promo_type)),
         reply_markup=types.InlineKeyboardMarkup(
-            inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data='admin_promocodes')]]
+            inline_keyboard=[
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data='admin_promocodes'
+                    )
+                ]
+            ]
         ),
     )
 
@@ -475,7 +543,13 @@ async def process_promocode_code(message: types.Message, db_user: User, state: F
             await message.answer(
                 texts.t('ADMIN_PROMO_GROUPS_NOT_FOUND_ALERT'),
                 reply_markup=types.InlineKeyboardMarkup(
-                    inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data='admin_promocodes')]]
+                    inline_keyboard=[
+                        [
+                            types.InlineKeyboardButton(
+                                text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data='admin_promocodes'
+                            )
+                        ]
+                    ]
                 ),
             )
             await state.clear()
@@ -495,7 +569,9 @@ async def process_promocode_code(message: types.Message, db_user: User, state: F
                 ]
             )
 
-        keyboard.append([types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data='admin_promocodes')])
+        keyboard.append(
+            [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data='admin_promocodes')]
+        )
 
         await message.answer(text, reply_markup=types.InlineKeyboardMarkup(inline_keyboard=keyboard))
         await state.set_state(AdminStates.selecting_promo_group)
@@ -591,7 +667,11 @@ async def handle_edit_value(message: types.Message, db_user: User, state: FSMCon
                 texts.t('ADMIN_PROMO_AMOUNT_UPDATED').format(value=value),
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_TO_PROMO_BUTTON'), callback_data=f'promo_manage_{promo_id}')]
+                        [
+                            types.InlineKeyboardButton(
+                                text=texts.t('ADMIN_PROMO_TO_PROMO_BUTTON'), callback_data=f'promo_manage_{promo_id}'
+                            )
+                        ]
                     ]
                 ),
             )
@@ -606,7 +686,11 @@ async def handle_edit_value(message: types.Message, db_user: User, state: FSMCon
                 texts.t('ADMIN_PROMO_DAYS_UPDATED').format(value=value),
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_TO_PROMO_BUTTON'), callback_data=f'promo_manage_{promo_id}')]
+                        [
+                            types.InlineKeyboardButton(
+                                text=texts.t('ADMIN_PROMO_TO_PROMO_BUTTON'), callback_data=f'promo_manage_{promo_id}'
+                            )
+                        ]
                     ]
                 ),
             )
@@ -686,7 +770,11 @@ async def handle_edit_uses(message: types.Message, db_user: User, state: FSMCont
             texts.t('ADMIN_PROMO_USES_UPDATED').format(value=uses_text),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_TO_PROMO_BUTTON'), callback_data=f'promo_manage_{promo_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_PROMO_TO_PROMO_BUTTON'), callback_data=f'promo_manage_{promo_id}'
+                        )
+                    ]
                 ]
             ),
         )
@@ -727,9 +815,7 @@ async def process_promocode_expiry(message: types.Message, db_user: User, state:
         # Для DISCOUNT типа нужно дополнительно спросить срок действия скидки в часах
         if promo_type == 'discount':
             await state.update_data(promocode_expiry_days=expiry_days)
-            await message.answer(
-                texts.t('ADMIN_PROMO_DISCOUNT_HOURS_PROMPT').format(code=code)
-            )
+            await message.answer(texts.t('ADMIN_PROMO_DISCOUNT_HOURS_PROMPT').format(code=code))
             await state.set_state(AdminStates.setting_discount_hours)
             return
 
@@ -785,7 +871,13 @@ async def process_promocode_expiry(message: types.Message, db_user: User, state:
         await message.answer(
             summary_text,
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_TO_PROMOS_BUTTON'), callback_data='admin_promocodes')]]
+                inline_keyboard=[
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_PROMO_TO_PROMOS_BUTTON'), callback_data='admin_promocodes'
+                        )
+                    ]
+                ]
             ),
         )
 
@@ -855,7 +947,13 @@ async def process_discount_hours(message: types.Message, db_user: User, state: F
         await message.answer(
             summary_text,
             reply_markup=types.InlineKeyboardMarkup(
-                inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_TO_PROMOS_BUTTON'), callback_data='admin_promocodes')]]
+                inline_keyboard=[
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_PROMO_TO_PROMOS_BUTTON'), callback_data='admin_promocodes'
+                        )
+                    ]
+                ]
             ),
         )
 
@@ -901,7 +999,11 @@ async def handle_edit_expiry(message: types.Message, db_user: User, state: FSMCo
             texts.t('ADMIN_PROMO_EXPIRY_UPDATED').format(expiry=expiry_text),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_TO_PROMO_BUTTON'), callback_data=f'promo_manage_{promo_id}')]
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('ADMIN_PROMO_TO_PROMO_BUTTON'), callback_data=f'promo_manage_{promo_id}'
+                        )
+                    ]
                 ]
             ),
         )
@@ -950,7 +1052,9 @@ async def toggle_promocode_first_purchase(callback: types.CallbackQuery, db_user
     new_status = not getattr(promo, 'first_purchase_only', False)
     await update_promocode(db, promo, first_purchase_only=new_status)
 
-    status_text = texts.t('ADMIN_PROMO_FIRST_PURCHASE_ENABLED') if new_status else texts.t('ADMIN_PROMO_FIRST_PURCHASE_DISABLED')
+    status_text = (
+        texts.t('ADMIN_PROMO_FIRST_PURCHASE_ENABLED') if new_status else texts.t('ADMIN_PROMO_FIRST_PURCHASE_DISABLED')
+    )
     await callback.answer(texts.t('ADMIN_PROMO_FIRST_PURCHASE_TOGGLED').format(status=status_text), show_alert=True)
 
     await show_promocode_management(callback, db_user, db)
@@ -988,8 +1092,12 @@ ID: {promo_id}
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_DELETE_CONFIRM_BUTTON'), callback_data=f'promo_delete_confirm_{promo.id}'),
-                types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_manage_{promo.id}'),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_DELETE_CONFIRM_BUTTON'), callback_data=f'promo_delete_confirm_{promo.id}'
+                ),
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_CANCEL_BUTTON'), callback_data=f'promo_manage_{promo.id}'
+                ),
             ]
         ]
     )
@@ -1065,7 +1173,13 @@ async def show_promocode_stats(callback: types.CallbackQuery, db_user: User, db:
         text += '- Пока не было использований\n'
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data=f'promo_manage_{promo.id}')]]
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data=f'promo_manage_{promo.id}'
+                )
+            ]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -1092,7 +1206,11 @@ async def show_general_promocode_stats(callback: types.CallbackQuery, db_user: U
 
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_TO_PROMOS_BUTTON'), callback_data='admin_promo_list')],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_PROMO_TO_PROMOS_BUTTON'), callback_data='admin_promo_list'
+                )
+            ],
             [types.InlineKeyboardButton(text=texts.t('ADMIN_PROMO_BACK_BUTTON'), callback_data='admin_promocodes')],
         ]
     )

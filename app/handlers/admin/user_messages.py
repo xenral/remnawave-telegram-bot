@@ -51,14 +51,28 @@ def get_message_actions_keyboard(message_id: int, is_active: bool, language: str
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
     texts = get_texts(language)
-    status_text = texts.t('ADMIN_USER_MSG_DEACTIVATE_BUTTON') if is_active else texts.t('ADMIN_USER_MSG_ACTIVATE_BUTTON')
+    status_text = (
+        texts.t('ADMIN_USER_MSG_DEACTIVATE_BUTTON') if is_active else texts.t('ADMIN_USER_MSG_ACTIVATE_BUTTON')
+    )
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_EDIT_BUTTON'), callback_data=f'edit_user_message:{message_id}')],
+            [
+                InlineKeyboardButton(
+                    text=texts.t('ADMIN_USER_MSG_EDIT_BUTTON'), callback_data=f'edit_user_message:{message_id}'
+                )
+            ],
             [InlineKeyboardButton(text=status_text, callback_data=f'toggle_user_message:{message_id}')],
-            [InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_DELETE_BUTTON'), callback_data=f'delete_user_message:{message_id}')],
-            [InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_BACK_TO_LIST_BUTTON'), callback_data='list_user_messages:0')],
+            [
+                InlineKeyboardButton(
+                    text=texts.t('ADMIN_USER_MSG_DELETE_BUTTON'), callback_data=f'delete_user_message:{message_id}'
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=texts.t('ADMIN_USER_MSG_BACK_TO_LIST_BUTTON'), callback_data='list_user_messages:0'
+                )
+            ],
         ]
     )
 
@@ -92,7 +106,9 @@ async def process_new_message_text(message: types.Message, state: FSMContext, db
     texts = get_texts(db_user.language)
     if message.text == '/cancel':
         await state.clear()
-        await message.answer(texts.t('ADMIN_USER_MSG_ADD_CANCELLED'), reply_markup=get_user_messages_keyboard(db_user.language))
+        await message.answer(
+            texts.t('ADMIN_USER_MSG_ADD_CANCELLED'), reply_markup=get_user_messages_keyboard(db_user.language)
+        )
         return
 
     message_text = message.text.strip()
@@ -114,7 +130,11 @@ async def process_new_message_text(message: types.Message, state: FSMContext, db
 
         await state.clear()
 
-        status_text = texts.t('ADMIN_USER_MSG_STATUS_ACTIVE') if new_message.is_active else texts.t('ADMIN_USER_MSG_STATUS_INACTIVE')
+        status_text = (
+            texts.t('ADMIN_USER_MSG_STATUS_ACTIVE')
+            if new_message.is_active
+            else texts.t('ADMIN_USER_MSG_STATUS_INACTIVE')
+        )
 
         await message.answer(
             texts.t('ADMIN_USER_MSG_CREATED_SUCCESS').format(
@@ -187,17 +207,29 @@ async def list_user_messages(callback: types.CallbackQuery, db_user: User, db: A
 
     nav_buttons = []
     if page > 0:
-        nav_buttons.append(InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_PREV_BUTTON'), callback_data=f'list_user_messages:{page - 1}'))
+        nav_buttons.append(
+            InlineKeyboardButton(
+                text=texts.t('ADMIN_USER_MSG_PREV_BUTTON'), callback_data=f'list_user_messages:{page - 1}'
+            )
+        )
 
-    nav_buttons.append(InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_ADD_SHORT_BUTTON'), callback_data='add_user_message'))
+    nav_buttons.append(
+        InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_ADD_SHORT_BUTTON'), callback_data='add_user_message')
+    )
 
     if len(messages) == limit:
-        nav_buttons.append(InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_NEXT_BUTTON'), callback_data=f'list_user_messages:{page + 1}'))
+        nav_buttons.append(
+            InlineKeyboardButton(
+                text=texts.t('ADMIN_USER_MSG_NEXT_BUTTON'), callback_data=f'list_user_messages:{page + 1}'
+            )
+        )
 
     if nav_buttons:
         keyboard.append(nav_buttons)
 
-    keyboard.append([InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_BACK_BUTTON'), callback_data='user_messages_panel')])
+    keyboard.append(
+        [InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_BACK_BUTTON'), callback_data='user_messages_panel')]
+    )
 
     await callback.message.edit_text(
         text, reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard), parse_mode='HTML'
@@ -223,7 +255,9 @@ async def view_user_message(callback: types.CallbackQuery, db_user: User, db: As
 
     safe_content = sanitize_html(message.message_text)
 
-    status_text = texts.t('ADMIN_USER_MSG_STATUS_ACTIVE') if message.is_active else texts.t('ADMIN_USER_MSG_STATUS_INACTIVE')
+    status_text = (
+        texts.t('ADMIN_USER_MSG_STATUS_ACTIVE') if message.is_active else texts.t('ADMIN_USER_MSG_STATUS_INACTIVE')
+    )
 
     text = texts.t('ADMIN_USER_MSG_VIEW_TEXT').format(
         id=message.id,
@@ -257,7 +291,11 @@ async def toggle_message_status(callback: types.CallbackQuery, db_user: User, db
         await callback.answer(texts.t('ADMIN_USER_MSG_NOT_FOUND'), show_alert=True)
         return
 
-    status_text = texts.t('ADMIN_USER_MSG_STATUS_ACTIVATED') if message.is_active else texts.t('ADMIN_USER_MSG_STATUS_DEACTIVATED')
+    status_text = (
+        texts.t('ADMIN_USER_MSG_STATUS_ACTIVATED')
+        if message.is_active
+        else texts.t('ADMIN_USER_MSG_STATUS_DEACTIVATED')
+    )
     await callback.answer(texts.t('ADMIN_USER_MSG_TOGGLED_STATUS').format(status=status_text))
 
     await view_user_message(callback, db_user, db)
@@ -308,7 +346,9 @@ async def show_messages_stats(callback: types.CallbackQuery, db_user: User, db: 
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_BACK_BUTTON'), callback_data='user_messages_panel')]]
+        inline_keyboard=[
+            [InlineKeyboardButton(text=texts.t('ADMIN_USER_MSG_BACK_BUTTON'), callback_data='user_messages_panel')]
+        ]
     )
 
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode='HTML')
@@ -350,7 +390,9 @@ async def process_edit_message_text(message: types.Message, state: FSMContext, d
     texts = get_texts(db_user.language)
     if message.text == '/cancel':
         await state.clear()
-        await message.answer(texts.t('ADMIN_USER_MSG_EDIT_CANCELLED'), reply_markup=get_user_messages_keyboard(db_user.language))
+        await message.answer(
+            texts.t('ADMIN_USER_MSG_EDIT_CANCELLED'), reply_markup=get_user_messages_keyboard(db_user.language)
+        )
         return
 
     data = await state.get_data()

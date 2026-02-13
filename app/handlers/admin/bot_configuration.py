@@ -578,7 +578,11 @@ async def handle_search_query(
                         callback_data='botcfg_action:search',
                     )
                 ],
-                [types.InlineKeyboardButton(text=get_texts(db_user.language).t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')],
+                [
+                    types.InlineKeyboardButton(
+                        text=get_texts(db_user.language).t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config'
+                    )
+                ],
             ]
         )
         text = (
@@ -617,7 +621,9 @@ async def show_presets(
     rows: list[list[types.InlineKeyboardButton]] = []
     for chunk in _chunk(buttons, 2):
         rows.append(list(chunk))
-    rows.append([types.InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='admin_bot_config')])
+    rows.append(
+        [types.InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]
+    )
 
     await callback.message.edit_text(
         text,
@@ -666,8 +672,17 @@ async def preview_preset(
     title, lines = _format_preset_preview(preset_key)
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
-            [types.InlineKeyboardButton(text=get_texts(db_user.language).t('ADMIN_CFG_APPLY_BUTTON'), callback_data=f'botcfg_preset_apply:{preset_key}')],
-            [types.InlineKeyboardButton(text=get_texts(db_user.language).t('ADMIN_CFG_BACK_BUTTON'), callback_data='botcfg_action:presets')],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(db_user.language).t('ADMIN_CFG_APPLY_BUTTON'),
+                    callback_data=f'botcfg_preset_apply:{preset_key}',
+                )
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text=get_texts(db_user.language).t('ADMIN_CFG_BACK_BUTTON'), callback_data='botcfg_action:presets'
+                )
+            ],
         ]
     )
 
@@ -726,7 +741,11 @@ async def apply_preset(
 
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
-            [types.InlineKeyboardButton(text=texts.t('ADMIN_CFG_BACK_TO_PRESETS_BUTTON'), callback_data='botcfg_action:presets')],
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t('ADMIN_CFG_BACK_TO_PRESETS_BUTTON'), callback_data='botcfg_action:presets'
+                )
+            ],
             [types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')],
         ]
     )
@@ -887,7 +906,9 @@ async def handle_import_message(
         summary_lines.append('\n'.join(f'• {html.escape(err)}' for err in errors))
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]]
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]
+        ]
     )
 
     await message.answer('\n'.join(summary_lines), parse_mode='HTML', reply_markup=keyboard)
@@ -921,7 +942,9 @@ async def show_settings_history(
         lines.append('История изменений пуста.')
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]]
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]
+        ]
     )
 
     await callback.message.edit_text('\n'.join(lines), parse_mode='HTML', reply_markup=keyboard)
@@ -948,7 +971,9 @@ async def show_help(
     )
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]]
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]
+        ]
     )
 
     await callback.message.edit_text(text, parse_mode='HTML', reply_markup=keyboard)
@@ -1917,7 +1942,9 @@ async def test_payment_provider(
 
     if method == 'yookassa':
         if not settings.is_yookassa_enabled():
-            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='YooKassa'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='YooKassa'), show_alert=True
+            )
             return
 
         amount_kopeks = 10 * 100
@@ -1935,7 +1962,9 @@ async def test_payment_provider(
         )
 
         if not payment_result or not payment_result.get('confirmation_url'):
-            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='YooKassa'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='YooKassa'), show_alert=True
+            )
             await _refresh_markup()
             return
 
@@ -1968,7 +1997,9 @@ async def test_payment_provider(
 
     if method == 'tribute':
         if not settings.TRIBUTE_ENABLED:
-            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Tribute'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Tribute'), show_alert=True
+            )
             return
 
         tribute_service = TributeService(callback.bot)
@@ -1982,7 +2013,9 @@ async def test_payment_provider(
             payment_url = None
 
         if not payment_url:
-            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Tribute'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Tribute'), show_alert=True
+            )
             await _refresh_markup()
             return
 
@@ -2065,7 +2098,9 @@ async def test_payment_provider(
 
     if method == 'pal24':
         if not settings.is_pal24_enabled():
-            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='PayPalych'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='PayPalych'), show_alert=True
+            )
             return
 
         amount_kopeks = 10 * 100
@@ -2078,7 +2113,9 @@ async def test_payment_provider(
         )
 
         if not payment_result:
-            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='PayPalych'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='PayPalych'), show_alert=True
+            )
             await _refresh_markup()
             return
 
@@ -2087,7 +2124,9 @@ async def test_payment_provider(
         fallback_url = payment_result.get('link_page_url') or payment_result.get('link_url')
 
         if not (sbp_url or card_url or fallback_url):
-            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='PayPalych'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='PayPalych'), show_alert=True
+            )
             await _refresh_markup()
             return
 
@@ -2144,11 +2183,11 @@ async def test_payment_provider(
         )
         keyboard_rows = pay_rows + [
             [
-                    types.InlineKeyboardButton(
-                        text=texts.t('CHECK_STATUS_BUTTON'),
-                        callback_data=f'check_pal24_{payment_result["local_payment_id"]}',
-                    )
-                ],
+                types.InlineKeyboardButton(
+                    text=texts.t('CHECK_STATUS_BUTTON'),
+                    callback_data=f'check_pal24_{payment_result["local_payment_id"]}',
+                )
+            ],
         ]
 
         reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
@@ -2208,7 +2247,9 @@ async def test_payment_provider(
 
     if method == 'cryptobot':
         if not settings.is_cryptobot_enabled():
-            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='CryptoBot'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='CryptoBot'), show_alert=True
+            )
             return
 
         amount_rubles = 100.0
@@ -2234,7 +2275,9 @@ async def test_payment_provider(
         )
 
         if not payment_result:
-            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='CryptoBot'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='CryptoBot'), show_alert=True
+            )
             await _refresh_markup()
             return
 
@@ -2245,7 +2288,9 @@ async def test_payment_provider(
         )
 
         if not payment_url:
-            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_MISSING').format(provider='CryptoBot'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_MISSING').format(provider='CryptoBot'), show_alert=True
+            )
             await _refresh_markup()
             return
 
@@ -2274,7 +2319,9 @@ async def test_payment_provider(
 
     if method == 'freekassa':
         if not settings.is_freekassa_enabled():
-            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Freekassa'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Freekassa'), show_alert=True
+            )
             return
 
         amount_kopeks = settings.FREEKASSA_MIN_AMOUNT_KOPEKS
@@ -2288,7 +2335,9 @@ async def test_payment_provider(
         )
 
         if not payment_result or not payment_result.get('payment_url'):
-            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Freekassa'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Freekassa'), show_alert=True
+            )
             await _refresh_markup()
             return
 
@@ -2315,7 +2364,9 @@ async def test_payment_provider(
 
     if method == 'kassa_ai':
         if not settings.is_kassa_ai_enabled():
-            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Kassa AI'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Kassa AI'), show_alert=True
+            )
             return
 
         amount_kopeks = settings.KASSA_AI_MIN_AMOUNT_KOPEKS
@@ -2329,7 +2380,9 @@ async def test_payment_provider(
         )
 
         if not payment_result or not payment_result.get('payment_url'):
-            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Kassa AI'), show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Kassa AI'), show_alert=True
+            )
             await _refresh_markup()
             return
 
@@ -2351,7 +2404,9 @@ async def test_payment_provider(
             ]
         )
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
-        await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider=display_name), show_alert=True)
+        await callback.answer(
+            texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider=display_name), show_alert=True
+        )
         await _refresh_markup()
         return
 

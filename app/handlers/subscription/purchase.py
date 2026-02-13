@@ -251,20 +251,16 @@ async def show_subscription_info(callback: types.CallbackQuery, db_user: User, d
             warning_text = texts.t('SUBSCRIPTION_WARNING_MINUTES')
 
     subscription_type = (
-        texts.t('SUBSCRIPTION_TYPE_TRIAL')
-        if subscription.is_trial
-        else texts.t('SUBSCRIPTION_TYPE_PAID')
+        texts.t('SUBSCRIPTION_TYPE_TRIAL') if subscription.is_trial else texts.t('SUBSCRIPTION_TYPE_PAID')
     )
 
     used_traffic = f'{subscription.traffic_used_gb:.1f}'
     if subscription.traffic_limit_gb == 0:
-        traffic_used_display = texts.t(
-            'SUBSCRIPTION_TRAFFIC_UNLIMITED'
-        ).format(used=used_traffic)
+        traffic_used_display = texts.t('SUBSCRIPTION_TRAFFIC_UNLIMITED').format(used=used_traffic)
     else:
-        traffic_used_display = texts.t(
-            'SUBSCRIPTION_TRAFFIC_LIMITED'
-        ).format(used=used_traffic, limit=subscription.traffic_limit_gb)
+        traffic_used_display = texts.t('SUBSCRIPTION_TRAFFIC_LIMITED').format(
+            used=used_traffic, limit=subscription.traffic_limit_gb
+        )
 
     devices_used_str = '—'
     devices_list = []
@@ -774,7 +770,9 @@ async def activate_trial(callback: types.CallbackQuery, db_user: User, db: Async
         support_url = settings.get_support_contact_url()
         keyboard = []
         if support_url:
-            keyboard.append([types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)])
+            keyboard.append(
+                [types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)]
+            )
         keyboard.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='subscription')])
 
         await callback.message.edit_text(
@@ -835,9 +833,7 @@ async def activate_trial(callback: types.CallbackQuery, db_user: User, db: Async
         ]
 
         if can_pay_from_balance:
-            message_lines.append(
-                texts.t('PAID_TRIAL_CAN_PAY_BALANCE')
-            )
+            message_lines.append(texts.t('PAID_TRIAL_CAN_PAY_BALANCE'))
         else:
             message_lines.append(texts.t('PAID_TRIAL_SELECT_PAYMENT'))
 
@@ -1174,9 +1170,7 @@ async def activate_trial(callback: types.CallbackQuery, db_user: User, db: Async
                 parse_mode='HTML',
             )
         else:
-            trial_success_text = (
-                f'{texts.TRIAL_ACTIVATED}\n\n{texts.t("TRIAL_LINK_GENERATING_NOTICE")}'
-            )
+            trial_success_text = f'{texts.TRIAL_ACTIVATED}\n\n{texts.t("TRIAL_LINK_GENERATING_NOTICE")}'
             trial_success_text += payment_note
             await callback.message.edit_text(
                 trial_success_text,
@@ -1524,7 +1518,11 @@ async def handle_extend_subscription(callback: types.CallbackQuery, db_user: Use
             texts.t('PURCHASE_EXTEND_TARIFF_REQUIRED_TEXT'),
             reply_markup=types.InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [types.InlineKeyboardButton(text=texts.t('TARIFF_SWITCH_SELECT_BUTTON'), callback_data='tariff_switch')],
+                    [
+                        types.InlineKeyboardButton(
+                            text=texts.t('TARIFF_SWITCH_SELECT_BUTTON'), callback_data='tariff_switch'
+                        )
+                    ],
                     [types.InlineKeyboardButton(text=texts.BACK, callback_data='menu_subscription')],
                 ]
             ),
@@ -1667,9 +1665,7 @@ async def handle_extend_subscription(callback: types.CallbackQuery, db_user: Use
         '',
         texts.t('PURCHASE_RENEWAL_CURRENT_CONFIG_TITLE'),
         texts.t('PURCHASE_RENEWAL_SERVERS_LINE').format(count=len(subscription.connected_squads)),
-        texts.t('PURCHASE_RENEWAL_TRAFFIC_LINE').format(
-            traffic=texts.format_traffic(subscription.traffic_limit_gb)
-        ),
+        texts.t('PURCHASE_RENEWAL_TRAFFIC_LINE').format(traffic=texts.format_traffic(subscription.traffic_limit_gb)),
     ]
 
     if settings.is_devices_selection_enabled():
@@ -1716,9 +1712,7 @@ async def confirm_extend_subscription(callback: types.CallbackQuery, db_user: Us
     # Валидация что период доступен для продления
     available_renewal_periods = settings.get_available_renewal_periods()
     if days not in available_renewal_periods:
-        await callback.answer(
-            texts.t('RENEWAL_PERIOD_NOT_AVAILABLE'), show_alert=True
-        )
+        await callback.answer(texts.t('RENEWAL_PERIOD_NOT_AVAILABLE'), show_alert=True)
         return
 
     subscription = db_user.subscription
@@ -2142,9 +2136,7 @@ async def select_devices(callback: types.CallbackQuery, state: FSMContext, db_us
     # Получаем цену периода с защитой от KeyError
     period_days = data.get('period_days')
     if not period_days or period_days not in PERIOD_PRICES:
-        await callback.answer(
-            texts.t('PERIOD_NOT_AVAILABLE'), show_alert=True
-        )
+        await callback.answer(texts.t('PERIOD_NOT_AVAILABLE'), show_alert=True)
         return
 
     base_price = PERIOD_PRICES.get(period_days, 0) + settings.get_traffic_price(data.get('traffic_gb', 0))
@@ -2193,7 +2185,9 @@ async def confirm_purchase(callback: types.CallbackQuery, state: FSMContext, db_
         support_url = settings.get_support_contact_url()
         keyboard = []
         if support_url:
-            keyboard.append([types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)])
+            keyboard.append(
+                [types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)]
+            )
         keyboard.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='subscription')])
 
         await callback.message.edit_text(
@@ -2773,18 +2767,12 @@ async def confirm_purchase(callback: types.CallbackQuery, state: FSMContext, db_
                     ]
                 )
             elif connect_mode == 'link':
-                rows = [
-                    [InlineKeyboardButton(text=texts.t('CONNECT_BUTTON'), url=subscription_link)]
-                ]
+                rows = [[InlineKeyboardButton(text=texts.t('CONNECT_BUTTON'), url=subscription_link)]]
                 happ_row = get_happ_download_button_row(texts)
                 if happ_row:
                     rows.append(happ_row)
                 rows.append(
-                    [
-                        InlineKeyboardButton(
-                            text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='back_to_menu'
-                        )
-                    ]
+                    [InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='back_to_menu')]
                 )
                 connect_keyboard = InlineKeyboardMarkup(inline_keyboard=rows)
             elif connect_mode == 'happ_cryptolink':
@@ -2800,21 +2788,13 @@ async def confirm_purchase(callback: types.CallbackQuery, state: FSMContext, db_
                 if happ_row:
                     rows.append(happ_row)
                 rows.append(
-                    [
-                        InlineKeyboardButton(
-                            text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='back_to_menu'
-                        )
-                    ]
+                    [InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='back_to_menu')]
                 )
                 connect_keyboard = InlineKeyboardMarkup(inline_keyboard=rows)
             else:
                 connect_keyboard = InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [
-                            InlineKeyboardButton(
-                                text=texts.t('CONNECT_BUTTON'), callback_data='subscription_connect'
-                            )
-                        ],
+                        [InlineKeyboardButton(text=texts.t('CONNECT_BUTTON'), callback_data='subscription_connect')],
                         [
                             InlineKeyboardButton(
                                 text=texts.t('BACK_TO_MAIN_MENU_BUTTON'),
@@ -3018,9 +2998,7 @@ async def handle_toggle_daily_subscription_pause(callback: types.CallbackQuery, 
         tariff = await get_tariff_by_id(db, subscription.tariff_id)
 
     if not tariff or not getattr(tariff, 'is_daily', False):
-        await callback.answer(
-            texts.t('NOT_DAILY_TARIFF_ERROR'), show_alert=True
-        )
+        await callback.answer(texts.t('NOT_DAILY_TARIFF_ERROR'), show_alert=True)
         return
 
     # Прикрепляем тариф к подписке для CRUD функций
@@ -3251,9 +3229,7 @@ async def handle_trial_pay_with_balance(callback: types.CallbackQuery, db_user: 
                 parse_mode='HTML',
             )
         else:
-            trial_success_text = (
-                f'{texts.TRIAL_ACTIVATED}\n\n{texts.t("TRIAL_LINK_GENERATING_NOTICE")}'
-            )
+            trial_success_text = f'{texts.TRIAL_ACTIVATED}\n\n{texts.t("TRIAL_LINK_GENERATING_NOTICE")}'
             trial_success_text += payment_note
 
             await callback.message.edit_text(
@@ -3469,9 +3445,7 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
 
             await callback.bot.send_invoice(
                 chat_id=callback.from_user.id,
-                title=texts.t('PAID_TRIAL_INVOICE_TITLE').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                title=texts.t('PAID_TRIAL_INVOICE_TITLE').format(days=settings.TRIAL_DURATION_DAYS),
                 description=(
                     f'{texts.t("PERIOD")}: {settings.TRIAL_DURATION_DAYS} {texts.t("DAYS")}\n'
                     f'{texts.t("DEVICES")}: {settings.TRIAL_DEVICE_LIMIT}\n'
@@ -3480,9 +3454,7 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
                 payload=f'trial_{pending_subscription.id}',
                 provider_token='',
                 currency='XTR',
-                prices=[
-                    types.LabeledPrice(label=texts.t('PAID_TRIAL_STARS_LABEL'), amount=stars_count)
-                ],
+                prices=[types.LabeledPrice(label=texts.t('PAID_TRIAL_STARS_LABEL'), amount=stars_count)],
             )
 
             await callback.message.edit_text(
@@ -3496,9 +3468,7 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
             payment_result = await payment_service.create_yookassa_sbp_payment(
                 db=db,
                 amount_kopeks=trial_price_kopeks,
-                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(days=settings.TRIAL_DURATION_DAYS),
                 user_id=db_user.id,
                 metadata={
                     'type': 'trial',
@@ -3508,7 +3478,9 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
             )
 
             if not payment_result or not payment_result.get('confirmation_url'):
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True
+                )
                 return
 
             qr_url = payment_result.get('qr_code_url') or payment_result.get('confirmation_url')
@@ -3530,9 +3502,7 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
                 db=db,
                 user_id=db_user.id,
                 amount_kopeks=trial_price_kopeks,
-                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(days=settings.TRIAL_DURATION_DAYS),
                 metadata={
                     'type': 'trial',
                     'subscription_id': pending_subscription.id,
@@ -3541,7 +3511,9 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
             )
 
             if not payment_result or not payment_result.get('confirmation_url'):
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True
+                )
                 return
 
             await callback.message.edit_text(
@@ -3576,9 +3548,7 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
                 user_id=db_user.id,
                 amount_usd=amount_usd,
                 asset=settings.CRYPTOBOT_DEFAULT_ASSET,
-                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(days=settings.TRIAL_DURATION_DAYS),
                 payload=f'trial_{pending_subscription.id}_{db_user.id}',
             )
 
@@ -3593,7 +3563,9 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
             )
 
             if not payment_result or not payment_url:
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True
+                )
                 return
 
             await callback.message.edit_text(
@@ -3619,21 +3591,25 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
                 db=db,
                 user_id=db_user.id,
                 amount_kopeks=trial_price_kopeks,
-                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(days=settings.TRIAL_DURATION_DAYS),
                 language=db_user.language,
             )
 
             if not payment_result or not payment_result.get('payment_url'):
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True
+                )
                 return
 
             await callback.message.edit_text(
                 texts.t('PAID_TRIAL_HELEKET').format(amount=settings.format_price(trial_price_kopeks)),
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
-                        [InlineKeyboardButton(text=texts.t('PAY_WITH_COINS_BUTTON'), url=payment_result['payment_url'])],
+                        [
+                            InlineKeyboardButton(
+                                text=texts.t('PAY_WITH_COINS_BUTTON'), url=payment_result['payment_url']
+                            )
+                        ],
                         [
                             InlineKeyboardButton(
                                 text=texts.t('CHECK_PAYMENT'),
@@ -3652,14 +3628,14 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
                 db=db,
                 user_id=db_user.id,
                 amount_kopeks=trial_price_kopeks,
-                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(days=settings.TRIAL_DURATION_DAYS),
                 language=db_user.language,
             )
 
             if not payment_result or not payment_result.get('payment_url'):
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True
+                )
                 return
 
             mulenpay_name = settings.get_mulenpay_display_name()
@@ -3689,14 +3665,14 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
                 db=db,
                 user_id=db_user.id,
                 amount_kopeks=trial_price_kopeks,
-                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(days=settings.TRIAL_DURATION_DAYS),
                 language=db_user.language,
             )
 
             if not payment_result or not payment_result.get('payment_url'):
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True
+                )
                 return
 
             await callback.message.edit_text(
@@ -3722,14 +3698,14 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
                 db=db,
                 user_id=db_user.id,
                 amount_kopeks=trial_price_kopeks,
-                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(days=settings.TRIAL_DURATION_DAYS),
                 language=db_user.language,
             )
 
             if not payment_result or not payment_result.get('payment_url'):
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True
+                )
                 return
 
             await callback.message.edit_text(
@@ -3753,7 +3729,9 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
             # Оплата через Platega
             active_methods = settings.get_platega_active_methods()
             if not active_methods:
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PLATEGA_NOT_CONFIGURED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PLATEGA_NOT_CONFIGURED_ALERT'), show_alert=True
+                )
                 return
 
             # Используем первый активный метод
@@ -3763,15 +3741,15 @@ async def handle_trial_payment_method(callback: types.CallbackQuery, db_user: Us
                 db=db,
                 user_id=db_user.id,
                 amount_kopeks=trial_price_kopeks,
-                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(
-                    days=settings.TRIAL_DURATION_DAYS
-                ),
+                description=texts.t('PAID_TRIAL_PAYMENT_DESC').format(days=settings.TRIAL_DURATION_DAYS),
                 language=db_user.language,
                 payment_method_code=method_code,
             )
 
             if not payment_result or not payment_result.get('redirect_url'):
-                await callback.answer(get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True)
+                await callback.answer(
+                    get_texts(db_user.language).t('PURCHASE_PAYMENT_CREATE_FAILED_ALERT'), show_alert=True
+                )
                 return
 
             platega_name = settings.get_platega_display_name()
@@ -4055,9 +4033,7 @@ async def handle_simple_subscription_purchase(
 
         if settings.is_devices_selection_enabled():
             simple_lines.append(
-                texts.t('SIMPLE_SUBSCRIPTION_DEVICES_LINE').format(
-                    devices=subscription_params['device_limit']
-                )
+                texts.t('SIMPLE_SUBSCRIPTION_DEVICES_LINE').format(devices=subscription_params['device_limit'])
             )
 
         simple_lines.extend(
@@ -4107,9 +4083,7 @@ async def handle_simple_subscription_purchase(
 
         if settings.is_devices_selection_enabled():
             simple_lines.append(
-                texts.t('SIMPLE_SUBSCRIPTION_DEVICES_LINE').format(
-                    devices=subscription_params['device_limit']
-                )
+                texts.t('SIMPLE_SUBSCRIPTION_DEVICES_LINE').format(devices=subscription_params['device_limit'])
             )
 
         simple_lines.extend(

@@ -28,7 +28,9 @@ async def start_yookassa_payment(callback: types.CallbackQuery, db_user: User, s
         support_url = settings.get_support_contact_url()
         keyboard = []
         if support_url:
-            keyboard.append([types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)])
+            keyboard.append(
+                [types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)]
+            )
         keyboard.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='menu_balance')])
 
         await callback.message.edit_text(
@@ -92,7 +94,9 @@ async def start_yookassa_sbp_payment(callback: types.CallbackQuery, db_user: Use
         support_url = settings.get_support_contact_url()
         keyboard = []
         if support_url:
-            keyboard.append([types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)])
+            keyboard.append(
+                [types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)]
+            )
         keyboard.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='menu_balance')])
 
         await callback.message.edit_text(
@@ -158,7 +162,9 @@ async def process_yookassa_payment_amount(
         support_url = settings.get_support_contact_url()
         keyboard = []
         if support_url:
-            keyboard.append([types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)])
+            keyboard.append(
+                [types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)]
+            )
         keyboard.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='menu_balance')])
 
         await message.answer(
@@ -311,7 +317,9 @@ async def process_yookassa_sbp_payment_amount(
         support_url = settings.get_support_contact_url()
         keyboard = []
         if support_url:
-            keyboard.append([types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)])
+            keyboard.append(
+                [types.InlineKeyboardButton(text=texts.t('USER_RESTRICTION_APPEAL_BUTTON'), url=support_url)]
+            )
         keyboard.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='menu_balance')])
 
         await message.answer(
@@ -431,11 +439,17 @@ async def process_yookassa_sbp_payment_amount(
 
         # Добавляем кнопку оплаты, если доступна ссылка
         if confirmation_url:
-            keyboard_buttons.append([types.InlineKeyboardButton(text=texts.t('SIMPLE_SUB_PAYMENT_GO_TO_PAY_BUTTON'), url=confirmation_url)])
+            keyboard_buttons.append(
+                [types.InlineKeyboardButton(text=texts.t('SIMPLE_SUB_PAYMENT_GO_TO_PAY_BUTTON'), url=confirmation_url)]
+            )
         else:
             # Если ссылка недоступна, предлагаем оплатить через ID платежа в приложении банка
             keyboard_buttons.append(
-                [types.InlineKeyboardButton(text=texts.t('SIMPLE_SUB_PAYMENT_BANK_APP_BUTTON'), callback_data='temp_disabled')]
+                [
+                    types.InlineKeyboardButton(
+                        text=texts.t('SIMPLE_SUB_PAYMENT_BANK_APP_BUTTON'), callback_data='temp_disabled'
+                    )
+                ]
             )
 
         # Добавляем общие кнопки
