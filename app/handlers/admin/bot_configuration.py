@@ -468,7 +468,11 @@ def _perform_settings_search(query: str) -> list[dict[str, object]]:
     return results[:20]
 
 
-def _build_search_results_keyboard(results: list[dict[str, object]]) -> types.InlineKeyboardMarkup:
+def _build_search_results_keyboard(
+    results: list[dict[str, object]],
+    language: str = settings.DEFAULT_LANGUAGE,
+) -> types.InlineKeyboardMarkup:
+    texts = get_texts(language)
     rows: list[list[types.InlineKeyboardButton]] = []
     for result in results:
         group_key = str(result['group_key'])
@@ -490,7 +494,7 @@ def _build_search_results_keyboard(results: list[dict[str, object]]) -> types.In
     rows.append(
         [
             types.InlineKeyboardButton(
-                text='⬅️ В главное меню',
+                text=texts.t('BACK_TO_MAIN_MENU_BUTTON'),
                 callback_data='admin_bot_config',
             )
         ]
@@ -519,21 +523,22 @@ async def start_settings_search(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     await state.set_state(BotConfigStates.waiting_for_search_query)
     await state.update_data(botcfg_origin='bot_config')
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text='⬅️ В главное меню', callback_data='admin_bot_config')]]
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]
+        ]
     )
 
     await callback.message.edit_text(
-        '🔍 <b>Поиск по настройкам</b>\n\n'
-        'Отправьте часть ключа или названия настройки. \n'
-        'Например: <code>yookassa</code> или <code>уведомления</code>.',
+        texts.t('ADMIN_CFG_SEARCH_PROMPT'),
         reply_markup=keyboard,
         parse_mode='HTML',
     )
-    await callback.answer('Введите запрос', show_alert=False)
+    await callback.answer(texts.t('ADMIN_CFG_SEARCH_ENTER_QUERY_TOAST'), show_alert=False)
 
 
 @admin_required
@@ -555,7 +560,7 @@ async def handle_search_query(
     results = _perform_settings_search(query)
 
     if results:
-        keyboard = _build_search_results_keyboard(results)
+        keyboard = _build_search_results_keyboard(results, db_user.language)
         lines = [
             '🔍 <b>Результаты поиска</b>',
             f'Запрос: <code>{html.escape(query)}</code>',
@@ -569,11 +574,11 @@ async def handle_search_query(
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text='⬅️ Попробовать снова',
+                        text=get_texts(db_user.language).t('ADMIN_CFG_TRY_AGAIN_BUTTON'),
                         callback_data='botcfg_action:search',
                     )
                 ],
-                [types.InlineKeyboardButton(text='🏠 Главное меню', callback_data='admin_bot_config')],
+                [types.InlineKeyboardButton(text=get_texts(db_user.language).t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')],
             ]
         )
         text = (
@@ -594,6 +599,7 @@ async def show_presets(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     lines = [
         '🎯 <b>Готовые пресеты</b>',
         '',
@@ -611,7 +617,7 @@ async def show_presets(
     rows: list[list[types.InlineKeyboardButton]] = []
     for chunk in _chunk(buttons, 2):
         rows.append(list(chunk))
-    rows.append([types.InlineKeyboardButton(text='⬅️ Главное меню', callback_data='admin_bot_config')])
+    rows.append([types.InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='admin_bot_config')])
 
     await callback.message.edit_text(
         text,
@@ -650,17 +656,18 @@ async def preview_preset(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 1)
     preset_key = parts[1] if len(parts) > 1 else ''
     if preset_key not in PRESET_CONFIGS:
-        await callback.answer('Этот пресет недоступен', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_PRESET_UNAVAILABLE'), show_alert=True)
         return
 
     title, lines = _format_preset_preview(preset_key)
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
-            [types.InlineKeyboardButton(text='✅ Применить', callback_data=f'botcfg_preset_apply:{preset_key}')],
-            [types.InlineKeyboardButton(text='⬅️ Назад', callback_data='botcfg_action:presets')],
+            [types.InlineKeyboardButton(text=get_texts(db_user.language).t('ADMIN_CFG_APPLY_BUTTON'), callback_data=f'botcfg_preset_apply:{preset_key}')],
+            [types.InlineKeyboardButton(text=get_texts(db_user.language).t('ADMIN_CFG_BACK_BUTTON'), callback_data='botcfg_action:presets')],
         ]
     )
 
@@ -680,11 +687,12 @@ async def apply_preset(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 1)
     preset_key = parts[1] if len(parts) > 1 else ''
     config = PRESET_CONFIGS.get(preset_key)
     if not config:
-        await callback.answer('Этот пресет недоступен', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_PRESET_UNAVAILABLE'), show_alert=True)
         return
 
     applied: list[str] = []
@@ -718,8 +726,8 @@ async def apply_preset(
 
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
-            [types.InlineKeyboardButton(text='⬅️ К пресетам', callback_data='botcfg_action:presets')],
-            [types.InlineKeyboardButton(text='🏠 Главное меню', callback_data='admin_bot_config')],
+            [types.InlineKeyboardButton(text=texts.t('ADMIN_CFG_BACK_TO_PRESETS_BUTTON'), callback_data='botcfg_action:presets')],
+            [types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')],
         ]
     )
 
@@ -728,7 +736,7 @@ async def apply_preset(
         parse_mode='HTML',
         reply_markup=keyboard,
     )
-    await callback.answer('Настройки обновлены', show_alert=False)
+    await callback.answer(texts.t('ADMIN_CFG_PRESET_APPLIED_TOAST'), show_alert=False)
 
 
 @admin_required
@@ -739,6 +747,7 @@ async def export_settings(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     categories = bot_configuration_service.get_categories()
     keys: list[str] = []
     for category_key, _label, _count in categories:
@@ -764,10 +773,10 @@ async def export_settings(
 
     await callback.message.answer_document(
         document=file,
-        caption='📤 Экспорт текущих настроек',
+        caption=texts.t('ADMIN_CFG_EXPORT_CAPTION'),
         parse_mode='HTML',
     )
-    await callback.answer('Файл готов', show_alert=False)
+    await callback.answer(texts.t('ADMIN_CFG_EXPORT_READY_TOAST'), show_alert=False)
 
 
 @admin_required
@@ -778,21 +787,22 @@ async def start_import_settings(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     await state.set_state(BotConfigStates.waiting_for_import_file)
     await state.update_data(botcfg_origin='bot_config')
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text='⬅️ Главное меню', callback_data='admin_bot_config')]]
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]
+        ]
     )
 
     await callback.message.edit_text(
-        '📥 <b>Импорт настроек</b>\n\n'
-        'Прикрепите .env файл или отправьте текстом пары <code>KEY=value</code>.\n'
-        'Неизвестные параметры будут проигнорированы.',
+        texts.t('ADMIN_CFG_IMPORT_PROMPT'),
         parse_mode='HTML',
         reply_markup=keyboard,
     )
-    await callback.answer('Загрузите файл .env', show_alert=False)
+    await callback.answer(texts.t('ADMIN_CFG_IMPORT_UPLOAD_TOAST'), show_alert=False)
 
 
 @admin_required
@@ -803,6 +813,7 @@ async def handle_import_message(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     if message.chat.type != 'private':
         return
 
@@ -822,7 +833,7 @@ async def handle_import_message(
     parsed = _parse_env_content(content)
     if not parsed:
         await message.answer(
-            '❌ Не удалось найти параметры в файле. Убедитесь, что используется формат KEY=value.',
+            texts.t('ADMIN_CFG_IMPORT_PARSE_ERROR'),
             parse_mode='HTML',
         )
         await state.clear()
@@ -876,7 +887,7 @@ async def handle_import_message(
         summary_lines.append('\n'.join(f'• {html.escape(err)}' for err in errors))
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text='🏠 Главное меню', callback_data='admin_bot_config')]]
+        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]]
     )
 
     await message.answer('\n'.join(summary_lines), parse_mode='HTML', reply_markup=keyboard)
@@ -891,6 +902,7 @@ async def show_settings_history(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     result = await db.execute(select(SystemSetting).order_by(SystemSetting.updated_at.desc()).limit(10))
     rows = result.scalars().all()
 
@@ -909,7 +921,7 @@ async def show_settings_history(
         lines.append('История изменений пуста.')
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text='⬅️ Главное меню', callback_data='admin_bot_config')]]
+        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('BACK_TO_MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]]
     )
 
     await callback.message.edit_text('\n'.join(lines), parse_mode='HTML', reply_markup=keyboard)
@@ -924,6 +936,7 @@ async def show_help(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     text = (
         '❓ <b>Как работать с панелью</b>\n\n'
         '• Навигируйте по категориям, чтобы увидеть связанные настройки.\n'
@@ -935,7 +948,7 @@ async def show_help(
     )
 
     keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[[types.InlineKeyboardButton(text='🏠 Главное меню', callback_data='admin_bot_config')]]
+        inline_keyboard=[[types.InlineKeyboardButton(text=texts.t('MAIN_MENU_BUTTON'), callback_data='admin_bot_config')]]
     )
 
     await callback.message.edit_text(text, parse_mode='HTML', reply_markup=keyboard)
@@ -1050,8 +1063,9 @@ def _get_grouped_categories() -> list[tuple[str, str, list[tuple[str, str, int]]
     return grouped
 
 
-def _build_groups_keyboard() -> types.InlineKeyboardMarkup:
+def _build_groups_keyboard(language: str = settings.DEFAULT_LANGUAGE) -> types.InlineKeyboardMarkup:
     grouped = _get_grouped_categories()
+    texts = get_texts(language)
     rows: list[list[types.InlineKeyboardButton]] = []
 
     for group_key, title, items in grouped:
@@ -1070,11 +1084,11 @@ def _build_groups_keyboard() -> types.InlineKeyboardMarkup:
     rows.append(
         [
             types.InlineKeyboardButton(
-                text='🔍 Найти настройку',
+                text=texts.t('ADMIN_CFG_SEARCH_BUTTON'),
                 callback_data='botcfg_action:search',
             ),
             types.InlineKeyboardButton(
-                text='🎯 Пресеты',
+                text=texts.t('ADMIN_CFG_PRESETS_BUTTON'),
                 callback_data='botcfg_action:presets',
             ),
         ]
@@ -1083,11 +1097,11 @@ def _build_groups_keyboard() -> types.InlineKeyboardMarkup:
     rows.append(
         [
             types.InlineKeyboardButton(
-                text='📤 Экспорт .env',
+                text=texts.t('ADMIN_CFG_EXPORT_ENV_BUTTON'),
                 callback_data='botcfg_action:export',
             ),
             types.InlineKeyboardButton(
-                text='📥 Импорт .env',
+                text=texts.t('ADMIN_CFG_IMPORT_ENV_BUTTON'),
                 callback_data='botcfg_action:import',
             ),
         ]
@@ -1096,11 +1110,11 @@ def _build_groups_keyboard() -> types.InlineKeyboardMarkup:
     rows.append(
         [
             types.InlineKeyboardButton(
-                text='🕘 История',
+                text=texts.t('ADMIN_CFG_HISTORY_BUTTON'),
                 callback_data='botcfg_action:history',
             ),
             types.InlineKeyboardButton(
-                text='❓ Помощь',
+                text=texts.t('ADMIN_CFG_HELP_BUTTON'),
                 callback_data='botcfg_action:help',
             ),
         ]
@@ -1109,7 +1123,7 @@ def _build_groups_keyboard() -> types.InlineKeyboardMarkup:
     rows.append(
         [
             types.InlineKeyboardButton(
-                text='⬅️ Назад в админку',
+                text=texts.t('ADMIN_BACK_TO_ADMIN'),
                 callback_data='admin_submenu_settings',
             )
         ]
@@ -1122,8 +1136,10 @@ def _build_categories_keyboard(
     group_key: str,
     group_title: str,
     categories: list[tuple[str, str, int]],
+    language: str = settings.DEFAULT_LANGUAGE,
     page: int = 1,
 ) -> types.InlineKeyboardMarkup:
+    texts = get_texts(language)
     total_pages = max(1, math.ceil(len(categories) / CATEGORY_PAGE_SIZE))
     page = max(1, min(page, total_pages))
 
@@ -1178,7 +1194,7 @@ def _build_categories_keyboard(
     rows.append(
         [
             types.InlineKeyboardButton(
-                text='⬅️ К разделам',
+                text=texts.t('ADMIN_CFG_BACK_TO_SECTIONS_BUTTON'),
                 callback_data='admin_bot_config',
             )
         ]
@@ -1209,7 +1225,7 @@ def _build_settings_keyboard(
         rows.append(
             [
                 types.InlineKeyboardButton(
-                    text='🔌 Проверить подключение',
+                    text=texts.t('ADMIN_CFG_CHECK_CONNECTION_BUTTON'),
                     callback_data=(f'botcfg_test_remnawave:{group_key}:{category_key}:{category_page}:{page}'),
                 )
             ]
@@ -1224,10 +1240,10 @@ def _build_settings_keyboard(
         )
 
     if category_key == 'YOOKASSA':
-        label = texts.t('PAYMENT_CARD_YOOKASSA', '💳 Банковская карта (YooKassa)')
+        label = texts.t('PAYMENT_CARD_YOOKASSA')
         test_payment_buttons.append([_test_button(f'{label} · тест', 'yookassa')])
     elif category_key == 'TRIBUTE':
-        label = texts.t('PAYMENT_CARD_TRIBUTE', '💳 Банковская карта (Tribute)')
+        label = texts.t('PAYMENT_CARD_TRIBUTE')
         test_payment_buttons.append([_test_button(f'{label} · тест', 'tribute')])
     elif category_key == 'MULENPAY':
         label = texts.t(
@@ -1236,22 +1252,22 @@ def _build_settings_keyboard(
         ).format(mulenpay_name=settings.get_mulenpay_display_name())
         test_payment_buttons.append([_test_button(f'{label} · тест', 'mulenpay')])
     elif category_key == 'WATA':
-        label = texts.t('PAYMENT_CARD_WATA', '💳 Банковская карта (WATA)')
+        label = texts.t('PAYMENT_CARD_WATA')
         test_payment_buttons.append([_test_button(f'{label} · тест', 'wata')])
     elif category_key == 'PAL24':
-        label = texts.t('PAYMENT_CARD_PAL24', '💳 Банковская карта (PayPalych)')
+        label = texts.t('PAYMENT_CARD_PAL24')
         test_payment_buttons.append([_test_button(f'{label} · тест', 'pal24')])
     elif category_key == 'TELEGRAM':
-        label = texts.t('PAYMENT_TELEGRAM_STARS', '⭐ Telegram Stars')
+        label = texts.t('PAYMENT_TELEGRAM_STARS')
         test_payment_buttons.append([_test_button(f'{label} · тест', 'stars')])
     elif category_key == 'CRYPTOBOT':
-        label = texts.t('PAYMENT_CRYPTOBOT', '🪙 Криптовалюта (CryptoBot)')
+        label = texts.t('PAYMENT_CRYPTOBOT')
         test_payment_buttons.append([_test_button(f'{label} · тест', 'cryptobot')])
     elif category_key == 'FREEKASSA':
-        label = texts.t('PAYMENT_FREEKASSA', '💳 Freekassa')
+        label = texts.t('PAYMENT_FREEKASSA').format(name=settings.get_freekassa_display_name())
         test_payment_buttons.append([_test_button(f'{label} · тест', 'freekassa')])
     elif category_key == 'KASSA_AI':
-        label = texts.t('PAYMENT_KASSA_AI', f'💳 {settings.get_kassa_ai_display_name()}')
+        label = texts.t('PAYMENT_KASSA_AI').format(name=settings.get_kassa_ai_display_name())
         test_payment_buttons.append([_test_button(f'{label} · тест', 'kassa_ai')])
 
     if test_payment_buttons:
@@ -1299,7 +1315,7 @@ def _build_settings_keyboard(
     rows.append(
         [
             types.InlineKeyboardButton(
-                text='⬅️ К категориям',
+                text=texts.t('ADMIN_CFG_BACK_TO_CATEGORIES_BUTTON'),
                 callback_data=f'botcfg_group:{group_key}:{category_page}',
             )
         ]
@@ -1313,7 +1329,9 @@ def _build_setting_keyboard(
     group_key: str,
     category_page: int,
     settings_page: int,
+    language: str = settings.DEFAULT_LANGUAGE,
 ) -> types.InlineKeyboardMarkup:
+    texts = get_texts(language)
     definition = bot_configuration_service.get_definition(key)
     rows: list[list[types.InlineKeyboardButton]] = []
     callback_token = bot_configuration_service.get_callback_token(key)
@@ -1346,7 +1364,7 @@ def _build_setting_keyboard(
         rows.append(
             [
                 types.InlineKeyboardButton(
-                    text='🌍 Выбрать сквад',
+                    text=texts.t('ADMIN_CFG_SELECT_SQUAD_BUTTON'),
                     callback_data=(
                         f'botcfg_simple_squad:{group_key}:{category_page}:{settings_page}:{callback_token}:1'
                     ),
@@ -1358,7 +1376,7 @@ def _build_setting_keyboard(
         rows.append(
             [
                 types.InlineKeyboardButton(
-                    text='🔁 Переключить',
+                    text=texts.t('ADMIN_CFG_TOGGLE_BUTTON'),
                     callback_data=(f'botcfg_toggle:{group_key}:{category_page}:{settings_page}:{callback_token}'),
                 )
             ]
@@ -1368,7 +1386,7 @@ def _build_setting_keyboard(
         rows.append(
             [
                 types.InlineKeyboardButton(
-                    text='✏️ Изменить',
+                    text=texts.t('ADMIN_CFG_EDIT_BUTTON'),
                     callback_data=(f'botcfg_edit:{group_key}:{category_page}:{settings_page}:{callback_token}'),
                 )
             ]
@@ -1378,7 +1396,7 @@ def _build_setting_keyboard(
         rows.append(
             [
                 types.InlineKeyboardButton(
-                    text='♻️ Сбросить',
+                    text=texts.t('ADMIN_CFG_RESET_BUTTON'),
                     callback_data=(f'botcfg_reset:{group_key}:{category_page}:{settings_page}:{callback_token}'),
                 )
             ]
@@ -1388,7 +1406,7 @@ def _build_setting_keyboard(
         rows.append(
             [
                 types.InlineKeyboardButton(
-                    text='🔒 Только для чтения',
+                    text=texts.t('ADMIN_CFG_READ_ONLY_BUTTON'),
                     callback_data='botcfg_group:noop',
                 )
             ]
@@ -1397,7 +1415,7 @@ def _build_setting_keyboard(
     rows.append(
         [
             types.InlineKeyboardButton(
-                text='⬅️ Назад',
+                text=texts.t('ADMIN_CFG_BACK_BUTTON'),
                 callback_data=(f'botcfg_cat:{group_key}:{definition.category_key}:{category_page}:{settings_page}'),
             )
         ]
@@ -1474,7 +1492,7 @@ async def show_bot_config_menu(
     state: FSMContext,
 ):
     await state.clear()
-    keyboard = _build_groups_keyboard()
+    keyboard = _build_groups_keyboard(db_user.language)
     overview = _render_dashboard_overview()
     await callback.message.edit_text(
         overview,
@@ -1491,16 +1509,17 @@ async def show_bot_config_group(
     db_user: User,
     db: AsyncSession,
 ):
+    texts = get_texts(db_user.language)
     group_key, page = _parse_group_payload(callback.data)
     grouped = _get_grouped_categories()
     group_lookup = {key: (title, items) for key, title, items in grouped}
 
     if group_key not in group_lookup:
-        await callback.answer('Эта группа больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_GROUP_UNAVAILABLE'), show_alert=True)
         return
 
     group_title, items = group_lookup[group_key]
-    keyboard = _build_categories_keyboard(group_key, group_title, items, page)
+    keyboard = _build_categories_keyboard(group_key, group_title, items, db_user.language, page)
     status_icon, status_text = _get_group_status(group_key)
     description = _get_group_description(group_key)
     icon = _get_group_icon(group_key)
@@ -1537,11 +1556,12 @@ async def show_bot_config_category(
     db_user: User,
     db: AsyncSession,
 ):
+    texts = get_texts(db_user.language)
     group_key, category_key, category_page, settings_page = _parse_category_payload(callback.data)
     definitions = bot_configuration_service.get_settings_for_category(category_key)
 
     if not definitions:
-        await callback.answer('В этой категории пока нет настроек', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_CATEGORY_EMPTY'), show_alert=True)
         return
 
     category_label = definitions[0].category_label
@@ -1590,6 +1610,7 @@ async def show_simple_subscription_squad_selector(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 5)
     group_key = parts[1] if len(parts) > 1 else CATEGORY_FALLBACK_KEY
     try:
@@ -1605,11 +1626,11 @@ async def show_simple_subscription_squad_selector(
     try:
         key = bot_configuration_service.resolve_callback_token(token)
     except KeyError:
-        await callback.answer('Эта настройка больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_UNAVAILABLE'), show_alert=True)
         return
 
     if key != 'SIMPLE_SUBSCRIPTION_SQUAD_UUID':
-        await callback.answer('Эта настройка больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_UNAVAILABLE'), show_alert=True)
         return
 
     try:
@@ -1715,7 +1736,7 @@ async def show_simple_subscription_squad_selector(
     keyboard_rows.append(
         [
             types.InlineKeyboardButton(
-                text='⬅️ Назад',
+                text=texts.t('ADMIN_CFG_BACK_BUTTON'),
                 callback_data=(f'botcfg_setting:{group_key}:{category_page}:{settings_page}:{token}'),
             )
         ]
@@ -1737,6 +1758,7 @@ async def select_simple_subscription_squad(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 6)
     group_key = parts[1] if len(parts) > 1 else CATEGORY_FALLBACK_KEY
     try:
@@ -1754,34 +1776,34 @@ async def select_simple_subscription_squad(
         server_id = None
 
     if server_id is None:
-        await callback.answer('Не удалось определить сервер', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SERVER_RESOLVE_ERROR'), show_alert=True)
         return
 
     try:
         key = bot_configuration_service.resolve_callback_token(token)
     except KeyError:
-        await callback.answer('Эта настройка больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_UNAVAILABLE'), show_alert=True)
         return
 
     if bot_configuration_service.is_read_only(key):
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
 
     server = await get_server_squad_by_id(db, server_id)
     if not server:
-        await callback.answer('Сервер не найден', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SERVER_NOT_FOUND'), show_alert=True)
         return
 
     try:
         await bot_configuration_service.set_value(db, key, server.squad_uuid)
     except ReadOnlySettingError:
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
 
     await db.commit()
 
     text = _render_setting_text(key)
-    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page)
+    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page, db_user.language)
     await callback.message.edit_text(text, reply_markup=keyboard)
     await _store_setting_context(
         state,
@@ -1790,7 +1812,7 @@ async def select_simple_subscription_squad(
         category_page=category_page,
         settings_page=settings_page,
     )
-    await callback.answer('Сквад выбран')
+    await callback.answer(texts.t('ADMIN_CFG_SQUAD_SELECTED_TOAST'))
 
 
 @admin_required
@@ -1895,7 +1917,7 @@ async def test_payment_provider(
 
     if method == 'yookassa':
         if not settings.is_yookassa_enabled():
-            await callback.answer('❌ YooKassa отключена', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='YooKassa'), show_alert=True)
             return
 
         amount_kopeks = 10 * 100
@@ -1913,7 +1935,7 @@ async def test_payment_provider(
         )
 
         if not payment_result or not payment_result.get('confirmation_url'):
-            await callback.answer('❌ Не удалось создать тестовый платеж YooKassa', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='YooKassa'), show_alert=True)
             await _refresh_markup()
             return
 
@@ -1927,26 +1949,26 @@ async def test_payment_provider(
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text='💳 Оплатить картой',
+                        text=texts.t('ADMIN_CFG_PAY_CARD_BUTTON'),
                         url=confirmation_url,
                     )
                 ],
                 [
                     types.InlineKeyboardButton(
-                        text='📊 Проверить статус',
+                        text=texts.t('CHECK_STATUS_BUTTON'),
                         callback_data=f'check_yookassa_{payment_result["local_payment_id"]}',
                     )
                 ],
             ]
         )
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
-        await callback.answer('✅ Ссылка на платеж YooKassa отправлена', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider='YooKassa'), show_alert=True)
         await _refresh_markup()
         return
 
     if method == 'tribute':
         if not settings.TRIBUTE_ENABLED:
-            await callback.answer('❌ Tribute отключен', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Tribute'), show_alert=True)
             return
 
         tribute_service = TributeService(callback.bot)
@@ -1960,7 +1982,7 @@ async def test_payment_provider(
             payment_url = None
 
         if not payment_url:
-            await callback.answer('❌ Не удалось создать платеж Tribute', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Tribute'), show_alert=True)
             await _refresh_markup()
             return
 
@@ -1973,14 +1995,14 @@ async def test_payment_provider(
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text='💳 Перейти к оплате',
+                        text=texts.t('ADMIN_CFG_GO_TO_PAYMENT_BUTTON'),
                         url=payment_url,
                     )
                 ]
             ]
         )
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
-        await callback.answer('✅ Ссылка на платеж Tribute отправлена', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider='Tribute'), show_alert=True)
         await _refresh_markup()
         return
 
@@ -1989,7 +2011,7 @@ async def test_payment_provider(
         mulenpay_name_html = settings.get_mulenpay_display_name_html()
         if not settings.is_mulenpay_enabled():
             await callback.answer(
-                f'❌ {mulenpay_name} отключен',
+                texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider=mulenpay_name),
                 show_alert=True,
             )
             return
@@ -2005,7 +2027,7 @@ async def test_payment_provider(
 
         if not payment_result or not payment_result.get('payment_url'):
             await callback.answer(
-                f'❌ Не удалось создать платеж {mulenpay_name}',
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider=mulenpay_name),
                 show_alert=True,
             )
             await _refresh_markup()
@@ -2021,13 +2043,13 @@ async def test_payment_provider(
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text='💳 Перейти к оплате',
+                        text=texts.t('ADMIN_CFG_GO_TO_PAYMENT_BUTTON'),
                         url=payment_url,
                     )
                 ],
                 [
                     types.InlineKeyboardButton(
-                        text='📊 Проверить статус',
+                        text=texts.t('CHECK_STATUS_BUTTON'),
                         callback_data=f'check_mulenpay_{payment_result["local_payment_id"]}',
                     )
                 ],
@@ -2035,7 +2057,7 @@ async def test_payment_provider(
         )
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
         await callback.answer(
-            f'✅ Ссылка на платеж {mulenpay_name} отправлена',
+            texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider=mulenpay_name),
             show_alert=True,
         )
         await _refresh_markup()
@@ -2043,7 +2065,7 @@ async def test_payment_provider(
 
     if method == 'pal24':
         if not settings.is_pal24_enabled():
-            await callback.answer('❌ PayPalych отключен', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='PayPalych'), show_alert=True)
             return
 
         amount_kopeks = 10 * 100
@@ -2056,7 +2078,7 @@ async def test_payment_provider(
         )
 
         if not payment_result:
-            await callback.answer('❌ Не удалось создать платеж PayPalych', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='PayPalych'), show_alert=True)
             await _refresh_markup()
             return
 
@@ -2065,7 +2087,7 @@ async def test_payment_provider(
         fallback_url = payment_result.get('link_page_url') or payment_result.get('link_url')
 
         if not (sbp_url or card_url or fallback_url):
-            await callback.answer('❌ Не удалось создать платеж PayPalych', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='PayPalych'), show_alert=True)
             await _refresh_markup()
             return
 
@@ -2122,22 +2144,25 @@ async def test_payment_provider(
         )
         keyboard_rows = pay_rows + [
             [
-                types.InlineKeyboardButton(
-                    text='📊 Проверить статус',
-                    callback_data=f'check_pal24_{payment_result["local_payment_id"]}',
-                )
-            ],
+                    types.InlineKeyboardButton(
+                        text=texts.t('CHECK_STATUS_BUTTON'),
+                        callback_data=f'check_pal24_{payment_result["local_payment_id"]}',
+                    )
+                ],
         ]
 
         reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
-        await callback.answer('✅ Ссылка на платеж PayPalych отправлена', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider='PayPalych'), show_alert=True)
         await _refresh_markup()
         return
 
     if method == 'stars':
         if not settings.TELEGRAM_STARS_ENABLED:
-            await callback.answer('❌ Telegram Stars отключены', show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Telegram Stars'),
+                show_alert=True,
+            )
             return
 
         stars_rate = settings.get_stars_rate()
@@ -2153,7 +2178,10 @@ async def test_payment_provider(
             invoice_link = None
 
         if not invoice_link:
-            await callback.answer('❌ Не удалось создать платеж Telegram Stars', show_alert=True)
+            await callback.answer(
+                texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Telegram Stars'),
+                show_alert=True,
+            )
             await _refresh_markup()
             return
 
@@ -2167,20 +2195,20 @@ async def test_payment_provider(
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text=texts.t('PAYMENT_TELEGRAM_STARS', '⭐ Открыть счет'),
+                        text=texts.t('PAYMENT_TELEGRAM_STARS'),
                         url=invoice_link,
                     )
                 ]
             ]
         )
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
-        await callback.answer('✅ Ссылка на платеж Stars отправлена', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider='Stars'), show_alert=True)
         await _refresh_markup()
         return
 
     if method == 'cryptobot':
         if not settings.is_cryptobot_enabled():
-            await callback.answer('❌ CryptoBot отключен', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='CryptoBot'), show_alert=True)
             return
 
         amount_rubles = 100.0
@@ -2206,7 +2234,7 @@ async def test_payment_provider(
         )
 
         if not payment_result:
-            await callback.answer('❌ Не удалось создать платеж CryptoBot', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='CryptoBot'), show_alert=True)
             await _refresh_markup()
             return
 
@@ -2217,7 +2245,7 @@ async def test_payment_provider(
         )
 
         if not payment_url:
-            await callback.answer('❌ Не удалось получить ссылку на оплату CryptoBot', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_MISSING').format(provider='CryptoBot'), show_alert=True)
             await _refresh_markup()
             return
 
@@ -2230,23 +2258,23 @@ async def test_payment_provider(
         )
         reply_markup = types.InlineKeyboardMarkup(
             inline_keyboard=[
-                [types.InlineKeyboardButton(text='🪙 Открыть счет', url=payment_url)],
+                [types.InlineKeyboardButton(text=texts.t('ADMIN_CFG_OPEN_INVOICE_BUTTON'), url=payment_url)],
                 [
                     types.InlineKeyboardButton(
-                        text='📊 Проверить статус',
+                        text=texts.t('CHECK_STATUS_BUTTON'),
                         callback_data=f'check_cryptobot_{payment_result["local_payment_id"]}',
                     )
                 ],
             ]
         )
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
-        await callback.answer('✅ Ссылка на платеж CryptoBot отправлена', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider='CryptoBot'), show_alert=True)
         await _refresh_markup()
         return
 
     if method == 'freekassa':
         if not settings.is_freekassa_enabled():
-            await callback.answer('❌ Freekassa отключена', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Freekassa'), show_alert=True)
             return
 
         amount_kopeks = settings.FREEKASSA_MIN_AMOUNT_KOPEKS
@@ -2260,7 +2288,7 @@ async def test_payment_provider(
         )
 
         if not payment_result or not payment_result.get('payment_url'):
-            await callback.answer('❌ Не удалось создать тестовый платеж Freekassa', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Freekassa'), show_alert=True)
             await _refresh_markup()
             return
 
@@ -2274,20 +2302,20 @@ async def test_payment_provider(
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text='💳 Перейти к оплате',
+                        text=texts.t('ADMIN_CFG_GO_TO_PAYMENT_BUTTON'),
                         url=payment_url,
                     )
                 ]
             ]
         )
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
-        await callback.answer('✅ Ссылка на платеж Freekassa отправлена', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider='Freekassa'), show_alert=True)
         await _refresh_markup()
         return
 
     if method == 'kassa_ai':
         if not settings.is_kassa_ai_enabled():
-            await callback.answer('❌ Kassa AI отключена', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_PAYMENT_PROVIDER_DISABLED').format(provider='Kassa AI'), show_alert=True)
             return
 
         amount_kopeks = settings.KASSA_AI_MIN_AMOUNT_KOPEKS
@@ -2301,7 +2329,7 @@ async def test_payment_provider(
         )
 
         if not payment_result or not payment_result.get('payment_url'):
-            await callback.answer('❌ Не удалось создать тестовый платеж Kassa AI', show_alert=True)
+            await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_CREATE_FAILED').format(provider='Kassa AI'), show_alert=True)
             await _refresh_markup()
             return
 
@@ -2316,18 +2344,18 @@ async def test_payment_provider(
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text='💳 Перейти к оплате',
+                        text=texts.t('ADMIN_CFG_GO_TO_PAYMENT_BUTTON'),
                         url=payment_url,
                     )
                 ]
             ]
         )
         await callback.message.answer(message_text, reply_markup=reply_markup, parse_mode='HTML')
-        await callback.answer(f'✅ Ссылка на платеж {display_name} отправлена', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_LINK_SENT').format(provider=display_name), show_alert=True)
         await _refresh_markup()
         return
 
-    await callback.answer('❌ Неизвестный способ тестирования платежа', show_alert=True)
+    await callback.answer(texts.t('ADMIN_CFG_TEST_PAYMENT_UNKNOWN_METHOD'), show_alert=True)
     await _refresh_markup()
 
 
@@ -2339,6 +2367,7 @@ async def show_bot_config_setting(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 4)
     group_key = parts[1] if len(parts) > 1 else CATEGORY_FALLBACK_KEY
     try:
@@ -2353,10 +2382,10 @@ async def show_bot_config_setting(
     try:
         key = bot_configuration_service.resolve_callback_token(token)
     except KeyError:
-        await callback.answer('Эта настройка больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_UNAVAILABLE'), show_alert=True)
         return
     text = _render_setting_text(key)
-    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page)
+    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page, db_user.language)
     await callback.message.edit_text(text, reply_markup=keyboard)
     await _store_setting_context(
         state,
@@ -2376,6 +2405,7 @@ async def start_edit_setting(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 4)
     group_key = parts[1] if len(parts) > 1 else CATEGORY_FALLBACK_KEY
     try:
@@ -2390,16 +2420,14 @@ async def start_edit_setting(
     try:
         key = bot_configuration_service.resolve_callback_token(token)
     except KeyError:
-        await callback.answer('Эта настройка больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_UNAVAILABLE'), show_alert=True)
         return
     if bot_configuration_service.is_read_only(key):
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
     definition = bot_configuration_service.get_definition(key)
 
     summary = bot_configuration_service.get_setting_summary(key)
-    texts = get_texts(db_user.language)
-
     instructions = [
         '✏️ <b>Редактирование настройки</b>',
         f'Название: {summary["name"]}',
@@ -2447,6 +2475,7 @@ async def handle_edit_setting(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     data = await state.get_data()
     key = data.get('setting_key')
     group_key = data.get('setting_group_key', CATEGORY_FALLBACK_KEY)
@@ -2454,12 +2483,12 @@ async def handle_edit_setting(
     settings_page = data.get('setting_settings_page', 1)
 
     if not key:
-        await message.answer('Не удалось определить редактируемую настройку. Попробуйте снова.')
+        await message.answer(texts.t('ADMIN_CFG_EDIT_SETTING_NOT_DETERMINED'))
         await state.clear()
         return
 
     if bot_configuration_service.is_read_only(key):
-        await message.answer('⚠️ Эта настройка доступна только для чтения.')
+        await message.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY_WARNING'))
         await state.clear()
         return
 
@@ -2472,14 +2501,14 @@ async def handle_edit_setting(
     try:
         await bot_configuration_service.set_value(db, key, value)
     except ReadOnlySettingError:
-        await message.answer('⚠️ Эта настройка доступна только для чтения.')
+        await message.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY_WARNING'))
         await state.clear()
         return
     await db.commit()
 
     text = _render_setting_text(key)
-    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page)
-    await message.answer('✅ Настройка обновлена')
+    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page, db_user.language)
+    await message.answer(texts.t('ADMIN_CFG_SETTING_UPDATED_TOAST'))
     await message.answer(text, reply_markup=keyboard)
     await state.clear()
     await _store_setting_context(
@@ -2499,6 +2528,7 @@ async def handle_direct_setting_input(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     data = await state.get_data()
 
     key = data.get('setting_key')
@@ -2510,7 +2540,7 @@ async def handle_direct_setting_input(
         return
 
     if bot_configuration_service.is_read_only(key):
-        await message.answer('⚠️ Эта настройка доступна только для чтения.')
+        await message.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY_WARNING'))
         await state.clear()
         return
 
@@ -2523,14 +2553,14 @@ async def handle_direct_setting_input(
     try:
         await bot_configuration_service.set_value(db, key, value)
     except ReadOnlySettingError:
-        await message.answer('⚠️ Эта настройка доступна только для чтения.')
+        await message.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY_WARNING'))
         await state.clear()
         return
     await db.commit()
 
     text = _render_setting_text(key)
-    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page)
-    await message.answer('✅ Настройка обновлена')
+    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page, db_user.language)
+    await message.answer(texts.t('ADMIN_CFG_SETTING_UPDATED_TOAST'))
     await message.answer(text, reply_markup=keyboard)
 
     await state.clear()
@@ -2551,6 +2581,7 @@ async def reset_setting(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 4)
     group_key = parts[1] if len(parts) > 1 else CATEGORY_FALLBACK_KEY
     try:
@@ -2565,20 +2596,20 @@ async def reset_setting(
     try:
         key = bot_configuration_service.resolve_callback_token(token)
     except KeyError:
-        await callback.answer('Эта настройка больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_UNAVAILABLE'), show_alert=True)
         return
     if bot_configuration_service.is_read_only(key):
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
     try:
         await bot_configuration_service.reset_value(db, key)
     except ReadOnlySettingError:
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
     await db.commit()
 
     text = _render_setting_text(key)
-    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page)
+    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page, db_user.language)
     await callback.message.edit_text(text, reply_markup=keyboard)
     await _store_setting_context(
         state,
@@ -2587,7 +2618,7 @@ async def reset_setting(
         category_page=category_page,
         settings_page=settings_page,
     )
-    await callback.answer('Сброшено к значению по умолчанию')
+    await callback.answer(texts.t('ADMIN_CFG_RESET_TO_DEFAULT_TOAST'))
 
 
 @admin_required
@@ -2598,6 +2629,7 @@ async def toggle_setting(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 4)
     group_key = parts[1] if len(parts) > 1 else CATEGORY_FALLBACK_KEY
     try:
@@ -2612,22 +2644,22 @@ async def toggle_setting(
     try:
         key = bot_configuration_service.resolve_callback_token(token)
     except KeyError:
-        await callback.answer('Эта настройка больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_UNAVAILABLE'), show_alert=True)
         return
     if bot_configuration_service.is_read_only(key):
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
     current = bot_configuration_service.get_current_value(key)
     new_value = not bool(current)
     try:
         await bot_configuration_service.set_value(db, key, new_value)
     except ReadOnlySettingError:
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
     await db.commit()
 
     text = _render_setting_text(key)
-    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page)
+    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page, db_user.language)
     await callback.message.edit_text(text, reply_markup=keyboard)
     await _store_setting_context(
         state,
@@ -2636,7 +2668,7 @@ async def toggle_setting(
         category_page=category_page,
         settings_page=settings_page,
     )
-    await callback.answer('Обновлено')
+    await callback.answer(texts.t('ADMIN_CFG_UPDATED_TOAST'))
 
 
 @admin_required
@@ -2647,6 +2679,7 @@ async def apply_setting_choice(
     db: AsyncSession,
     state: FSMContext,
 ):
+    texts = get_texts(db_user.language)
     parts = callback.data.split(':', 5)
     group_key = parts[1] if len(parts) > 1 else CATEGORY_FALLBACK_KEY
     try:
@@ -2663,27 +2696,27 @@ async def apply_setting_choice(
     try:
         key = bot_configuration_service.resolve_callback_token(token)
     except KeyError:
-        await callback.answer('Эта настройка больше недоступна', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_UNAVAILABLE'), show_alert=True)
         return
     if bot_configuration_service.is_read_only(key):
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
 
     try:
         value = bot_configuration_service.resolve_choice_token(key, choice_token)
     except KeyError:
-        await callback.answer('Это значение больше недоступно', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_VALUE_UNAVAILABLE'), show_alert=True)
         return
 
     try:
         await bot_configuration_service.set_value(db, key, value)
     except ReadOnlySettingError:
-        await callback.answer('Эта настройка доступна только для чтения', show_alert=True)
+        await callback.answer(texts.t('ADMIN_CFG_SETTING_READ_ONLY'), show_alert=True)
         return
     await db.commit()
 
     text = _render_setting_text(key)
-    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page)
+    keyboard = _build_setting_keyboard(key, group_key, category_page, settings_page, db_user.language)
     await callback.message.edit_text(text, reply_markup=keyboard)
     await _store_setting_context(
         state,
@@ -2692,7 +2725,7 @@ async def apply_setting_choice(
         category_page=category_page,
         settings_page=settings_page,
     )
-    await callback.answer('Значение обновлено')
+    await callback.answer(texts.t('ADMIN_CFG_VALUE_UPDATED_TOAST'))
 
 
 def register_handlers(dp: Dispatcher) -> None:
