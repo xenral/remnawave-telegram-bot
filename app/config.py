@@ -14,9 +14,6 @@ from zoneinfo import ZoneInfo
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
-from app.utils.money import format_money_from_minor
-
-
 DEFAULT_DISPLAY_NAME_BANNED_KEYWORDS: list[str] = [
     # Пустой по умолчанию - администратор может добавить ключевые слова через DISPLAY_NAME_BANNED_KEYWORDS
     # Примеры: "tme", "joingroup", "support", "admin"
@@ -1272,6 +1269,10 @@ class Settings(BaseSettings):
         Returns:
             Отформатированная строка цены (например, "150 ₽" или "1500 TMN")
         """
+        # Lazy import to avoid circular import during app bootstrap:
+        # config -> app.utils.money -> app.utils.__init__ -> pricing_utils -> config
+        from app.utils.money import format_money_from_minor
+
         should_round = round_kopeks if round_kopeks is not None else self.PRICE_ROUNDING_ENABLED
         effective_currency = (currency or self.DEFAULT_BALANCE_CURRENCY or 'RUB').upper()
         effective_display = (display_currency or self.DEFAULT_DISPLAY_CURRENCY or '').strip().upper() or None
