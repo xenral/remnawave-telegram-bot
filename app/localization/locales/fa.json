@@ -844,18 +844,26 @@
   "ADMIN_PRICING_BUTTON_TRAFFIC": "📦 بسته‌های ترافیک",
   "ADMIN_PRICING_BUTTON_TRAFFIC_OPTIONS": "🚦 نمایش بسته‌ها",
   "ADMIN_PRICING_BUTTON_TRIAL": "🎁 دوره آزمایشی",
+  "ADMIN_PRICING_BUTTON_CURRENCY": "🌍 ارز: {currency}",
+  "ADMIN_PRICING_ACTIVE_CURRENCY": "ارز فعال قیمت‌گذاری",
   "ADMIN_PRICING_CHOICE_ALREADY": "این مقدار قبلاً فعال است.",
   "ADMIN_PRICING_CHOICE_UPDATED": "انتخاب شد: {label}",
   "ADMIN_PRICING_EDIT_CANCEL": "❌ لغو",
   "ADMIN_PRICING_EDIT_CANCELLED": "تغییرات لغو شد.",
   "ADMIN_PRICING_EDIT_CANCEL_HINT": "برای بازگشت بدون تغییر «لغو» بنویسید.",
+  "ADMIN_PRICING_EDIT_CURRENCY": "ارز",
   "ADMIN_PRICING_EDIT_CURRENT": "مقدار فعلی",
   "ADMIN_PRICING_EDIT_EXPIRED": "جلسه ویرایش منقضی شد.",
   "ADMIN_PRICING_EDIT_INVALID": "قیمت نامعتبر. عدد وارد کنید (مثلاً 990 یا 990.50).",
   "ADMIN_PRICING_EDIT_PROMPT": "قیمت جدید را وارد کنید (مثلاً 990 یا 990.50). برای رایگان 0 وارد کنید.",
+  "ADMIN_PRICING_EDIT_PROMPT_CURRENCY": "قیمت جدید را در ارز {currency} وارد کنید (مثلاً 990). برای رایگان 0 وارد کنید.",
   "ADMIN_PRICING_EDIT_SUCCESS": "قیمت {item} به‌روز شد: {price}",
   "ADMIN_PRICING_EDIT_TARGET": "تعرفه فعلی",
   "ADMIN_PRICING_EDIT_TITLE": "تغییر قیمت",
+  "ADMIN_PRICING_CURRENCY_PICKER_TITLE": "انتخاب ارز قیمت‌گذاری",
+  "ADMIN_PRICING_CURRENCY_PICKER_DESC": "ارزی را انتخاب کنید که می‌خواهید قیمت دوره‌ها و ترافیک را با آن ویرایش کنید.",
+  "ADMIN_PRICING_CURRENCY_PICKER_CURRENT": "فعلی",
+  "ADMIN_PRICING_CURRENCY_PICKER_SELECTED": "ارز انتخاب شد: {currency}",
   "ADMIN_PRICING_MENU_DESCRIPTION": "دسترسی سریع به تعرفه‌ها، بسته‌های ترافیک و خدمات اضافی.",
   "ADMIN_PRICING_MENU_PROMPT": "بخش مورد نظر برای ویرایش:",
   "ADMIN_PRICING_MENU_SUMMARY": "خلاصه:",
