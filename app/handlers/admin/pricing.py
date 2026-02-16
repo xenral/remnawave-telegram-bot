@@ -1,20 +1,22 @@
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.database.models import User
+from app.database.models import SubscriptionPeriodPrice, TrafficPackagePrice, User
 from app.localization.texts import get_texts
 from app.services.system_settings_service import bot_configuration_service
 from app.states import PricingStates
 from app.utils.decorators import admin_required, error_handler
+from app.utils.money import major_to_minor, normalize_currency
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +40,61 @@ TRAFFIC_PACKAGE_FIELDS: tuple[tuple[int, str], ...] = (
 TRAFFIC_PACKAGE_FIELD_MAP: dict[int, str] = {gb: field for gb, field in TRAFFIC_PACKAGE_FIELDS}
 TRAFFIC_PACKAGE_ORDER: tuple[int, ...] = tuple(gb for gb, _ in TRAFFIC_PACKAGE_FIELDS)
 TRAFFIC_PACKAGE_ORDER_INDEX: dict[int, int] = {gb: index for index, gb in enumerate(TRAFFIC_PACKAGE_ORDER)}
+
+
+def _parse_supported_balance_currencies() -> list[str]:
+    raw = getattr(settings, 'SUPPORTED_BALANCE_CURRENCIES', '') or ''
+    candidates = [normalize_currency(item) for item in raw.split(',') if item.strip()]
+    default_currency = normalize_currency(getattr(settings, 'DEFAULT_BALANCE_CURRENCY', 'RUB'))
+
+    result: list[str] = []
+    seen: set[str] = set()
+    for code in [*candidates, default_currency]:
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        result.append(code)
+
+    return result or [default_currency]
+
+
+def _default_pricing_currency() -> str:
+    return normalize_currency(getattr(settings, 'DEFAULT_BALANCE_CURRENCY', 'RUB'))
+
+
+def _normalize_pricing_currency(value: str | None) -> str:
+    supported = _parse_supported_balance_currencies()
+    normalized = normalize_currency(value, default=_default_pricing_currency())
+    if normalized in supported:
+        return normalized
+    return supported[0]
+
+
+def _period_days_from_key(key: str) -> int | None:
+    if not (key.startswith('PRICE_') and key.endswith('_DAYS')):
+        return None
+    try:
+        return int(key.replace('PRICE_', '').replace('_DAYS', ''))
+    except ValueError:
+        return None
+
+
+def _traffic_gb_from_key(key: str) -> int | None:
+    if not key.startswith('PRICE_TRAFFIC_'):
+        return None
+    if key.endswith('UNLIMITED'):
+        return 0
+    digits = ''.join(ch for ch in key if ch.isdigit())
+    if not digits:
+        return None
+    try:
+        return int(digits)
+    except ValueError:
+        return None
+
+
+def _is_currency_table_price_key(key: str) -> bool:
+    return _period_days_from_key(key) is not None or _traffic_gb_from_key(key) is not None
 
 
 @dataclass(slots=True)
@@ -306,6 +363,123 @@ async def _save_traffic_packages(
     return True
 
 
+async def _load_currency_price_maps(
+    db: AsyncSession,
+    currency: str,
+) -> tuple[dict[int, int], dict[int, int]]:
+    if not settings.MULTI_CURRENCY_ENABLED:
+        return {}, {}
+
+    normalized_currency = _normalize_pricing_currency(currency)
+
+    period_result = await db.execute(
+        select(SubscriptionPeriodPrice).where(
+            SubscriptionPeriodPrice.currency == normalized_currency,
+            SubscriptionPeriodPrice.is_active.is_(True),
+        )
+    )
+    period_map = {int(row.period_days): int(row.amount_minor) for row in period_result.scalars().all()}
+
+    traffic_result = await db.execute(
+        select(TrafficPackagePrice).where(
+            TrafficPackagePrice.currency == normalized_currency,
+            TrafficPackagePrice.is_active.is_(True),
+        )
+    )
+    traffic_map = {int(row.package_gb): int(row.amount_minor) for row in traffic_result.scalars().all()}
+
+    return period_map, traffic_map
+
+
+async def _resolve_price_value_minor(
+    db: AsyncSession,
+    key: str,
+    currency: str,
+) -> int:
+    normalized_currency = _normalize_pricing_currency(currency)
+
+    if settings.MULTI_CURRENCY_ENABLED:
+        period_days = _period_days_from_key(key)
+        if period_days is not None:
+            result = await db.execute(
+                select(SubscriptionPeriodPrice).where(
+                    SubscriptionPeriodPrice.period_days == period_days,
+                    SubscriptionPeriodPrice.currency == normalized_currency,
+                )
+            )
+            row = result.scalar_one_or_none()
+            if row is not None:
+                return int(row.amount_minor)
+
+        package_gb = _traffic_gb_from_key(key)
+        if package_gb is not None:
+            result = await db.execute(
+                select(TrafficPackagePrice).where(
+                    TrafficPackagePrice.package_gb == package_gb,
+                    TrafficPackagePrice.currency == normalized_currency,
+                )
+            )
+            row = result.scalar_one_or_none()
+            if row is not None:
+                return int(row.amount_minor)
+
+    return int(getattr(settings, key, 0) or 0)
+
+
+async def _upsert_currency_price(
+    db: AsyncSession,
+    key: str,
+    currency: str,
+    amount_minor: int,
+) -> bool:
+    normalized_currency = _normalize_pricing_currency(currency)
+    period_days = _period_days_from_key(key)
+    if period_days is not None:
+        result = await db.execute(
+            select(SubscriptionPeriodPrice).where(
+                SubscriptionPeriodPrice.period_days == period_days,
+                SubscriptionPeriodPrice.currency == normalized_currency,
+            )
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            row = SubscriptionPeriodPrice(
+                period_days=period_days,
+                currency=normalized_currency,
+                amount_minor=amount_minor,
+                is_active=True,
+            )
+            db.add(row)
+        else:
+            row.amount_minor = amount_minor
+            row.is_active = True
+        return True
+
+    package_gb = _traffic_gb_from_key(key)
+    if package_gb is not None:
+        result = await db.execute(
+            select(TrafficPackagePrice).where(
+                TrafficPackagePrice.package_gb == package_gb,
+                TrafficPackagePrice.currency == normalized_currency,
+            )
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            row = TrafficPackagePrice(
+                package_gb=package_gb,
+                currency=normalized_currency,
+                amount_minor=amount_minor,
+                is_active=True,
+            )
+            db.add(row)
+        else:
+            row.amount_minor = amount_minor
+            row.is_active = True
+        return True
+
+    return False
+
+
 def _language_code(language: str | None) -> str:
     return (language or 'ru').split('-')[0].lower()
 
@@ -330,13 +504,13 @@ def _format_traffic_label(gb: int, lang_code: str, short: bool = False) -> str:
     return f'{gb} {unit}'
 
 
-def _format_trial_summary(lang_code: str) -> str:
+def _format_trial_summary(lang_code: str, pricing_currency: str) -> str:
     duration = settings.TRIAL_DURATION_DAYS
     traffic = settings.TRIAL_TRAFFIC_LIMIT_GB
     devices = settings.TRIAL_DEVICE_LIMIT
     price_note = ''
     if settings.is_trial_paid_activation_enabled():
-        price_note = f', 💳 {settings.format_price(settings.get_trial_activation_price())}'
+        price_note = f', 💳 {settings.format_price(settings.get_trial_activation_price(), currency=pricing_currency)}'
 
     traffic_label = _format_traffic_label(traffic, lang_code, short=True)
     devices_label = f'{devices}📱' if lang_code == 'ru' else f'{devices}📱'
@@ -344,8 +518,8 @@ def _format_trial_summary(lang_code: str) -> str:
     return f'{duration}{days_suffix}, {traffic_label}, {devices_label}{price_note}'
 
 
-def _format_core_summary(lang_code: str) -> str:
-    base_price = settings.format_price(settings.BASE_SUBSCRIPTION_PRICE)
+def _format_core_summary(lang_code: str, pricing_currency: str) -> str:
+    base_price = settings.format_price(settings.BASE_SUBSCRIPTION_PRICE, currency=pricing_currency)
     device_limit = settings.DEFAULT_DEVICE_LIMIT
     traffic_limit = settings.DEFAULT_TRAFFIC_LIMIT_GB
     mode = settings.TRAFFIC_SELECTION_MODE.lower()
@@ -359,18 +533,21 @@ def _format_core_summary(lang_code: str) -> str:
     return f'{base_price}, {device_limit}📱, {traffic_label}, {traffic_mode}'
 
 
-def _get_period_items(lang_code: str) -> list[PriceItem]:
+def _get_period_items(lang_code: str, period_price_map: dict[int, int] | None = None) -> list[PriceItem]:
     from app.config import PERIOD_PRICES
 
     items: list[PriceItem] = []
     for days in settings.get_available_subscription_periods():
         key = f'PRICE_{days}_DAYS'
-        price = PERIOD_PRICES.get(days, 0)
+        if period_price_map and days in period_price_map:
+            price = period_price_map[days]
+        else:
+            price = PERIOD_PRICES.get(days, 0)
         items.append((key, _format_period_label(days, lang_code), price))
     return items
 
 
-def _get_traffic_items(lang_code: str) -> list[PriceItem]:
+def _get_traffic_items(lang_code: str, traffic_price_map: dict[int, int] | None = None) -> list[PriceItem]:
     packages = _collect_traffic_packages()
 
     items: list[PriceItem] = []
@@ -381,7 +558,8 @@ def _get_traffic_items(lang_code: str) -> list[PriceItem]:
 
         label = _format_traffic_label(package['gb'], lang_code)
         icon = '✅' if package['enabled'] else '⚪️'
-        items.append((field, f'{icon} {label}', int(package['price'])))
+        price = int(traffic_price_map.get(package['gb'], package['price'])) if traffic_price_map else int(package['price'])
+        items.append((field, f'{icon} {label}', price))
     return items
 
 
@@ -395,7 +573,7 @@ def _get_extra_items(lang_code: str) -> list[PriceItem]:
     return items
 
 
-def _build_period_summary(items: Iterable[PriceItem], lang_code: str, fallback: str) -> str:
+def _build_period_summary(items: Iterable[PriceItem], lang_code: str, fallback: str, pricing_currency: str) -> str:
     parts: list[str] = []
     for key, label, price in items:
         try:
@@ -409,12 +587,17 @@ def _build_period_summary(items: Iterable[PriceItem], lang_code: str, fallback: 
         else:
             short_label = label
 
-        parts.append(f'{short_label}: {settings.format_price(price)}')
+        parts.append(f'{short_label}: {settings.format_price(price, currency=pricing_currency)}')
 
     return ', '.join(parts) if parts else fallback
 
 
-def _build_traffic_summary(lang_code: str, fallback: str) -> str:
+def _build_traffic_summary(
+    lang_code: str,
+    fallback: str,
+    pricing_currency: str,
+    traffic_price_map: dict[int, int] | None = None,
+) -> str:
     packages = _collect_traffic_packages()
     enabled_packages = [package for package in packages if package['enabled']]
 
@@ -424,7 +607,8 @@ def _build_traffic_summary(lang_code: str, fallback: str) -> str:
     parts: list[str] = []
     for package in enabled_packages:
         short_label = _format_traffic_label(package['gb'], lang_code, short=True)
-        parts.append(f'{short_label}: {settings.format_price(int(package["price"]))}')
+        price = int(traffic_price_map.get(package['gb'], package['price'])) if traffic_price_map else int(package['price'])
+        parts.append(f'{short_label}: {settings.format_price(price, currency=pricing_currency)}')
 
     return ', '.join(parts) if parts else fallback
 
@@ -438,8 +622,8 @@ def _build_period_options_summary(lang_code: str) -> str:
     return f'Subscriptions: {available or "-"} | Renewals: {renewal or "-"}'
 
 
-def _build_extra_summary(items: Iterable[PriceItem], fallback: str) -> str:
-    parts = [f'{label}: {settings.format_price(price)}' for key, label, price in items]
+def _build_extra_summary(items: Iterable[PriceItem], fallback: str, pricing_currency: str) -> str:
+    parts = [f'{label}: {settings.format_price(price, currency=pricing_currency)}' for key, label, price in items]
     return ', '.join(parts) if parts else fallback
 
 
@@ -665,20 +849,31 @@ def _build_period_options_section(language: str) -> tuple[str, types.InlineKeybo
     return '\n'.join(lines), keyboard
 
 
-def _build_overview(language: str) -> tuple[str, types.InlineKeyboardMarkup]:
+def _build_overview(
+    language: str,
+    pricing_currency: str,
+    period_price_map: dict[int, int] | None = None,
+    traffic_price_map: dict[int, int] | None = None,
+) -> tuple[str, types.InlineKeyboardMarkup]:
     texts = get_texts(language)
     lang_code = _language_code(language)
+    normalized_currency = _normalize_pricing_currency(pricing_currency)
 
-    period_items = _get_period_items(lang_code)
-    _get_traffic_items(lang_code)
+    period_items = _get_period_items(lang_code, period_price_map)
+    _get_traffic_items(lang_code, traffic_price_map)
     extra_items = _get_extra_items(lang_code)
 
     fallback = texts.t('ADMIN_PRICING_SUMMARY_EMPTY', '—')
-    summary_periods = _build_period_summary(period_items, lang_code, fallback)
-    summary_traffic = _build_traffic_summary(lang_code, fallback)
-    summary_extra = _build_extra_summary(extra_items, fallback)
-    summary_trial = _format_trial_summary(lang_code)
-    summary_core = _format_core_summary(lang_code)
+    summary_periods = _build_period_summary(period_items, lang_code, fallback, normalized_currency)
+    summary_traffic = _build_traffic_summary(
+        lang_code,
+        fallback,
+        normalized_currency,
+        traffic_price_map,
+    )
+    summary_extra = _build_extra_summary(extra_items, fallback, normalized_currency)
+    summary_trial = _format_trial_summary(lang_code, normalized_currency)
+    summary_core = _format_core_summary(lang_code, normalized_currency)
     summary_period_options = _build_period_options_summary(lang_code)
 
     lines = [
@@ -687,6 +882,8 @@ def _build_overview(language: str) -> tuple[str, types.InlineKeyboardMarkup]:
             'ADMIN_PRICING_MENU_DESCRIPTION',
             'Быстрый доступ к настройкам тарифов, периодов и пакетов.',
         ),
+        '',
+        f'🌍 {texts.t("ADMIN_PRICING_ACTIVE_CURRENCY", "Активная валюта цен")}: <b>{normalized_currency}</b>',
         '',
         f'<b>{texts.t("ADMIN_PRICING_MENU_SUMMARY", "Краткая сводка")}</b>',
         f'🎁 {texts.t("ADMIN_PRICING_MENU_SUMMARY_TRIAL", "Триал: {summary}").format(summary=summary_trial)}',
@@ -701,6 +898,15 @@ def _build_overview(language: str) -> tuple[str, types.InlineKeyboardMarkup]:
 
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text=texts.t(
+                        'ADMIN_PRICING_BUTTON_CURRENCY',
+                        '🌍 Валюта: {currency}',
+                    ).format(currency=normalized_currency),
+                    callback_data='admin_pricing_pick_currency',
+                )
+            ],
             [
                 types.InlineKeyboardButton(
                     text=texts.t('ADMIN_PRICING_BUTTON_TRIAL', '🎁 Пробный период'),
@@ -748,15 +954,19 @@ def _build_overview(language: str) -> tuple[str, types.InlineKeyboardMarkup]:
 def _build_section(
     section: str,
     language: str,
+    pricing_currency: str,
+    period_price_map: dict[int, int] | None = None,
+    traffic_price_map: dict[int, int] | None = None,
 ) -> tuple[str, types.InlineKeyboardMarkup]:
     texts = get_texts(language)
     lang_code = _language_code(language)
+    normalized_currency = _normalize_pricing_currency(pricing_currency)
 
     if section == 'periods':
-        items = _get_period_items(lang_code)
+        items = _get_period_items(lang_code, period_price_map)
         title = texts.t('ADMIN_PRICING_SECTION_PERIODS_TITLE', '🗓 Периоды подписки')
     elif section == 'traffic':
-        items = _get_traffic_items(lang_code)
+        items = _get_traffic_items(lang_code, traffic_price_map)
         title = texts.t('ADMIN_PRICING_SECTION_TRAFFIC_TITLE', '📦 Пакеты трафика')
     elif section == 'extra':
         items = _get_extra_items(lang_code)
@@ -772,10 +982,12 @@ def _build_section(
         title = texts.t('ADMIN_PRICING_SECTION_EXTRA_TITLE', '➕ Дополнительные опции')
 
     lines = [title, '']
+    lines.append(f'🌍 {texts.t("ADMIN_PRICING_ACTIVE_CURRENCY", "Активная валюта цен")}: <b>{normalized_currency}</b>')
+    lines.append('')
 
     if items:
         for key, label, price in items:
-            lines.append(f'• {label} — {settings.format_price(price)}')
+            lines.append(f'• {label} — {settings.format_price(price, currency=normalized_currency)}')
         lines.append('')
         lines.append(texts.t('ADMIN_PRICING_SECTION_PROMPT', 'Выберите что изменить:'))
     else:
@@ -786,29 +998,50 @@ def _build_section(
         keyboard_rows.append(
             [
                 types.InlineKeyboardButton(
-                    text=f'{label} • {settings.format_price(price)}',
+                    text=f'{label} • {settings.format_price(price, currency=normalized_currency)}',
                     callback_data=f'admin_pricing_edit:{section}:{key}',
                 )
             ]
         )
 
+    keyboard_rows.append(
+        [
+            types.InlineKeyboardButton(
+                text=texts.t(
+                    'ADMIN_PRICING_BUTTON_CURRENCY',
+                    '🌍 Валюта: {currency}',
+                ).format(currency=normalized_currency),
+                callback_data='admin_pricing_pick_currency',
+            )
+        ]
+    )
     keyboard_rows.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_pricing')])
 
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
     return '\n'.join(lines), keyboard
 
 
-def _build_price_prompt(texts: Any, label: str, current_price: str) -> str:
+def _build_price_prompt(texts: Any, label: str, current_price: str, currency: str) -> str:
+    normalized_currency = _normalize_pricing_currency(currency)
+    if normalized_currency == 'RUB':
+        input_hint = texts.t(
+            'ADMIN_PRICING_EDIT_PROMPT',
+            'Введите новую стоимость в рублях (например 990 или 990.50). Для бесплатного тарифа укажите 0.',
+        )
+    else:
+        input_hint = texts.t(
+            'ADMIN_PRICING_EDIT_PROMPT_CURRENCY',
+            'Введите новую стоимость в валюте {currency} (например 990). Для бесплатного тарифа укажите 0.',
+        ).format(currency=normalized_currency)
+
     lines = [
         f'💰 <b>{texts.t("ADMIN_PRICING_EDIT_TITLE", "Изменение цены")}</b>',
         '',
         f'{texts.t("ADMIN_PRICING_EDIT_TARGET", "Текущий тариф")}: <b>{label}</b>',
+        f'{texts.t("ADMIN_PRICING_EDIT_CURRENCY", "Валюта")}: <b>{normalized_currency}</b>',
         f'{texts.t("ADMIN_PRICING_EDIT_CURRENT", "Текущее значение")}: <b>{current_price}</b>',
         '',
-        texts.t(
-            'ADMIN_PRICING_EDIT_PROMPT',
-            'Введите новую стоимость в рублях (например 990 или 990.50). Для бесплатного тарифа укажите 0.',
-        ),
+        input_hint,
         texts.t(
             'ADMIN_PRICING_EDIT_CANCEL_HINT',
             'Напишите «Отмена», чтобы вернуться без изменений.',
@@ -849,7 +1082,8 @@ async def _render_message_by_id(
         await bot.send_message(chat_id, text, reply_markup=keyboard, parse_mode='HTML')
 
 
-def _parse_price_input(text: str) -> int:
+def _parse_price_input(text: str, currency: str) -> int:
+    normalized_currency = _normalize_pricing_currency(currency)
     normalized = text.replace('₽', '').replace('р', '').replace('RUB', '')
     normalized = normalized.replace(' ', '').replace(',', '.').strip()
     if not normalized:
@@ -863,8 +1097,7 @@ def _parse_price_input(text: str) -> int:
     if value < 0:
         raise ValueError('negative')
 
-    kopeks = int((value * 100).quantize(Decimal(1), rounding=ROUND_HALF_UP))
-    return kopeks
+    return major_to_minor(value, normalized_currency)
 
 
 def _resolve_label(section: str, key: str, language: str) -> str:
@@ -899,6 +1132,30 @@ def _resolve_label(section: str, key: str, language: str) -> str:
     return key
 
 
+async def _render_section_for_currency(
+    callback: types.CallbackQuery,
+    state: FSMContext,
+    db_user: User,
+    db: AsyncSession,
+    section: str,
+) -> None:
+    data = await state.get_data()
+    pricing_currency = _normalize_pricing_currency(data.get('pricing_currency'))
+    await state.update_data(
+        pricing_currency=pricing_currency,
+        pricing_current_view=section,
+    )
+    period_price_map, traffic_price_map = await _load_currency_price_maps(db, pricing_currency)
+    text, keyboard = _build_section(
+        section,
+        db_user.language,
+        pricing_currency,
+        period_price_map=period_price_map,
+        traffic_price_map=traffic_price_map,
+    )
+    await _render_message(callback.message, text, keyboard)
+
+
 @admin_required
 @error_handler
 async def show_pricing_menu(
@@ -907,9 +1164,22 @@ async def show_pricing_menu(
     db: AsyncSession,
     state: FSMContext,
 ) -> None:
-    text, keyboard = _build_overview(db_user.language)
-    await _render_message(callback.message, text, keyboard)
+    existing = await state.get_data()
+    pricing_currency = _normalize_pricing_currency(existing.get('pricing_currency'))
     await state.clear()
+    await state.update_data(
+        pricing_currency=pricing_currency,
+        pricing_current_view='overview',
+    )
+
+    period_price_map, traffic_price_map = await _load_currency_price_maps(db, pricing_currency)
+    text, keyboard = _build_overview(
+        db_user.language,
+        pricing_currency,
+        period_price_map=period_price_map,
+        traffic_price_map=traffic_price_map,
+    )
+    await _render_message(callback.message, text, keyboard)
     await callback.answer()
 
 
@@ -922,9 +1192,23 @@ async def show_pricing_section(
     state: FSMContext,
 ) -> None:
     section = callback.data.split(':', 1)[1]
-    text, keyboard = _build_section(section, db_user.language)
-    await _render_message(callback.message, text, keyboard)
+    existing = await state.get_data()
+    pricing_currency = _normalize_pricing_currency(existing.get('pricing_currency'))
     await state.clear()
+    await state.update_data(
+        pricing_currency=pricing_currency,
+        pricing_current_view=section,
+    )
+
+    period_price_map, traffic_price_map = await _load_currency_price_maps(db, pricing_currency)
+    text, keyboard = _build_section(
+        section,
+        db_user.language,
+        pricing_currency,
+        period_price_map=period_price_map,
+        traffic_price_map=traffic_price_map,
+    )
+    await _render_message(callback.message, text, keyboard)
     await callback.answer()
 
 
@@ -939,17 +1223,21 @@ async def start_price_edit(
     _, section, key = callback.data.split(':', 2)
     texts = get_texts(db_user.language)
     label = _resolve_label(section, key, db_user.language)
+    data = await state.get_data()
+    pricing_currency = _normalize_pricing_currency(data.get('pricing_currency'))
 
     await state.update_data(
         pricing_key=key,
         pricing_section=section,
         pricing_message_id=callback.message.message_id,
         pricing_mode='price',
+        pricing_currency=pricing_currency,
     )
     await state.set_state(PricingStates.waiting_for_value)
 
-    current_price = settings.format_price(getattr(settings, key, 0))
-    prompt = _build_price_prompt(texts, label, current_price)
+    current_minor = await _resolve_price_value_minor(db, key, pricing_currency)
+    current_price = settings.format_price(current_minor, currency=pricing_currency)
+    prompt = _build_price_prompt(texts, label, current_price, pricing_currency)
 
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -990,6 +1278,8 @@ async def start_setting_edit(
     guidance = bot_configuration_service.get_setting_guidance(key)
 
     mode = 'price' if entry and entry.action == 'price' else 'setting'
+    existing = await state.get_data()
+    pricing_currency = _normalize_pricing_currency(existing.get('pricing_currency'))
 
     await state.update_data(
         pricing_key=key,
@@ -997,6 +1287,7 @@ async def start_setting_edit(
         pricing_message_id=callback.message.message_id,
         pricing_mode=mode,
         pricing_label=label,
+        pricing_currency=pricing_currency,
     )
     await state.set_state(PricingStates.waiting_for_value)
 
@@ -1004,7 +1295,8 @@ async def start_setting_edit(
         prompt = _build_price_prompt(
             texts,
             label,
-            settings.format_price(int(current_value or 0)),
+            settings.format_price(int(current_value or 0), currency=pricing_currency),
+            pricing_currency,
         )
     else:
         description = guidance.get('description') or ''
@@ -1070,6 +1362,7 @@ async def process_pricing_input(
     message_id = data.get('pricing_message_id')
     mode = data.get('pricing_mode', 'price')
     stored_label = data.get('pricing_label')
+    pricing_currency = _normalize_pricing_currency(data.get('pricing_currency'))
 
     texts = get_texts(db_user.language)
 
@@ -1081,7 +1374,18 @@ async def process_pricing_input(
     raw_value = message.text or ''
     if raw_value.strip().lower() in {'cancel', 'отмена'}:
         await state.clear()
-        section_text, section_keyboard = _build_section(section, db_user.language)
+        await state.update_data(
+            pricing_currency=pricing_currency,
+            pricing_current_view=section,
+        )
+        period_price_map, traffic_price_map = await _load_currency_price_maps(db, pricing_currency)
+        section_text, section_keyboard = _build_section(
+            section,
+            db_user.language,
+            pricing_currency,
+            period_price_map=period_price_map,
+            traffic_price_map=traffic_price_map,
+        )
         if message_id:
             await _render_message_by_id(
                 message.bot,
@@ -1095,12 +1399,12 @@ async def process_pricing_input(
 
     if mode == 'price':
         try:
-            new_value = _parse_price_input(raw_value)
+            new_value = _parse_price_input(raw_value, pricing_currency)
         except ValueError:
             await message.answer(
                 texts.t(
                     'ADMIN_PRICING_EDIT_INVALID',
-                    'Не удалось распознать цену. Укажите число в рублях (например 990 или 990.50).',
+                    'Не удалось распознать цену. Укажите число (например 990 или 990.50).',
                 )
             )
             return
@@ -1115,14 +1419,25 @@ async def process_pricing_input(
             await message.answer(error_text)
             return
 
-    await bot_configuration_service.set_value(db, key, new_value)
-    await db.commit()
+    if mode == 'price' and settings.MULTI_CURRENCY_ENABLED and _is_currency_table_price_key(key):
+        await _upsert_currency_price(db, key, pricing_currency, int(new_value))
+        await db.commit()
+    else:
+        await bot_configuration_service.set_value(db, key, new_value)
+        await db.commit()
 
-    if key.startswith('PRICE_TRAFFIC_'):
-        packages = _collect_traffic_packages()
-        await _save_traffic_packages(db, packages, skip_if_same=True)
+        if key.startswith('PRICE_TRAFFIC_'):
+            packages = _collect_traffic_packages()
+            await _save_traffic_packages(db, packages, skip_if_same=True)
 
-    section_text, section_keyboard = _build_section(section, db_user.language)
+    period_price_map, traffic_price_map = await _load_currency_price_maps(db, pricing_currency)
+    section_text, section_keyboard = _build_section(
+        section,
+        db_user.language,
+        pricing_currency,
+        period_price_map=period_price_map,
+        traffic_price_map=traffic_price_map,
+    )
 
     if mode == 'price':
         if message_id:
@@ -1138,6 +1453,10 @@ async def process_pricing_input(
         except TelegramBadRequest as error:
             logger.debug('Failed to delete pricing input message: %s', error)
         await state.clear()
+        await state.update_data(
+            pricing_currency=pricing_currency,
+            pricing_current_view=section,
+        )
         return
     entry = SETTING_ENTRY_BY_KEY.get(key)
     lang_code = _language_code(db_user.language)
@@ -1153,9 +1472,20 @@ async def process_pricing_input(
     )
 
     await state.clear()
+    await state.update_data(
+        pricing_currency=pricing_currency,
+        pricing_current_view=section,
+    )
 
     if message_id:
-        section_text, section_keyboard = _build_section(section, db_user.language)
+        period_price_map, traffic_price_map = await _load_currency_price_maps(db, pricing_currency)
+        section_text, section_keyboard = _build_section(
+            section,
+            db_user.language,
+            pricing_currency,
+            period_price_map=period_price_map,
+            traffic_price_map=traffic_price_map,
+        )
         await _render_message_by_id(
             message.bot,
             message.chat.id,
@@ -1193,8 +1523,7 @@ async def toggle_setting(
     value_text = bot_configuration_service.format_value_human(key, new_value)
     await callback.answer(value_text, show_alert=False)
 
-    text, keyboard = _build_section(section, db_user.language)
-    await _render_message(callback.message, text, keyboard)
+    await _render_section_for_currency(callback, state, db_user, db, section)
 
 
 @admin_required
@@ -1249,8 +1578,7 @@ async def select_setting_choice(
         ).format(label=target_option.label(lang_code))
     )
 
-    text, keyboard = _build_section(section, db_user.language)
-    await _render_message(callback.message, text, keyboard)
+    await _render_section_for_currency(callback, state, db_user, db, section)
 
 
 @admin_required
@@ -1365,6 +1693,109 @@ async def toggle_period_option(
     await _render_message(callback.message, text, keyboard)
 
 
+@admin_required
+@error_handler
+async def show_currency_picker(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    texts = get_texts(db_user.language)
+    data = await state.get_data()
+    pricing_currency = _normalize_pricing_currency(data.get('pricing_currency'))
+    current_view = data.get('pricing_current_view', 'overview')
+    supported = _parse_supported_balance_currencies()
+
+    buttons: list[types.InlineKeyboardButton] = []
+    for code in supported:
+        icon = '✅' if code == pricing_currency else '⚪️'
+        buttons.append(
+            types.InlineKeyboardButton(
+                text=f'{icon} {code}',
+                callback_data=f'admin_pricing_set_currency:{code}',
+            )
+        )
+
+    keyboard_rows: list[list[types.InlineKeyboardButton]] = []
+    for i in range(0, len(buttons), 3):
+        keyboard_rows.append(buttons[i : i + 3])
+
+    back_callback = 'admin_pricing'
+    if isinstance(current_view, str) and current_view and current_view != 'overview':
+        back_callback = f'admin_pricing_section:{current_view}'
+
+    keyboard_rows.append(
+        [
+            types.InlineKeyboardButton(
+                text=texts.BACK,
+                callback_data=back_callback,
+            )
+        ]
+    )
+
+    text = '\n'.join(
+        [
+            f'🌍 <b>{texts.t("ADMIN_PRICING_CURRENCY_PICKER_TITLE", "Выбор валюты для цен")}</b>',
+            '',
+            texts.t(
+                'ADMIN_PRICING_CURRENCY_PICKER_DESC',
+                'Выберите валюту, в которой хотите редактировать цены периодов и трафика.',
+            ),
+            f'{texts.t("ADMIN_PRICING_CURRENCY_PICKER_CURRENT", "Сейчас")}: <b>{pricing_currency}</b>',
+        ]
+    )
+
+    await _render_message(callback.message, text, types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows))
+    await callback.answer()
+
+
+@admin_required
+@error_handler
+async def set_pricing_currency(
+    callback: types.CallbackQuery,
+    db_user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    try:
+        _, currency_raw = callback.data.split(':', 1)
+    except ValueError:
+        await callback.answer()
+        return
+
+    selected_currency = _normalize_pricing_currency(currency_raw)
+    data = await state.get_data()
+    current_view = data.get('pricing_current_view', 'overview')
+    await state.update_data(pricing_currency=selected_currency)
+
+    period_price_map, traffic_price_map = await _load_currency_price_maps(db, selected_currency)
+    if isinstance(current_view, str) and current_view and current_view != 'overview':
+        await state.update_data(pricing_current_view=current_view)
+        text, keyboard = _build_section(
+            current_view,
+            db_user.language,
+            selected_currency,
+            period_price_map=period_price_map,
+            traffic_price_map=traffic_price_map,
+        )
+    else:
+        await state.update_data(pricing_current_view='overview')
+        text, keyboard = _build_overview(
+            db_user.language,
+            selected_currency,
+            period_price_map=period_price_map,
+            traffic_price_map=traffic_price_map,
+        )
+
+    await _render_message(callback.message, text, keyboard)
+    await callback.answer(
+        get_texts(db_user.language)
+        .t('ADMIN_PRICING_CURRENCY_PICKER_SELECTED', 'Выбрана валюта: {currency}')
+        .format(currency=selected_currency)
+    )
+
+
 def register_handlers(dp: Dispatcher) -> None:
     dp.callback_query.register(
         show_pricing_menu,
@@ -1373,6 +1804,14 @@ def register_handlers(dp: Dispatcher) -> None:
     dp.callback_query.register(
         show_pricing_section,
         F.data.startswith('admin_pricing_section:'),
+    )
+    dp.callback_query.register(
+        show_currency_picker,
+        F.data == 'admin_pricing_pick_currency',
+    )
+    dp.callback_query.register(
+        set_pricing_currency,
+        F.data.startswith('admin_pricing_set_currency:'),
     )
     dp.callback_query.register(
         start_price_edit,
