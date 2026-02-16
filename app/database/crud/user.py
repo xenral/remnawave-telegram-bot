@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.database.crud.discount_offer import get_latest_claimed_offer_for_user
 from app.database.crud.promo_group import get_default_promo_group
 from app.database.crud.promo_offer_log import log_promo_offer_action
@@ -255,6 +256,8 @@ async def create_user_no_commit(
         referred_by_id=referred_by_id,
         referral_code=referral_code,
         balance_kopeks=0,
+        balance_currency=settings.DEFAULT_BALANCE_CURRENCY,
+        display_currency=settings.DEFAULT_DISPLAY_CURRENCY,
         has_had_paid_subscription=False,
         has_made_first_topup=False,
         promo_group_id=promo_group_id,
@@ -304,6 +307,8 @@ async def create_user(
             referred_by_id=referred_by_id,
             referral_code=referral_code,
             balance_kopeks=0,
+            balance_currency=settings.DEFAULT_BALANCE_CURRENCY,
+            display_currency=settings.DEFAULT_DISPLAY_CURRENCY,
             has_had_paid_subscription=False,
             has_made_first_topup=False,
             promo_group_id=promo_group_id,
@@ -390,8 +395,12 @@ async def add_user_balance(
     transaction_type: TransactionType = TransactionType.DEPOSIT,
     bot=None,
     payment_method: PaymentMethod | None = None,
+    currency: str | None = None,
 ) -> bool:
     try:
+        if currency and (user.balance_currency or '').upper() != currency.upper():
+            raise ValueError(f'Balance currency mismatch: expected {user.balance_currency}, got {currency}')
+
         old_balance = user.balance_kopeks
         user.balance_kopeks += amount_kopeks
         user.updated_at = datetime.utcnow()
@@ -406,6 +415,7 @@ async def add_user_balance(
                 amount_kopeks=amount_kopeks,
                 description=description,
                 payment_method=payment_method,
+                currency=currency or user.balance_currency or settings.DEFAULT_BALANCE_CURRENCY,
             )
 
         await db.commit()
@@ -465,6 +475,7 @@ async def add_user_balance_by_id(
     description: str = 'Пополнение баланса',
     transaction_type: TransactionType = TransactionType.DEPOSIT,
     payment_method: PaymentMethod | None = None,
+    currency: str | None = None,
 ) -> bool:
     try:
         user = await get_user_by_telegram_id(db, telegram_id)
@@ -479,6 +490,7 @@ async def add_user_balance_by_id(
             description,
             transaction_type=transaction_type,
             payment_method=payment_method,
+            currency=currency,
         )
 
     except Exception as e:
@@ -493,6 +505,7 @@ async def subtract_user_balance(
     description: str,
     create_transaction: bool = False,
     payment_method: PaymentMethod | None = None,
+    currency: str | None = None,
     *,
     consume_promo_offer: bool = False,
 ) -> bool:
@@ -543,6 +556,10 @@ async def subtract_user_balance(
                 if not log_context['percent'] and offer.discount_percent:
                     log_context['percent'] = offer.discount_percent
 
+    if currency and (user.balance_currency or '').upper() != currency.upper():
+        logger.error('   ❌ ВАЛЮТА НЕ СОВПАДАЕТ: user=%s request=%s', user.balance_currency, currency)
+        return False
+
     if user.balance_kopeks < amount_kopeks:
         logger.error('   ❌ НЕДОСТАТОЧНО СРЕДСТВ!')
         return False
@@ -572,6 +589,7 @@ async def subtract_user_balance(
                 amount_kopeks=amount_kopeks,
                 description=description,
                 payment_method=payment_method,
+                currency=currency or user.balance_currency or settings.DEFAULT_BALANCE_CURRENCY,
             )
         else:
             await db.commit()
@@ -1094,6 +1112,8 @@ async def create_user_by_email(
         referred_by_id=referred_by_id,
         referral_code=referral_code,
         balance_kopeks=0,
+        balance_currency=settings.DEFAULT_BALANCE_CURRENCY,
+        display_currency=settings.DEFAULT_DISPLAY_CURRENCY,
         has_had_paid_subscription=False,
         has_made_first_topup=False,
         promo_group_id=default_group.id,
@@ -1320,6 +1340,8 @@ async def create_user_by_oauth(
         language=normalized_language,
         referral_code=referral_code,
         balance_kopeks=0,
+        balance_currency=settings.DEFAULT_BALANCE_CURRENCY,
+        display_currency=settings.DEFAULT_DISPLAY_CURRENCY,
         has_had_paid_subscription=False,
         has_made_first_topup=False,
         promo_group_id=default_group.id,

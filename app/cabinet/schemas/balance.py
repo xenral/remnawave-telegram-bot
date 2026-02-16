@@ -11,6 +11,10 @@ class BalanceResponse(BaseModel):
 
     balance_kopeks: int
     balance_rubles: float
+    balance_minor: int | None = None
+    balance_currency: str = 'RUB'
+    display_currency: str | None = None
+    balance_display: str | None = None
 
 
 class TransactionResponse(BaseModel):
@@ -20,6 +24,10 @@ class TransactionResponse(BaseModel):
     type: str
     amount_kopeks: int
     amount_rubles: float
+    amount_minor: int | None = None
+    currency: str = 'RUB'
+    display_currency: str | None = None
+    amount_display: str | None = None
     description: str | None = None
     payment_method: str | None = None
     is_completed: bool
@@ -56,6 +64,10 @@ class PaymentMethodResponse(BaseModel):
     description: str | None = None
     min_amount_kopeks: int
     max_amount_kopeks: int
+    min_amount_minor: int | None = None
+    max_amount_minor: int | None = None
+    currency: str = 'RUB'
+    settlement_currency: str | None = None
     is_available: bool = True
     options: list[dict[str, Any]] | None = None
 
@@ -63,7 +75,9 @@ class PaymentMethodResponse(BaseModel):
 class TopUpRequest(BaseModel):
     """Request to create payment for balance top-up."""
 
-    amount_kopeks: int = Field(..., ge=1000, description='Amount in kopeks (min 10 rubles)')
+    amount_kopeks: int | None = Field(default=None, ge=1, description='Legacy amount in kopeks/minor units')
+    amount_minor: int | None = Field(default=None, ge=1, description='Amount in minor units')
+    currency: str | None = Field(default=None, description='Requested user currency (e.g. RUB, IRR)')
     payment_method: str = Field(..., description='Payment method ID')
     payment_option: str | None = Field(None, description='Payment option (e.g. Platega method code)')
 
@@ -75,6 +89,11 @@ class TopUpResponse(BaseModel):
     payment_url: str
     amount_kopeks: int
     amount_rubles: float
+    amount_minor: int | None = None
+    currency: str = 'RUB'
+    settlement_amount_minor: int | None = None
+    settlement_currency: str | None = None
+    amount_display: str | None = None
     status: str
     expires_at: datetime | None = None
 
@@ -83,6 +102,7 @@ class StarsInvoiceRequest(BaseModel):
     """Request to create Telegram Stars invoice for balance top-up."""
 
     amount_kopeks: int = Field(..., ge=100, description='Amount in kopeks (min 1 ruble)')
+    currency: str | None = Field(default='RUB', description='Requested display currency')
 
 
 class StarsInvoiceResponse(BaseModel):

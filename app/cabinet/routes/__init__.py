@@ -7,6 +7,7 @@ from .admin_ban_system import router as admin_ban_system_router
 from .admin_broadcasts import router as admin_broadcasts_router
 from .admin_button_styles import router as admin_button_styles_router
 from .admin_campaigns import router as admin_campaigns_router
+from .admin_currencies import router as admin_currencies_router
 from .admin_email_templates import router as admin_email_templates_router
 from .admin_payment_methods import router as admin_payment_methods_router
 from .admin_payments import router as admin_payments_router
@@ -83,6 +84,7 @@ router.include_router(admin_broadcasts_router)
 router.include_router(admin_promocodes_router)
 router.include_router(admin_promo_groups_router)
 router.include_router(admin_campaigns_router)
+router.include_router(admin_currencies_router)
 router.include_router(admin_users_router)
 router.include_router(admin_payment_methods_router)
 router.include_router(admin_payments_router)

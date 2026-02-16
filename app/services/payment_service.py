@@ -309,6 +309,23 @@ class PaymentService(
 ):
     """Основной интерфейс платежей, делегирующий работу специализированным mixin-ам."""
 
+    SUPPORTED_SETTLEMENT_CURRENCIES: dict[str, set[str]] = {
+        'stars': {'RUB'},
+        'telegram_stars': {'RUB'},
+        'yookassa': {'RUB'},
+        'yookassa_sbp': {'RUB'},
+        'mulenpay': {'RUB'},
+        'pal24': {'RUB'},
+        'wata': {'RUB'},
+        'cryptobot': {'RUB'},
+        'heleket': {'RUB'},
+        'platega': {'RUB'},
+        'cloudpayments': {'RUB'},
+        'freekassa': {'RUB'},
+        'kassa_ai': {'RUB'},
+        'tribute': {'RUB'},
+    }
+
     def __init__(self, bot: Bot | None = None) -> None:
         # Бот нужен для отправки уведомлений и создания звёздных инвойсов.
         self.bot = bot
@@ -338,3 +355,24 @@ class PaymentService(
             bool(self.wata_service),
             bool(self.cloudpayments_service),
         )
+
+    @classmethod
+    def get_supported_settlement_currencies(cls, method_id: str) -> set[str]:
+        normalized_method = (method_id or '').lower()
+        dynamic_map = {
+            'platega': {settings.PLATEGA_CURRENCY.upper()},
+            'cloudpayments': {settings.CLOUDPAYMENTS_CURRENCY.upper()},
+            'freekassa': {settings.FREEKASSA_CURRENCY.upper()},
+            'kassa_ai': {settings.KASSA_AI_CURRENCY.upper()},
+            'tribute': {settings.DEFAULT_BALANCE_CURRENCY.upper()},
+        }
+        if normalized_method in dynamic_map:
+            return dynamic_map[normalized_method]
+        return cls.SUPPORTED_SETTLEMENT_CURRENCIES.get(normalized_method, set())
+
+    @classmethod
+    def supports_settlement_currency(cls, method_id: str, currency: str) -> bool:
+        supported = cls.get_supported_settlement_currencies(method_id)
+        if not supported:
+            return False
+        return currency.upper() in supported

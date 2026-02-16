@@ -427,6 +427,9 @@ class MiniAppPaymentMethod(BaseModel):
     currency: str = 'RUB'
     min_amount_kopeks: int | None = None
     max_amount_kopeks: int | None = None
+    min_amount_minor: int | None = None
+    max_amount_minor: int | None = None
+    settlement_currency: str | None = None
     amount_step_kopeks: int | None = None
     integration_type: MiniAppPaymentIntegrationType
     options: list[MiniAppPaymentOption] = Field(default_factory=list)
@@ -448,6 +451,8 @@ class MiniAppPaymentCreateRequest(BaseModel):
     method: str
     amount_rubles: float | None = Field(default=None, alias='amountRubles')
     amount_kopeks: int | None = Field(default=None, alias='amountKopeks')
+    amount_minor: int | None = Field(default=None, alias='amountMinor')
+    currency: str | None = None
     payment_option: str | None = Field(default=None, alias='option')
 
 
@@ -456,6 +461,10 @@ class MiniAppPaymentCreateResponse(BaseModel):
     method: str
     payment_url: str | None = None
     amount_kopeks: int | None = None
+    amount_minor: int | None = None
+    currency: str | None = None
+    settlement_amount_minor: int | None = None
+    settlement_currency: str | None = None
     extra: dict[str, Any] = Field(default_factory=dict)
 
 

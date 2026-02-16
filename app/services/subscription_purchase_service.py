@@ -23,7 +23,15 @@ from app.database.crud.subscription_conversion import (
 )
 from app.database.crud.transaction import create_transaction
 from app.database.crud.user import subtract_user_balance
-from app.database.models import ServerSquad, Subscription, SubscriptionStatus, TransactionType, User
+from app.database.models import (
+    ServerSquad,
+    Subscription,
+    SubscriptionPeriodPrice,
+    SubscriptionStatus,
+    TrafficPackagePrice,
+    TransactionType,
+    User,
+)
 from app.localization.texts import get_texts
 from app.services.subscription_service import SubscriptionService
 from app.utils.pricing_utils import (
@@ -386,13 +394,34 @@ class MiniAppSubscriptionPurchaseService:
             fixed_traffic_value = subscription.traffic_limit_gb
 
         default_period_days = available_periods[0] if available_periods else 30
+        period_prices_override: dict[int, int] = {}
+        traffic_prices_override: dict[int, int] = {}
+
+        if settings.MULTI_CURRENCY_ENABLED:
+            period_rows = await db.execute(
+                select(SubscriptionPeriodPrice).where(
+                    SubscriptionPeriodPrice.currency == currency,
+                    SubscriptionPeriodPrice.is_active.is_(True),
+                )
+            )
+            for row in period_rows.scalars().all():
+                period_prices_override[int(row.period_days)] = int(row.amount_minor)
+
+            traffic_rows = await db.execute(
+                select(TrafficPackagePrice).where(
+                    TrafficPackagePrice.currency == currency,
+                    TrafficPackagePrice.is_active.is_(True),
+                )
+            )
+            for row in traffic_rows.scalars().all():
+                traffic_prices_override[int(row.package_gb)] = int(row.amount_minor)
 
         for period_days in available_periods:
             months = calculate_months_from_days(period_days)
             period_id = f'days:{period_days}'
             label = format_period_description(period_days, getattr(user, 'language', 'ru'))
 
-            base_price_original = PERIOD_PRICES.get(period_days, 0)
+            base_price_original = period_prices_override.get(period_days, PERIOD_PRICES.get(period_days, 0))
             period_discount_percent = user.get_promo_discount('period', period_days)
             base_price, base_discount_total = _apply_percentage_discount(base_price_original, period_discount_percent)
             base_price_label = texts.format_price(base_price)
@@ -411,6 +440,7 @@ class MiniAppSubscriptionPurchaseService:
                 period_days,
                 months,
                 fixed_traffic_value,
+                traffic_prices_override=traffic_prices_override,
             )
             servers_config = self._build_servers_config(
                 user,
@@ -506,6 +536,7 @@ class MiniAppSubscriptionPurchaseService:
         period_days: int,
         months: int,
         fixed_traffic_value: int | None,
+        traffic_prices_override: dict[int, int] | None = None,
     ) -> PurchaseTrafficConfig:
         if settings.is_traffic_fixed():
             value = fixed_traffic_value if fixed_traffic_value is not None else settings.get_fixed_traffic_limit()
@@ -526,7 +557,7 @@ class MiniAppSubscriptionPurchaseService:
 
         for package in packages:
             value = int(package.get('gb') or 0)
-            price_per_month = int(package.get('price') or 0)
+            price_per_month = int((traffic_prices_override or {}).get(value, package.get('price') or 0))
             discounted_per_month, discount_value = _apply_percentage_discount(price_per_month, discount_percent)
             label = texts.format_traffic(value if value else 0)
             options.append(

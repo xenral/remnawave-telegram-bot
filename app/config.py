@@ -14,6 +14,8 @@ from zoneinfo import ZoneInfo
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
+from app.utils.money import format_money_from_minor
+
 
 DEFAULT_DISPLAY_NAME_BANNED_KEYWORDS: list[str] = [
     # Пустой по умолчанию - администратор может добавить ключевые слова через DISPLAY_NAME_BANNED_KEYWORDS
@@ -84,6 +86,12 @@ class Settings(BaseSettings):
     LOCALES_PATH: str = './locales'
 
     TIMEZONE: str = Field(default_factory=lambda: os.getenv('TZ', 'UTC'))
+    MULTI_CURRENCY_ENABLED: bool = False
+    DEFAULT_BALANCE_CURRENCY: str = 'RUB'
+    DEFAULT_DISPLAY_CURRENCY: str | None = None
+    DEFAULT_REPORTING_CURRENCY: str = 'RUB'
+    SUPPORTED_BALANCE_CURRENCIES: str = 'RUB,IRR'
+    SUPPORTED_DISPLAY_CURRENCIES: str = 'RUB,IRR,TMN'
 
     DATABASE_MODE: str = 'auto'
 
@@ -1244,37 +1252,35 @@ class Settings(BaseSettings):
     def is_language_selection_enabled(self) -> bool:
         return bool(getattr(self, 'LANGUAGE_SELECTION_ENABLED', True))
 
-    def format_price(self, price_kopeks: int, round_kopeks: bool | None = None) -> str:
+    def format_price(
+        self,
+        price_kopeks: int,
+        round_kopeks: bool | None = None,
+        currency: str | None = None,
+        display_currency: str | None = None,
+    ) -> str:
         """
-        Форматирует цену в копейках для отображения пользователю.
+        Форматирует сумму в минимальных единицах валюты для отображения пользователю.
 
         Args:
-            price_kopeks: Сумма в копейках
+            price_kopeks: Сумма в минимальных единицах валюты (для RUB это копейки)
             round_kopeks: Если True, округляет копейки (≤50 вниз, >50 вверх).
                          Если None, использует настройку PRICE_ROUNDING_ENABLED.
+            currency: Валюта хранения (например RUB, IRR)
+            display_currency: Валюта отображения (например TMN поверх IRR)
 
         Returns:
-            Отформатированная строка цены (например, "150 ₽")
+            Отформатированная строка цены (например, "150 ₽" или "1500 TMN")
         """
-        # Используем настройку если не передано явно
         should_round = round_kopeks if round_kopeks is not None else self.PRICE_ROUNDING_ENABLED
-
-        sign = '-' if price_kopeks < 0 else ''
-        abs_kopeks = abs(price_kopeks)
-        rubles, kopeks = divmod(abs_kopeks, 100)
-
-        if should_round:
-            # Округление: ≤50 коп вниз, >50 коп вверх
-            if kopeks > 50:
-                rubles += 1
-            return f'{sign}{rubles} ₽'
-
-        # Без округления - показываем точное значение
-        if kopeks:
-            value = f'{sign}{rubles}.{kopeks:02d}'.rstrip('0').rstrip('.')
-            return f'{value} ₽'
-
-        return f'{sign}{rubles} ₽'
+        effective_currency = (currency or self.DEFAULT_BALANCE_CURRENCY or 'RUB').upper()
+        effective_display = (display_currency or self.DEFAULT_DISPLAY_CURRENCY or '').strip().upper() or None
+        return format_money_from_minor(
+            price_kopeks,
+            currency=effective_currency,
+            display_currency=effective_display,
+            round_minor=should_round,
+        )
 
     def get_reports_chat_id(self) -> str | None:
         if self.ADMIN_REPORTS_CHAT_ID:

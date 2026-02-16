@@ -5,7 +5,10 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.database.models import PaymentMethod, Transaction, TransactionType, User
+from app.services.currency_rate_service import currency_rate_service
+from app.utils.money import normalize_currency
 
 
 logger = logging.getLogger(__name__)
@@ -38,11 +41,46 @@ async def create_transaction(
     external_id: str | None = None,
     is_completed: bool = True,
     created_at: datetime | None = None,
+    currency: str | None = None,
+    reporting_currency: str | None = None,
+    reporting_amount_minor: int | None = None,
 ) -> Transaction:
+    tx_currency = normalize_currency(currency or settings.DEFAULT_BALANCE_CURRENCY or 'RUB')
+    if currency is None:
+        try:
+            user_currency_result = await db.execute(select(User.balance_currency).where(User.id == user_id))
+            user_currency = user_currency_result.scalar_one_or_none()
+            if user_currency:
+                tx_currency = normalize_currency(user_currency)
+        except Exception:
+            # Keep default currency on lookup errors for backward compatibility.
+            pass
+    tx_amount_minor = int(amount_kopeks)
+    tx_reporting_currency = normalize_currency(reporting_currency or settings.DEFAULT_REPORTING_CURRENCY or 'RUB')
+    tx_reporting_amount_minor = reporting_amount_minor
+
+    if tx_reporting_amount_minor is None:
+        if tx_reporting_currency == tx_currency:
+            tx_reporting_amount_minor = tx_amount_minor
+        else:
+            try:
+                tx_reporting_amount_minor = await currency_rate_service.convert_minor(
+                    db,
+                    amount_minor=tx_amount_minor,
+                    from_currency=tx_currency,
+                    to_currency=tx_reporting_currency,
+                )
+            except Exception:
+                tx_reporting_amount_minor = tx_amount_minor
+
     transaction = Transaction(
         user_id=user_id,
         type=type.value,
         amount_kopeks=amount_kopeks,
+        amount_minor=tx_amount_minor,
+        currency=tx_currency,
+        reporting_currency=tx_reporting_currency,
+        reporting_amount_minor=tx_reporting_amount_minor,
         description=description,
         payment_method=payment_method.value if payment_method else None,
         external_id=external_id,
@@ -55,7 +93,13 @@ async def create_transaction(
     await db.commit()
     await db.refresh(transaction)
 
-    logger.info(f'💳 Создана транзакция: {type.value} на {amount_kopeks / 100}₽ для пользователя {user_id}')
+    logger.info(
+        '💳 Создана транзакция: %s на %s %s для пользователя %s',
+        type.value,
+        tx_amount_minor,
+        tx_currency,
+        user_id,
+    )
 
     # Отправляем событие о транзакции
     try:
@@ -68,6 +112,8 @@ async def create_transaction(
                 'user_id': user_id,
                 'type': type.value,
                 'amount_kopeks': amount_kopeks,
+                'amount_minor': tx_amount_minor,
+                'currency': tx_currency,
                 'amount_rubles': amount_kopeks / 100,
                 'payment_method': payment_method.value if payment_method else None,
                 'external_id': external_id,
@@ -153,7 +199,7 @@ async def get_user_transactions_count(
 
 async def get_user_total_spent_kopeks(db: AsyncSession, user_id: int) -> int:
     result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount_kopeks), 0)).where(
+        select(func.coalesce(func.sum(func.coalesce(Transaction.reporting_amount_minor, Transaction.amount_kopeks)), 0)).where(
             and_(
                 Transaction.user_id == user_id,
                 Transaction.is_completed.is_(True),
@@ -207,9 +253,11 @@ async def get_transactions_statistics(
     if not end_date:
         end_date = datetime.utcnow()
 
+    amount_for_reports = func.coalesce(Transaction.reporting_amount_minor, Transaction.amount_kopeks)
+
     # Доход считаем только по реальным платежам (исключаем колесо, промокоды, админские пополнения)
     income_result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount_kopeks), 0)).where(
+        select(func.coalesce(func.sum(amount_for_reports), 0)).where(
             and_(
                 Transaction.type == TransactionType.DEPOSIT.value,
                 Transaction.is_completed == True,
@@ -222,7 +270,7 @@ async def get_transactions_statistics(
     total_income = income_result.scalar()
 
     expenses_result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount_kopeks), 0)).where(
+        select(func.coalesce(func.sum(amount_for_reports), 0)).where(
             and_(
                 Transaction.type == TransactionType.WITHDRAWAL.value,
                 Transaction.is_completed == True,
@@ -234,7 +282,7 @@ async def get_transactions_statistics(
     total_expenses = expenses_result.scalar()
 
     subscription_income_result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount_kopeks), 0)).where(
+        select(func.coalesce(func.sum(amount_for_reports), 0)).where(
             and_(
                 Transaction.type == TransactionType.SUBSCRIPTION_PAYMENT.value,
                 Transaction.is_completed == True,
@@ -249,7 +297,7 @@ async def get_transactions_statistics(
         select(
             Transaction.type,
             func.count(Transaction.id).label('count'),
-            func.coalesce(func.sum(Transaction.amount_kopeks), 0).label('total_amount'),
+            func.coalesce(func.sum(amount_for_reports), 0).label('total_amount'),
         )
         .where(
             and_(
@@ -268,7 +316,7 @@ async def get_transactions_statistics(
         select(
             Transaction.payment_method,
             func.count(Transaction.id).label('count'),
-            func.coalesce(func.sum(Transaction.amount_kopeks), 0).label('total_amount'),
+            func.coalesce(func.sum(amount_for_reports), 0).label('total_amount'),
         )
         .where(
             and_(
@@ -294,7 +342,7 @@ async def get_transactions_statistics(
 
     # Доход за сегодня - только реальные платежи
     today_income_result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount_kopeks), 0)).where(
+        select(func.coalesce(func.sum(amount_for_reports), 0)).where(
             and_(
                 Transaction.type == TransactionType.DEPOSIT.value,
                 Transaction.is_completed == True,

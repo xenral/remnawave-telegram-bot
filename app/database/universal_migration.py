@@ -6459,6 +6459,382 @@ async def migrate_cloudpayments_transaction_id_to_bigint() -> bool:
         return False
 
 
+async def add_money_columns_to_users_and_transactions() -> bool:
+    """Add additive multi-currency columns to users/transactions with safe defaults."""
+    try:
+        db_type = await get_database_type()
+        async with engine.begin() as conn:
+            if not await check_column_exists('users', 'balance_currency'):
+                await conn.execute(
+                    text(
+                        "ALTER TABLE users ADD COLUMN balance_currency "
+                        + ('VARCHAR(16) NOT NULL DEFAULT \'RUB\'' if db_type != 'sqlite' else 'VARCHAR(16) DEFAULT \'RUB\'')
+                    )
+                )
+                logger.info('✅ Добавлена колонка users.balance_currency')
+
+            if not await check_column_exists('users', 'display_currency'):
+                await conn.execute(text('ALTER TABLE users ADD COLUMN display_currency VARCHAR(16)'))
+                logger.info('✅ Добавлена колонка users.display_currency')
+
+            if not await check_column_exists('transactions', 'amount_minor'):
+                await conn.execute(text('ALTER TABLE transactions ADD COLUMN amount_minor INTEGER'))
+                logger.info('✅ Добавлена колонка transactions.amount_minor')
+
+            if not await check_column_exists('transactions', 'currency'):
+                await conn.execute(
+                    text(
+                        "ALTER TABLE transactions ADD COLUMN currency "
+                        + ('VARCHAR(16) NOT NULL DEFAULT \'RUB\'' if db_type != 'sqlite' else 'VARCHAR(16) DEFAULT \'RUB\'')
+                    )
+                )
+                logger.info('✅ Добавлена колонка transactions.currency')
+
+            if not await check_column_exists('transactions', 'reporting_currency'):
+                await conn.execute(
+                    text(
+                        "ALTER TABLE transactions ADD COLUMN reporting_currency "
+                        + ('VARCHAR(16) NOT NULL DEFAULT \'RUB\'' if db_type != 'sqlite' else 'VARCHAR(16) DEFAULT \'RUB\'')
+                    )
+                )
+                logger.info('✅ Добавлена колонка transactions.reporting_currency')
+
+            if not await check_column_exists('transactions', 'reporting_amount_minor'):
+                await conn.execute(text('ALTER TABLE transactions ADD COLUMN reporting_amount_minor INTEGER'))
+                logger.info('✅ Добавлена колонка transactions.reporting_amount_minor')
+
+            # Backfill existing rows.
+            await conn.execute(text("UPDATE users SET balance_currency = 'RUB' WHERE balance_currency IS NULL"))
+            await conn.execute(text("UPDATE transactions SET currency = 'RUB' WHERE currency IS NULL"))
+            await conn.execute(text("UPDATE transactions SET amount_minor = amount_kopeks WHERE amount_minor IS NULL"))
+            await conn.execute(
+                text("UPDATE transactions SET reporting_currency = 'RUB' WHERE reporting_currency IS NULL")
+            )
+            await conn.execute(
+                text("UPDATE transactions SET reporting_amount_minor = amount_kopeks WHERE reporting_amount_minor IS NULL")
+            )
+
+            if not await check_index_exists('transactions', 'ix_transactions_currency_created_at'):
+                await conn.execute(
+                    text('CREATE INDEX ix_transactions_currency_created_at ON transactions(currency, created_at)')
+                )
+                logger.info('✅ Добавлен индекс ix_transactions_currency_created_at')
+
+            if not await check_index_exists('transactions', 'ix_transactions_reporting_currency_created_at'):
+                await conn.execute(
+                    text(
+                        'CREATE INDEX ix_transactions_reporting_currency_created_at '
+                        'ON transactions(reporting_currency, created_at)'
+                    )
+                )
+                logger.info('✅ Добавлен индекс ix_transactions_reporting_currency_created_at')
+
+        return True
+    except Exception as error:
+        logger.error(f'❌ Ошибка добавления мультивалютных колонок: {error}')
+        return False
+
+
+async def create_currency_rates_table() -> bool:
+    table_exists = await check_table_exists('currency_rates')
+    if table_exists:
+        return True
+
+    try:
+        db_type = await get_database_type()
+        async with engine.begin() as conn:
+            if db_type == 'sqlite':
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE currency_rates (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            from_currency VARCHAR(16) NOT NULL,
+                            to_currency VARCHAR(16) NOT NULL,
+                            rate FLOAT NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT 1,
+                            updated_by_user_id INTEGER NULL,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(from_currency, to_currency),
+                            FOREIGN KEY(updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+                        )
+                        """
+                    )
+                )
+            elif db_type == 'postgresql':
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE currency_rates (
+                            id SERIAL PRIMARY KEY,
+                            from_currency VARCHAR(16) NOT NULL,
+                            to_currency VARCHAR(16) NOT NULL,
+                            rate DOUBLE PRECISION NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            updated_by_user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+                            created_at TIMESTAMP DEFAULT NOW(),
+                            updated_at TIMESTAMP DEFAULT NOW(),
+                            UNIQUE(from_currency, to_currency)
+                        )
+                        """
+                    )
+                )
+            else:
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE currency_rates (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            from_currency VARCHAR(16) NOT NULL,
+                            to_currency VARCHAR(16) NOT NULL,
+                            rate DOUBLE NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            updated_by_user_id INT NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            UNIQUE KEY uq_currency_rates_pair (from_currency, to_currency),
+                            CONSTRAINT fk_currency_rates_updated_by
+                                FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+                        ) ENGINE=InnoDB
+                        """
+                    )
+                )
+
+            if not await check_index_exists('currency_rates', 'ix_currency_rates_from_to'):
+                await conn.execute(
+                    text('CREATE INDEX ix_currency_rates_from_to ON currency_rates(from_currency, to_currency)')
+                )
+            logger.info('✅ Таблица currency_rates готова')
+        return True
+    except Exception as error:
+        logger.error(f'❌ Ошибка создания currency_rates: {error}')
+        return False
+
+
+async def create_subscription_period_prices_table() -> bool:
+    table_exists = await check_table_exists('subscription_period_prices')
+    if table_exists:
+        return True
+
+    try:
+        db_type = await get_database_type()
+        async with engine.begin() as conn:
+            if db_type == 'sqlite':
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE subscription_period_prices (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            period_days INTEGER NOT NULL,
+                            currency VARCHAR(16) NOT NULL,
+                            amount_minor INTEGER NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT 1,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(period_days, currency)
+                        )
+                        """
+                    )
+                )
+            elif db_type == 'postgresql':
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE subscription_period_prices (
+                            id SERIAL PRIMARY KEY,
+                            period_days INTEGER NOT NULL,
+                            currency VARCHAR(16) NOT NULL,
+                            amount_minor INTEGER NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at TIMESTAMP DEFAULT NOW(),
+                            updated_at TIMESTAMP DEFAULT NOW(),
+                            UNIQUE(period_days, currency)
+                        )
+                        """
+                    )
+                )
+            else:
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE subscription_period_prices (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            period_days INT NOT NULL,
+                            currency VARCHAR(16) NOT NULL,
+                            amount_minor INT NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            UNIQUE KEY uq_subscription_period_prices_period_currency (period_days, currency)
+                        ) ENGINE=InnoDB
+                        """
+                    )
+                )
+
+            await conn.execute(
+                text('CREATE INDEX ix_subscription_period_prices_currency ON subscription_period_prices(currency)')
+            )
+            logger.info('✅ Таблица subscription_period_prices готова')
+        return True
+    except Exception as error:
+        logger.error(f'❌ Ошибка создания subscription_period_prices: {error}')
+        return False
+
+
+async def create_traffic_package_prices_table() -> bool:
+    table_exists = await check_table_exists('traffic_package_prices')
+    if table_exists:
+        return True
+
+    try:
+        db_type = await get_database_type()
+        async with engine.begin() as conn:
+            if db_type == 'sqlite':
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE traffic_package_prices (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            package_gb INTEGER NOT NULL,
+                            currency VARCHAR(16) NOT NULL,
+                            amount_minor INTEGER NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT 1,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(package_gb, currency)
+                        )
+                        """
+                    )
+                )
+            elif db_type == 'postgresql':
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE traffic_package_prices (
+                            id SERIAL PRIMARY KEY,
+                            package_gb INTEGER NOT NULL,
+                            currency VARCHAR(16) NOT NULL,
+                            amount_minor INTEGER NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at TIMESTAMP DEFAULT NOW(),
+                            updated_at TIMESTAMP DEFAULT NOW(),
+                            UNIQUE(package_gb, currency)
+                        )
+                        """
+                    )
+                )
+            else:
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE traffic_package_prices (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            package_gb INT NOT NULL,
+                            currency VARCHAR(16) NOT NULL,
+                            amount_minor INT NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            UNIQUE KEY uq_traffic_package_prices_gb_currency (package_gb, currency)
+                        ) ENGINE=InnoDB
+                        """
+                    )
+                )
+
+            await conn.execute(text('CREATE INDEX ix_traffic_package_prices_currency ON traffic_package_prices(currency)'))
+            logger.info('✅ Таблица traffic_package_prices готова')
+        return True
+    except Exception as error:
+        logger.error(f'❌ Ошибка создания traffic_package_prices: {error}')
+        return False
+
+
+async def create_payment_method_currency_limits_table() -> bool:
+    table_exists = await check_table_exists('payment_method_currency_limits')
+    if table_exists:
+        return True
+    if not await check_table_exists('payment_method_configs'):
+        logger.warning('⚠️ Таблица payment_method_configs не найдена, пропускаем payment_method_currency_limits')
+        return True
+
+    try:
+        db_type = await get_database_type()
+        async with engine.begin() as conn:
+            if db_type == 'sqlite':
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE payment_method_currency_limits (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            payment_method_config_id INTEGER NOT NULL,
+                            currency VARCHAR(16) NOT NULL,
+                            is_enabled BOOLEAN NOT NULL DEFAULT 1,
+                            min_amount_minor INTEGER NULL,
+                            max_amount_minor INTEGER NULL,
+                            settlement_currency VARCHAR(16) NULL,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(payment_method_config_id, currency),
+                            FOREIGN KEY(payment_method_config_id) REFERENCES payment_method_configs(id) ON DELETE CASCADE
+                        )
+                        """
+                    )
+                )
+            elif db_type == 'postgresql':
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE payment_method_currency_limits (
+                            id SERIAL PRIMARY KEY,
+                            payment_method_config_id INTEGER NOT NULL REFERENCES payment_method_configs(id) ON DELETE CASCADE,
+                            currency VARCHAR(16) NOT NULL,
+                            is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                            min_amount_minor INTEGER NULL,
+                            max_amount_minor INTEGER NULL,
+                            settlement_currency VARCHAR(16) NULL,
+                            created_at TIMESTAMP DEFAULT NOW(),
+                            updated_at TIMESTAMP DEFAULT NOW(),
+                            UNIQUE(payment_method_config_id, currency)
+                        )
+                        """
+                    )
+                )
+            else:
+                await conn.execute(
+                    text(
+                        """
+                        CREATE TABLE payment_method_currency_limits (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            payment_method_config_id INT NOT NULL,
+                            currency VARCHAR(16) NOT NULL,
+                            is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                            min_amount_minor INT NULL,
+                            max_amount_minor INT NULL,
+                            settlement_currency VARCHAR(16) NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            UNIQUE KEY uq_payment_method_currency_limits_method_currency (payment_method_config_id, currency),
+                            CONSTRAINT fk_payment_method_currency_limits_method
+                                FOREIGN KEY (payment_method_config_id) REFERENCES payment_method_configs(id) ON DELETE CASCADE
+                        ) ENGINE=InnoDB
+                        """
+                    )
+                )
+
+            await conn.execute(
+                text(
+                    'CREATE INDEX ix_payment_method_currency_limits_currency '
+                    'ON payment_method_currency_limits(currency)'
+                )
+            )
+            logger.info('✅ Таблица payment_method_currency_limits готова')
+        return True
+    except Exception as error:
+        logger.error(f'❌ Ошибка создания payment_method_currency_limits: {error}')
+        return False
+
+
 async def run_universal_migration():
     logger.info('=== НАЧАЛО УНИВЕРСАЛЬНОЙ МИГРАЦИИ ===')
 
@@ -7124,6 +7500,41 @@ async def run_universal_migration():
         else:
             logger.warning('⚠️ Проблемы с миграцией transaction_id_cp')
 
+        logger.info('=== МУЛЬТИВАЛЮТНЫЕ КОЛОНКИ USERS/TRANSACTIONS ===')
+        money_columns_ready = await add_money_columns_to_users_and_transactions()
+        if money_columns_ready:
+            logger.info('✅ Мультивалютные колонки users/transactions готовы')
+        else:
+            logger.warning('⚠️ Проблемы с мультивалютными колонками users/transactions')
+
+        logger.info('=== СОЗДАНИЕ ТАБЛИЦЫ CURRENCY_RATES ===')
+        currency_rates_ready = await create_currency_rates_table()
+        if currency_rates_ready:
+            logger.info('✅ Таблица currency_rates готова')
+        else:
+            logger.warning('⚠️ Проблемы с таблицей currency_rates')
+
+        logger.info('=== СОЗДАНИЕ ТАБЛИЦЫ SUBSCRIPTION_PERIOD_PRICES ===')
+        subscription_prices_ready = await create_subscription_period_prices_table()
+        if subscription_prices_ready:
+            logger.info('✅ Таблица subscription_period_prices готова')
+        else:
+            logger.warning('⚠️ Проблемы с таблицей subscription_period_prices')
+
+        logger.info('=== СОЗДАНИЕ ТАБЛИЦЫ TRAFFIC_PACKAGE_PRICES ===')
+        traffic_prices_ready = await create_traffic_package_prices_table()
+        if traffic_prices_ready:
+            logger.info('✅ Таблица traffic_package_prices готова')
+        else:
+            logger.warning('⚠️ Проблемы с таблицей traffic_package_prices')
+
+        logger.info('=== СОЗДАНИЕ ТАБЛИЦЫ PAYMENT_METHOD_CURRENCY_LIMITS ===')
+        payment_currency_limits_ready = await create_payment_method_currency_limits_table()
+        if payment_currency_limits_ready:
+            logger.info('✅ Таблица payment_method_currency_limits готова')
+        else:
+            logger.warning('⚠️ Проблемы с таблицей payment_method_currency_limits')
+
         logger.info('=== ДОБАВЛЕНИЕ КОЛОНОК OAUTH ПРОВАЙДЕРОВ ===')
         oauth_columns_ready = await add_oauth_provider_columns()
         if oauth_columns_ready:
@@ -7254,6 +7665,16 @@ async def check_migration_status():
             'users_yandex_id_column': False,
             'users_discord_id_column': False,
             'users_vk_id_column': False,
+            'users_balance_currency_column': False,
+            'users_display_currency_column': False,
+            'transactions_currency_column': False,
+            'transactions_amount_minor_column': False,
+            'transactions_reporting_currency_column': False,
+            'transactions_reporting_amount_minor_column': False,
+            'currency_rates_table': False,
+            'subscription_period_prices_table': False,
+            'traffic_package_prices_table': False,
+            'payment_method_currency_limits_table': False,
         }
 
         status['has_made_first_topup_column'] = await check_column_exists('users', 'has_made_first_topup')
@@ -7390,6 +7811,18 @@ async def check_migration_status():
         status['users_yandex_id_column'] = await check_column_exists('users', 'yandex_id')
         status['users_discord_id_column'] = await check_column_exists('users', 'discord_id')
         status['users_vk_id_column'] = await check_column_exists('users', 'vk_id')
+        status['users_balance_currency_column'] = await check_column_exists('users', 'balance_currency')
+        status['users_display_currency_column'] = await check_column_exists('users', 'display_currency')
+        status['transactions_currency_column'] = await check_column_exists('transactions', 'currency')
+        status['transactions_amount_minor_column'] = await check_column_exists('transactions', 'amount_minor')
+        status['transactions_reporting_currency_column'] = await check_column_exists('transactions', 'reporting_currency')
+        status['transactions_reporting_amount_minor_column'] = await check_column_exists(
+            'transactions', 'reporting_amount_minor'
+        )
+        status['currency_rates_table'] = await check_table_exists('currency_rates')
+        status['subscription_period_prices_table'] = await check_table_exists('subscription_period_prices')
+        status['traffic_package_prices_table'] = await check_table_exists('traffic_package_prices')
+        status['payment_method_currency_limits_table'] = await check_table_exists('payment_method_currency_limits')
 
         async with engine.begin() as conn:
             duplicates_check = await conn.execute(

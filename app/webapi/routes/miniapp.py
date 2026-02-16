@@ -58,6 +58,8 @@ from app.database.models import (
 )
 from app.services.faq_service import FaqService
 from app.services.maintenance_service import maintenance_service
+from app.services.currency_rate_service import currency_rate_service
+from app.services.payment_method_config_service import get_enabled_methods_for_user
 from app.services.payment_service import PaymentService, get_wata_payment_by_link_id
 from app.services.privacy_policy_service import PrivacyPolicyService
 from app.services.promo_offer_service import promo_offer_service
@@ -92,6 +94,7 @@ from app.services.trial_activation_service import (
 )
 from app.services.tribute_service import TributeService
 from app.utils.currency_converter import currency_converter
+from app.utils.money import normalize_currency
 from app.utils.pricing_utils import (
     apply_percentage_discount,
     calculate_prorated_price,
@@ -426,6 +429,42 @@ def _compute_cryptobot_limits(rate: float) -> tuple[int, int]:
     return min_kopeks, max_kopeks
 
 
+def _provider_settlement_currency(method_id: str) -> str:
+    mapping = {
+        'stars': 'RUB',
+        'yookassa': 'RUB',
+        'yookassa_sbp': 'RUB',
+        'mulenpay': 'RUB',
+        'pal24': 'RUB',
+        'wata': 'RUB',
+        'cryptobot': 'RUB',
+        'heleket': 'RUB',
+        'platega': settings.PLATEGA_CURRENCY,
+        'cloudpayments': settings.CLOUDPAYMENTS_CURRENCY,
+        'freekassa': settings.FREEKASSA_CURRENCY,
+        'kassa_ai': settings.KASSA_AI_CURRENCY,
+        'tribute': settings.DEFAULT_BALANCE_CURRENCY,
+    }
+    return normalize_currency(mapping.get(method_id, settings.DEFAULT_BALANCE_CURRENCY))
+
+
+async def _convert_minor_amount(
+    db: AsyncSession,
+    *,
+    amount_minor: int,
+    from_currency: str,
+    to_currency: str,
+) -> int:
+    if normalize_currency(from_currency) == normalize_currency(to_currency):
+        return amount_minor
+    return await currency_rate_service.convert_minor(
+        db,
+        amount_minor=amount_minor,
+        from_currency=from_currency,
+        to_currency=to_currency,
+    )
+
+
 def _current_request_timestamp() -> str:
     return datetime.utcnow().replace(microsecond=0).isoformat()
 
@@ -730,34 +769,76 @@ async def get_payment_methods(
     payload: MiniAppPaymentMethodsRequest,
     db: AsyncSession = Depends(get_db_session),
 ) -> MiniAppPaymentMethodsResponse:
-    _, _ = await _resolve_user_from_init_data(db, payload.init_data)
+    user, _ = await _resolve_user_from_init_data(db, payload.init_data)
+    requested_currency = normalize_currency(getattr(user, 'balance_currency', None) or settings.DEFAULT_BALANCE_CURRENCY)
+
+    has_completed_topup = await db.execute(
+        select(
+            Transaction.id,
+        )
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.type == TransactionType.DEPOSIT.value,
+            Transaction.is_completed.is_(True),
+        )
+        .limit(1)
+    )
+    is_first_topup = has_completed_topup.scalar_one_or_none() is None
+    enabled_methods = await get_enabled_methods_for_user(
+        db,
+        user=user,
+        is_first_topup=is_first_topup,
+        currency=requested_currency,
+    )
+    enabled_by_id = {row['id']: row for row in enabled_methods}
+
+    def _limits(method_id: str, default_min: int | None = None, default_max: int | None = None) -> tuple[int | None, int | None, str]:
+        row = enabled_by_id.get(method_id)
+        if row:
+            return row.get('min_amount_minor', default_min), row.get('max_amount_minor', default_max), row.get(
+                'settlement_currency'
+            ) or _provider_settlement_currency(method_id)
+        return default_min, default_max, _provider_settlement_currency(method_id)
 
     methods: list[MiniAppPaymentMethod] = []
 
-    if settings.TELEGRAM_STARS_ENABLED:
+    if settings.TELEGRAM_STARS_ENABLED and enabled_by_id.get('telegram_stars'):
         stars_min_amount = _compute_stars_min_amount()
+        stars_min, stars_max, stars_settlement = _limits('telegram_stars', stars_min_amount, None)
         methods.append(
             MiniAppPaymentMethod(
                 id='stars',
                 icon='⭐',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=stars_min_amount,
-                amount_step_kopeks=stars_min_amount,
+                currency=requested_currency,
+                min_amount_kopeks=stars_min,
+                max_amount_kopeks=stars_max,
+                min_amount_minor=stars_min,
+                max_amount_minor=stars_max,
+                settlement_currency=stars_settlement,
+                amount_step_kopeks=stars_min,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
             )
         )
 
-    if settings.is_yookassa_enabled():
-        if getattr(settings, 'YOOKASSA_SBP_ENABLED', False):
+    if settings.is_yookassa_enabled() and enabled_by_id.get('yookassa'):
+        yk_min, yk_max, yk_settlement = _limits(
+            'yookassa',
+            settings.YOOKASSA_MIN_AMOUNT_KOPEKS,
+            settings.YOOKASSA_MAX_AMOUNT_KOPEKS,
+        )
+        if getattr(settings, 'YOOKASSA_SBP_ENABLED', False) and enabled_by_id.get('yookassa'):
             methods.append(
                 MiniAppPaymentMethod(
                     id='yookassa_sbp',
                     icon='🏦',
                     requires_amount=True,
-                    currency='RUB',
-                    min_amount_kopeks=settings.YOOKASSA_MIN_AMOUNT_KOPEKS,
-                    max_amount_kopeks=settings.YOOKASSA_MAX_AMOUNT_KOPEKS,
+                    currency=requested_currency,
+                    min_amount_kopeks=yk_min,
+                    max_amount_kopeks=yk_max,
+                    min_amount_minor=yk_min,
+                    max_amount_minor=yk_max,
+                    settlement_currency=yk_settlement,
                     integration_type=MiniAppPaymentIntegrationType.REDIRECT,
                 )
             )
@@ -767,14 +848,22 @@ async def get_payment_methods(
                 id='yookassa',
                 icon='💳',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=settings.YOOKASSA_MIN_AMOUNT_KOPEKS,
-                max_amount_kopeks=settings.YOOKASSA_MAX_AMOUNT_KOPEKS,
+                currency=requested_currency,
+                min_amount_kopeks=yk_min,
+                max_amount_kopeks=yk_max,
+                min_amount_minor=yk_min,
+                max_amount_minor=yk_max,
+                settlement_currency=yk_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
             )
         )
 
-    if settings.is_mulenpay_enabled():
+    if settings.is_mulenpay_enabled() and enabled_by_id.get('mulenpay'):
+        mul_min, mul_max, mul_settlement = _limits(
+            'mulenpay',
+            settings.MULENPAY_MIN_AMOUNT_KOPEKS,
+            settings.MULENPAY_MAX_AMOUNT_KOPEKS,
+        )
         mulenpay_iframe_config = _build_mulenpay_iframe_config()
         mulenpay_integration = (
             MiniAppPaymentIntegrationType.IFRAME if mulenpay_iframe_config else MiniAppPaymentIntegrationType.REDIRECT
@@ -785,23 +874,34 @@ async def get_payment_methods(
                 name=settings.get_mulenpay_display_name(),
                 icon='💳',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=settings.MULENPAY_MIN_AMOUNT_KOPEKS,
-                max_amount_kopeks=settings.MULENPAY_MAX_AMOUNT_KOPEKS,
+                currency=requested_currency,
+                min_amount_kopeks=mul_min,
+                max_amount_kopeks=mul_max,
+                min_amount_minor=mul_min,
+                max_amount_minor=mul_max,
+                settlement_currency=mul_settlement,
                 integration_type=mulenpay_integration,
                 iframe_config=mulenpay_iframe_config,
             )
         )
 
-    if settings.is_pal24_enabled():
+    if settings.is_pal24_enabled() and enabled_by_id.get('pal24'):
+        pal_min, pal_max, pal_settlement = _limits(
+            'pal24',
+            settings.PAL24_MIN_AMOUNT_KOPEKS,
+            settings.PAL24_MAX_AMOUNT_KOPEKS,
+        )
         methods.append(
             MiniAppPaymentMethod(
                 id='pal24',
                 icon='🏦',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=settings.PAL24_MIN_AMOUNT_KOPEKS,
-                max_amount_kopeks=settings.PAL24_MAX_AMOUNT_KOPEKS,
+                currency=requested_currency,
+                min_amount_kopeks=pal_min,
+                max_amount_kopeks=pal_max,
+                min_amount_minor=pal_min,
+                max_amount_minor=pal_max,
+                settlement_currency=pal_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
                 options=[
                     MiniAppPaymentOption(
@@ -824,20 +924,33 @@ async def get_payment_methods(
             )
         )
 
-    if settings.is_wata_enabled():
+    if settings.is_wata_enabled() and enabled_by_id.get('wata'):
+        wata_min, wata_max, wata_settlement = _limits(
+            'wata',
+            settings.WATA_MIN_AMOUNT_KOPEKS,
+            settings.WATA_MAX_AMOUNT_KOPEKS,
+        )
         methods.append(
             MiniAppPaymentMethod(
                 id='wata',
                 icon='🌊',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=settings.WATA_MIN_AMOUNT_KOPEKS,
-                max_amount_kopeks=settings.WATA_MAX_AMOUNT_KOPEKS,
+                currency=requested_currency,
+                min_amount_kopeks=wata_min,
+                max_amount_kopeks=wata_max,
+                min_amount_minor=wata_min,
+                max_amount_minor=wata_max,
+                settlement_currency=wata_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
             )
         )
 
-    if settings.is_platega_enabled() and settings.get_platega_active_methods():
+    if settings.is_platega_enabled() and settings.get_platega_active_methods() and enabled_by_id.get('platega'):
+        pl_min, pl_max, pl_settlement = _limits(
+            'platega',
+            settings.PLATEGA_MIN_AMOUNT_KOPEKS,
+            settings.PLATEGA_MAX_AMOUNT_KOPEKS,
+        )
         platega_methods = settings.get_platega_active_methods()
         definitions = settings.get_platega_method_definitions()
         options: list[MiniAppPaymentOption] = []
@@ -860,75 +973,104 @@ async def get_payment_methods(
                 id='platega',
                 icon='💳',
                 requires_amount=True,
-                currency=settings.PLATEGA_CURRENCY,
-                min_amount_kopeks=settings.PLATEGA_MIN_AMOUNT_KOPEKS,
-                max_amount_kopeks=settings.PLATEGA_MAX_AMOUNT_KOPEKS,
+                currency=requested_currency,
+                min_amount_kopeks=pl_min,
+                max_amount_kopeks=pl_max,
+                min_amount_minor=pl_min,
+                max_amount_minor=pl_max,
+                settlement_currency=pl_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
                 options=options,
             )
         )
 
-    if settings.is_cryptobot_enabled():
+    if settings.is_cryptobot_enabled() and enabled_by_id.get('cryptobot'):
         rate = await _get_usd_to_rub_rate()
         min_amount_kopeks, max_amount_kopeks = _compute_cryptobot_limits(rate)
+        cb_min, cb_max, cb_settlement = _limits('cryptobot', min_amount_kopeks, max_amount_kopeks)
         methods.append(
             MiniAppPaymentMethod(
                 id='cryptobot',
                 icon='🪙',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=min_amount_kopeks,
-                max_amount_kopeks=max_amount_kopeks,
+                currency=requested_currency,
+                min_amount_kopeks=cb_min,
+                max_amount_kopeks=cb_max,
+                min_amount_minor=cb_min,
+                max_amount_minor=cb_max,
+                settlement_currency=cb_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
             )
         )
 
-    if settings.is_heleket_enabled():
+    if settings.is_heleket_enabled() and enabled_by_id.get('heleket'):
+        hk_min, hk_max, hk_settlement = _limits('heleket', 100 * 100, 100_000 * 100)
         methods.append(
             MiniAppPaymentMethod(
                 id='heleket',
                 icon='🪙',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=100 * 100,
-                max_amount_kopeks=100_000 * 100,
+                currency=requested_currency,
+                min_amount_kopeks=hk_min,
+                max_amount_kopeks=hk_max,
+                min_amount_minor=hk_min,
+                max_amount_minor=hk_max,
+                settlement_currency=hk_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
             )
         )
 
-    if settings.is_cloudpayments_enabled():
+    if settings.is_cloudpayments_enabled() and enabled_by_id.get('cloudpayments'):
+        cp_min, cp_max, cp_settlement = _limits(
+            'cloudpayments',
+            settings.CLOUDPAYMENTS_MIN_AMOUNT_KOPEKS,
+            settings.CLOUDPAYMENTS_MAX_AMOUNT_KOPEKS,
+        )
         methods.append(
             MiniAppPaymentMethod(
                 id='cloudpayments',
                 icon='💳',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=settings.CLOUDPAYMENTS_MIN_AMOUNT_KOPEKS,
-                max_amount_kopeks=settings.CLOUDPAYMENTS_MAX_AMOUNT_KOPEKS,
+                currency=requested_currency,
+                min_amount_kopeks=cp_min,
+                max_amount_kopeks=cp_max,
+                min_amount_minor=cp_min,
+                max_amount_minor=cp_max,
+                settlement_currency=cp_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
             )
         )
 
-    if settings.is_freekassa_enabled():
+    if settings.is_freekassa_enabled() and enabled_by_id.get('freekassa'):
+        fk_min, fk_max, fk_settlement = _limits(
+            'freekassa',
+            settings.FREEKASSA_MIN_AMOUNT_KOPEKS,
+            settings.FREEKASSA_MAX_AMOUNT_KOPEKS,
+        )
         methods.append(
             MiniAppPaymentMethod(
                 id='freekassa',
                 icon='💳',
                 requires_amount=True,
-                currency='RUB',
-                min_amount_kopeks=settings.FREEKASSA_MIN_AMOUNT_KOPEKS,
-                max_amount_kopeks=settings.FREEKASSA_MAX_AMOUNT_KOPEKS,
+                currency=requested_currency,
+                min_amount_kopeks=fk_min,
+                max_amount_kopeks=fk_max,
+                min_amount_minor=fk_min,
+                max_amount_minor=fk_max,
+                settlement_currency=fk_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
             )
         )
 
-    if settings.TRIBUTE_ENABLED:
+    if settings.TRIBUTE_ENABLED and enabled_by_id.get('tribute'):
+        _, _, tribute_settlement = _limits('tribute', None, None)
         methods.append(
             MiniAppPaymentMethod(
                 id='tribute',
                 icon='💎',
                 requires_amount=False,
-                currency='RUB',
+                currency=requested_currency,
+                settlement_currency=tribute_settlement,
                 integration_type=MiniAppPaymentIntegrationType.REDIRECT,
             )
         )
@@ -969,10 +1111,31 @@ async def create_payment_link(
             detail='Payment method is required',
         )
 
-    amount_kopeks = _normalize_amount_kopeks(
+    requested_currency = normalize_currency(payload.currency or getattr(user, 'balance_currency', None) or 'RUB')
+    requested_amount_minor = _normalize_amount_kopeks(
         payload.amount_rubles,
-        payload.amount_kopeks,
+        payload.amount_minor if payload.amount_minor is not None else payload.amount_kopeks,
     )
+    settlement_currency = _provider_settlement_currency(method)
+    if not PaymentService.supports_settlement_currency(method, settlement_currency):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f'Payment method does not support settlement currency {settlement_currency}',
+        )
+    amount_kopeks = requested_amount_minor
+    if amount_kopeks is not None:
+        try:
+            amount_kopeks = await _convert_minor_amount(
+                db,
+                amount_minor=amount_kopeks,
+                from_currency=requested_currency,
+                to_currency=settlement_currency,
+            )
+        except Exception as conversion_error:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f'Currency conversion unavailable for {requested_currency}->{settlement_currency}: {conversion_error}',
+            ) from conversion_error
 
     if method == 'stars':
         if not settings.TELEGRAM_STARS_ENABLED:
@@ -1279,12 +1442,12 @@ async def create_payment_link(
         if amount_kopeks < min_amount_kopeks:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f'Amount is below minimum ({min_amount_kopeks / 100:.2f} RUB)',
+                detail=f'Amount is below minimum ({settings.format_price(min_amount_kopeks, currency=settlement_currency)})',
             )
         if amount_kopeks > max_amount_kopeks:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f'Amount exceeds maximum ({max_amount_kopeks / 100:.2f} RUB)',
+                detail=f'Amount exceeds maximum ({settings.format_price(max_amount_kopeks, currency=settlement_currency)})',
             )
 
         try:
@@ -1342,12 +1505,12 @@ async def create_payment_link(
         if amount_kopeks < min_amount_kopeks:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f'Amount is below minimum ({min_amount_kopeks / 100:.2f} RUB)',
+                detail=f'Amount is below minimum ({settings.format_price(min_amount_kopeks, currency=settlement_currency)})',
             )
         if amount_kopeks > max_amount_kopeks:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f'Amount exceeds maximum ({max_amount_kopeks / 100:.2f} RUB)',
+                detail=f'Amount exceeds maximum ({settings.format_price(max_amount_kopeks, currency=settlement_currency)})',
             )
 
         payment_service = PaymentService()
@@ -1387,12 +1550,18 @@ async def create_payment_link(
         if amount_kopeks < settings.CLOUDPAYMENTS_MIN_AMOUNT_KOPEKS:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f'Amount is below minimum ({settings.CLOUDPAYMENTS_MIN_AMOUNT_KOPEKS / 100:.2f} RUB)',
+                detail=(
+                    'Amount is below minimum '
+                    f"({settings.format_price(settings.CLOUDPAYMENTS_MIN_AMOUNT_KOPEKS, currency=settlement_currency)})"
+                ),
             )
         if amount_kopeks > settings.CLOUDPAYMENTS_MAX_AMOUNT_KOPEKS:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f'Amount exceeds maximum ({settings.CLOUDPAYMENTS_MAX_AMOUNT_KOPEKS / 100:.2f} RUB)',
+                detail=(
+                    'Amount exceeds maximum '
+                    f"({settings.format_price(settings.CLOUDPAYMENTS_MAX_AMOUNT_KOPEKS, currency=settlement_currency)})"
+                ),
             )
 
         payment_service = PaymentService()
@@ -1428,12 +1597,18 @@ async def create_payment_link(
         if amount_kopeks < settings.FREEKASSA_MIN_AMOUNT_KOPEKS:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f'Amount is below minimum ({settings.FREEKASSA_MIN_AMOUNT_KOPEKS / 100:.2f} RUB)',
+                detail=(
+                    'Amount is below minimum '
+                    f"({settings.format_price(settings.FREEKASSA_MIN_AMOUNT_KOPEKS, currency=settlement_currency)})"
+                ),
             )
         if amount_kopeks > settings.FREEKASSA_MAX_AMOUNT_KOPEKS:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=f'Amount exceeds maximum ({settings.FREEKASSA_MAX_AMOUNT_KOPEKS / 100:.2f} RUB)',
+                detail=(
+                    'Amount exceeds maximum '
+                    f"({settings.format_price(settings.FREEKASSA_MAX_AMOUNT_KOPEKS, currency=settlement_currency)})"
+                ),
             )
 
         payment_service = PaymentService()
@@ -2264,7 +2439,7 @@ async def _resolve_stars_payment_status(
         status='paid',
         is_paid=True,
         amount_kopeks=transaction.amount_kopeks,
-        currency='RUB',
+        currency=(transaction.currency or getattr(user, 'balance_currency', None) or settings.DEFAULT_BALANCE_CURRENCY),
         completed_at=transaction.completed_at or transaction.created_at,
         transaction_id=transaction.id,
         external_id=transaction.external_id,
@@ -2307,7 +2482,7 @@ async def _resolve_tribute_payment_status(
         status='paid',
         is_paid=True,
         amount_kopeks=transaction.amount_kopeks,
-        currency='RUB',
+        currency=(transaction.currency or getattr(user, 'balance_currency', None) or settings.DEFAULT_BALANCE_CURRENCY),
         completed_at=transaction.completed_at or transaction.created_at,
         transaction_id=transaction.id,
         external_id=transaction.external_id,
@@ -5525,13 +5700,14 @@ async def submit_subscription_renewal_endpoint(
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='Payment method is unavailable')
 
         rate = await _get_usd_to_rub_rate()
+        settlement_currency = _provider_settlement_currency('cryptobot')
         min_amount_kopeks, max_amount_kopeks = _compute_cryptobot_limits(rate)
         if missing_amount < min_amount_kopeks:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 detail={
                     'code': 'amount_below_minimum',
-                    'message': f'Amount is below minimum ({min_amount_kopeks / 100:.2f} RUB)',
+                    'message': f'Amount is below minimum ({settings.format_price(min_amount_kopeks, currency=settlement_currency)})',
                 },
             )
         if missing_amount > max_amount_kopeks:
@@ -5539,7 +5715,7 @@ async def submit_subscription_renewal_endpoint(
                 status.HTTP_400_BAD_REQUEST,
                 detail={
                     'code': 'amount_above_maximum',
-                    'message': f'Amount exceeds maximum ({max_amount_kopeks / 100:.2f} RUB)',
+                    'message': f'Amount exceeds maximum ({settings.format_price(max_amount_kopeks, currency=settlement_currency)})',
                 },
             )
 

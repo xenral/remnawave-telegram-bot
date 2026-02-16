@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.database.models import PaymentMethodConfig, PromoGroup
+from app.database.models import PaymentMethodConfig, PaymentMethodCurrencyLimit, PromoGroup
+from app.utils.money import normalize_currency
 
 
 logger = logging.getLogger(__name__)
@@ -243,12 +244,21 @@ async def ensure_payment_method_configs(db: AsyncSession) -> None:
 
 async def get_all_configs(db: AsyncSession) -> list[PaymentMethodConfig]:
     """Get all payment method configs ordered by sort_order."""
-    result = await db.execute(
-        select(PaymentMethodConfig)
-        .options(selectinload(PaymentMethodConfig.allowed_promo_groups))
-        .order_by(PaymentMethodConfig.sort_order)
-    )
-    return list(result.scalars().all())
+    async def _fetch() -> list[PaymentMethodConfig]:
+        result = await db.execute(
+            select(PaymentMethodConfig)
+            .options(selectinload(PaymentMethodConfig.allowed_promo_groups))
+            .options(selectinload(PaymentMethodConfig.currency_limits))
+            .order_by(PaymentMethodConfig.sort_order)
+        )
+        return list(result.scalars().all())
+
+    rows = await _fetch()
+    if rows:
+        return rows
+
+    await ensure_payment_method_configs(db)
+    return await _fetch()
 
 
 async def get_config_by_method_id(db: AsyncSession, method_id: str) -> PaymentMethodConfig | None:
@@ -256,6 +266,7 @@ async def get_config_by_method_id(db: AsyncSession, method_id: str) -> PaymentMe
     result = await db.execute(
         select(PaymentMethodConfig)
         .options(selectinload(PaymentMethodConfig.allowed_promo_groups))
+        .options(selectinload(PaymentMethodConfig.currency_limits))
         .where(PaymentMethodConfig.method_id == method_id)
     )
     return result.scalar_one_or_none()
@@ -325,6 +336,7 @@ async def get_enabled_methods_for_user(
     db: AsyncSession,
     user: 'User | None' = None,
     is_first_topup: bool | None = None,
+    currency: str | None = None,
 ) -> list[dict]:
     """Get payment methods available for a specific user.
 
@@ -347,6 +359,7 @@ async def get_enabled_methods_for_user(
     for config in configs:
         method_id = config.method_id
         method_def = defaults.get(method_id, {})
+        requested_currency = normalize_currency(currency or getattr(user, 'balance_currency', None) or 'RUB')
 
         # Skip if not enabled in admin panel
         if not config.is_enabled:
@@ -396,6 +409,18 @@ async def get_enabled_methods_for_user(
             if config.max_amount_kopeks is not None
             else method_def.get('default_max', 10000000)
         )
+        settlement_currency = None
+
+        # Currency-specific overrides
+        matched_limit = next((item for item in config.currency_limits if item.currency == requested_currency), None)
+        if matched_limit:
+            if not matched_limit.is_enabled:
+                continue
+            if matched_limit.min_amount_minor is not None:
+                min_amount = matched_limit.min_amount_minor
+            if matched_limit.max_amount_minor is not None:
+                max_amount = matched_limit.max_amount_minor
+            settlement_currency = matched_limit.settlement_currency
 
         # Build options (filter by sub_options config)
         options = None
@@ -415,9 +440,72 @@ async def get_enabled_methods_for_user(
                 'name': display_name,
                 'min_amount_kopeks': min_amount,
                 'max_amount_kopeks': max_amount,
+                'min_amount_minor': min_amount,
+                'max_amount_minor': max_amount,
+                'currency': requested_currency,
+                'settlement_currency': settlement_currency,
                 'options': options,
                 'sort_order': config.sort_order,
             }
         )
 
     return result
+
+
+async def upsert_currency_limit(
+    db: AsyncSession,
+    *,
+    method_id: str,
+    currency: str,
+    is_enabled: bool = True,
+    min_amount_minor: int | None = None,
+    max_amount_minor: int | None = None,
+    settlement_currency: str | None = None,
+) -> PaymentMethodCurrencyLimit | None:
+    config = await get_config_by_method_id(db, method_id)
+    if not config:
+        return None
+
+    normalized_currency = normalize_currency(currency)
+    existing = next((item for item in config.currency_limits if item.currency == normalized_currency), None)
+    if existing:
+        existing.is_enabled = is_enabled
+        existing.min_amount_minor = min_amount_minor
+        existing.max_amount_minor = max_amount_minor
+        existing.settlement_currency = normalize_currency(settlement_currency) if settlement_currency else None
+        await db.commit()
+        await db.refresh(existing)
+        return existing
+
+    row = PaymentMethodCurrencyLimit(
+        payment_method_config_id=config.id,
+        currency=normalized_currency,
+        is_enabled=is_enabled,
+        min_amount_minor=min_amount_minor,
+        max_amount_minor=max_amount_minor,
+        settlement_currency=normalize_currency(settlement_currency) if settlement_currency else None,
+    )
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
+async def delete_currency_limit(
+    db: AsyncSession,
+    *,
+    method_id: str,
+    currency: str,
+) -> bool:
+    config = await get_config_by_method_id(db, method_id)
+    if not config:
+        return False
+
+    normalized_currency = normalize_currency(currency)
+    target = next((item for item in config.currency_limits if item.currency == normalized_currency), None)
+    if not target:
+        return False
+
+    await db.delete(target)
+    await db.commit()
+    return True

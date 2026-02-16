@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database.crud.user import get_user_by_id
 from app.database.models import PaymentMethod, Transaction, User
+from app.services.currency_rate_service import currency_rate_service
 from app.services.payment_method_config_service import get_enabled_methods_for_user
 from app.services.payment_service import PaymentService
 from app.services.payment_verification_service import (
@@ -24,6 +25,7 @@ from app.services.payment_verification_service import (
     run_manual_check,
 )
 from app.utils.currency_converter import currency_converter
+from app.utils.money import normalize_currency
 
 from ..dependencies import get_cabinet_db, get_current_cabinet_user
 from ..schemas.balance import (
@@ -46,6 +48,41 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/balance', tags=['Cabinet Balance'])
 
 
+def _provider_settlement_currency(method_id: str) -> str:
+    mapping = {
+        'yookassa': 'RUB',
+        'cryptobot': 'RUB',
+        'heleket': 'RUB',
+        'mulenpay': 'RUB',
+        'pal24': 'RUB',
+        'wata': 'RUB',
+        'platega': settings.PLATEGA_CURRENCY,
+        'cloudpayments': settings.CLOUDPAYMENTS_CURRENCY,
+        'freekassa': settings.FREEKASSA_CURRENCY,
+        'kassa_ai': settings.KASSA_AI_CURRENCY,
+        'tribute': settings.DEFAULT_BALANCE_CURRENCY,
+        'telegram_stars': 'RUB',
+    }
+    return normalize_currency(mapping.get(method_id, settings.DEFAULT_BALANCE_CURRENCY))
+
+
+async def _convert_minor_amount(
+    db: AsyncSession,
+    *,
+    amount_minor: int,
+    from_currency: str,
+    to_currency: str,
+) -> int:
+    if normalize_currency(from_currency) == normalize_currency(to_currency):
+        return amount_minor
+    return await currency_rate_service.convert_minor(
+        db,
+        amount_minor=amount_minor,
+        from_currency=from_currency,
+        to_currency=to_currency,
+    )
+
+
 @router.get('', response_model=BalanceResponse)
 async def get_balance(
     user: User = Depends(get_current_cabinet_user),
@@ -61,6 +98,14 @@ async def get_balance(
     return BalanceResponse(
         balance_kopeks=fresh_user.balance_kopeks,
         balance_rubles=fresh_user.balance_kopeks / 100,
+        balance_minor=fresh_user.balance_kopeks,
+        balance_currency=(fresh_user.balance_currency or settings.DEFAULT_BALANCE_CURRENCY).upper(),
+        display_currency=(fresh_user.display_currency or None),
+        balance_display=settings.format_price(
+            fresh_user.balance_kopeks,
+            currency=(fresh_user.balance_currency or settings.DEFAULT_BALANCE_CURRENCY),
+            display_currency=fresh_user.display_currency,
+        ),
     )
 
 
@@ -109,6 +154,13 @@ async def get_transactions(
                 type=t.type,
                 amount_kopeks=amount_kopeks,
                 amount_rubles=amount_kopeks / 100,
+                amount_minor=amount_kopeks,
+                currency=(t.currency or settings.DEFAULT_BALANCE_CURRENCY).upper(),
+                amount_display=settings.format_price(
+                    amount_kopeks,
+                    currency=t.currency or settings.DEFAULT_BALANCE_CURRENCY,
+                    display_currency=getattr(user, 'display_currency', None),
+                ),
                 description=t.description,
                 payment_method=t.payment_method,
                 is_completed=t.is_completed,
@@ -130,6 +182,7 @@ async def get_transactions(
 
 @router.get('/payment-methods', response_model=list[PaymentMethodResponse])
 async def get_payment_methods(
+    currency: str | None = Query(None, description='Preferred user currency'),
     user: User = Depends(get_current_cabinet_user),
     db: AsyncSession = Depends(get_cabinet_db),
 ):
@@ -158,7 +211,15 @@ async def get_payment_methods(
     is_first_topup = not has_completed_topup.scalar()
 
     # Get enabled methods from database config
-    enabled_methods = await get_enabled_methods_for_user(db, user=user, is_first_topup=is_first_topup)
+    requested_currency = normalize_currency(
+        currency or getattr(user, 'balance_currency', None) or settings.DEFAULT_BALANCE_CURRENCY
+    )
+    enabled_methods = await get_enabled_methods_for_user(
+        db,
+        user=user,
+        is_first_topup=is_first_topup,
+        currency=requested_currency,
+    )
 
     # Build response with additional options formatting
     methods = []
@@ -204,6 +265,10 @@ async def get_payment_methods(
                 description=None,
                 min_amount_kopeks=method_data['min_amount_kopeks'],
                 max_amount_kopeks=method_data['max_amount_kopeks'],
+                min_amount_minor=method_data.get('min_amount_minor'),
+                max_amount_minor=method_data.get('max_amount_minor'),
+                currency=method_data.get('currency', requested_currency),
+                settlement_currency=method_data.get('settlement_currency'),
                 is_available=True,
                 options=options,
             )
@@ -228,17 +293,19 @@ async def create_stars_invoice(
             detail='Telegram Stars payments are not enabled',
         )
 
+    settlement_currency = _provider_settlement_currency('telegram_stars')
+
     # Validate amount
     if request.amount_kopeks < 100:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Minimum amount is 1.00 RUB',
+            detail=f"Minimum amount is {settings.format_price(100, currency=settlement_currency)}",
         )
 
     if request.amount_kopeks > 1000000:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Maximum amount is 10,000.00 RUB',
+            detail=f"Maximum amount is {settings.format_price(1000000, currency=settlement_currency)}",
         )
 
     # Calculate Stars amount
@@ -312,8 +379,10 @@ async def create_topup(
     db: AsyncSession = Depends(get_cabinet_db),
 ):
     """Create payment for balance top-up."""
+    requested_currency = normalize_currency(request.currency or user.balance_currency or settings.DEFAULT_BALANCE_CURRENCY)
+
     # Validate payment method
-    methods = await get_payment_methods(user=user, db=db)
+    methods = await get_payment_methods(currency=requested_currency, user=user, db=db)
     method = next((m for m in methods if m.id == request.payment_method), None)
 
     if not method or not method.is_available:
@@ -322,20 +391,47 @@ async def create_topup(
             detail='Invalid or unavailable payment method',
         )
 
+    source_amount = request.amount_minor if request.amount_minor is not None else request.amount_kopeks
+    if source_amount is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='amount_minor or amount_kopeks is required')
+    requested_amount_minor = int(source_amount)
+
+    if requested_amount_minor <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Amount must be positive')
+
     # Validate amount
-    if request.amount_kopeks < method.min_amount_kopeks:
+    if requested_amount_minor < method.min_amount_kopeks:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f'Minimum amount is {method.min_amount_kopeks / 100:.2f} RUB',
+            detail=f"Minimum amount is {settings.format_price(method.min_amount_kopeks, currency=requested_currency)}",
         )
 
-    if request.amount_kopeks > method.max_amount_kopeks:
+    if requested_amount_minor > method.max_amount_kopeks:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f'Maximum amount is {method.max_amount_kopeks / 100:.2f} RUB',
+            detail=f"Maximum amount is {settings.format_price(method.max_amount_kopeks, currency=requested_currency)}",
         )
 
-    amount_rubles = request.amount_kopeks / 100
+    settlement_currency = normalize_currency(method.settlement_currency or _provider_settlement_currency(request.payment_method))
+    if not PaymentService.supports_settlement_currency(request.payment_method, settlement_currency):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Payment method does not support settlement currency {settlement_currency}',
+        )
+    try:
+        settlement_amount_minor = await _convert_minor_amount(
+            db,
+            amount_minor=requested_amount_minor,
+            from_currency=requested_currency,
+            to_currency=settlement_currency,
+        )
+    except Exception as conversion_error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Currency conversion unavailable for {requested_currency}->{settlement_currency}: {conversion_error}',
+        )
+
+    amount_rubles = settlement_amount_minor / 100
     payment_url = None
     payment_id = None
 
@@ -353,13 +449,14 @@ async def create_topup(
             option = (request.payment_option or '').strip().lower()
             # Use description with telegram_id for tax receipts
             description = settings.get_balance_payment_description(
-                request.amount_kopeks, telegram_user_id=user.telegram_id
+                settlement_amount_minor,
+                telegram_user_id=user.telegram_id,
             )
             if option == 'sbp':
                 result = await payment_service.create_yookassa_sbp_payment(
                     db=db,
                     user_id=user.id,
-                    amount_kopeks=request.amount_kopeks,
+                    amount_kopeks=settlement_amount_minor,
                     description=description,
                     metadata=yookassa_metadata,
                 )
@@ -367,7 +464,7 @@ async def create_topup(
                 result = await payment_service.create_yookassa_payment(
                     db=db,
                     user_id=user.id,
-                    amount_kopeks=request.amount_kopeks,
+                    amount_kopeks=settlement_amount_minor,
                     description=description,
                     metadata=yookassa_metadata,
                 )
@@ -397,7 +494,7 @@ async def create_topup(
 
             try:
                 amount_usd = float(
-                    (Decimal(request.amount_kopeks) / Decimal(100) / Decimal(str(rate))).quantize(
+                    (Decimal(settlement_amount_minor) / Decimal(100) / Decimal(str(rate))).quantize(
                         Decimal('0.01'), rounding=ROUND_HALF_UP
                     )
                 )
@@ -414,9 +511,10 @@ async def create_topup(
                 amount_usd=amount_usd,
                 asset=settings.CRYPTOBOT_DEFAULT_ASSET,
                 description=settings.get_balance_payment_description(
-                    request.amount_kopeks, telegram_user_id=user.telegram_id
+                    settlement_amount_minor,
+                    telegram_user_id=user.telegram_id,
                 ),
-                payload=f'cabinet_topup_{user.id}_{request.amount_kopeks}',
+                payload=f'cabinet_topup_{user.id}_{settlement_amount_minor}',
             )
             if result:
                 payment_url = (
@@ -473,9 +571,10 @@ async def create_topup(
             result = await payment_service.create_platega_payment(
                 db=db,
                 user_id=user.id,
-                amount_kopeks=request.amount_kopeks,
+                amount_kopeks=settlement_amount_minor,
                 description=settings.get_balance_payment_description(
-                    request.amount_kopeks, telegram_user_id=user.telegram_id
+                    settlement_amount_minor,
+                    telegram_user_id=user.telegram_id,
                 ),
                 language=getattr(user, 'language', None) or settings.DEFAULT_LANGUAGE,
                 payment_method_code=method_code,
@@ -501,8 +600,8 @@ async def create_topup(
             result = await payment_service.create_heleket_payment(
                 db=db,
                 user_id=user.id,
-                amount_kopeks=request.amount_kopeks,
-                description=settings.get_balance_payment_description(request.amount_kopeks),
+                amount_kopeks=settlement_amount_minor,
+                description=settings.get_balance_payment_description(settlement_amount_minor),
                 language=getattr(user, 'language', None) or settings.DEFAULT_LANGUAGE,
             )
 
@@ -526,8 +625,8 @@ async def create_topup(
             result = await payment_service.create_mulenpay_payment(
                 db=db,
                 user_id=user.id,
-                amount_kopeks=request.amount_kopeks,
-                description=settings.get_balance_payment_description(request.amount_kopeks),
+                amount_kopeks=settlement_amount_minor,
+                description=settings.get_balance_payment_description(settlement_amount_minor),
                 language=getattr(user, 'language', None) or settings.DEFAULT_LANGUAGE,
             )
 
@@ -557,8 +656,8 @@ async def create_topup(
             result = await payment_service.create_pal24_payment(
                 db=db,
                 user_id=user.id,
-                amount_kopeks=request.amount_kopeks,
-                description=settings.get_balance_payment_description(request.amount_kopeks),
+                amount_kopeks=settlement_amount_minor,
+                description=settings.get_balance_payment_description(settlement_amount_minor),
                 language=getattr(user, 'language', None) or settings.DEFAULT_LANGUAGE,
                 payment_method=provider_method,
             )
@@ -598,8 +697,8 @@ async def create_topup(
             result = await payment_service.create_wata_payment(
                 db=db,
                 user_id=user.id,
-                amount_kopeks=request.amount_kopeks,
-                description=settings.get_balance_payment_description(request.amount_kopeks),
+                amount_kopeks=settlement_amount_minor,
+                description=settings.get_balance_payment_description(settlement_amount_minor),
                 language=getattr(user, 'language', None) or settings.DEFAULT_LANGUAGE,
             )
 
@@ -623,8 +722,8 @@ async def create_topup(
             result = await payment_service.create_cloudpayments_payment(
                 db=db,
                 user_id=user.id,
-                amount_kopeks=request.amount_kopeks,
-                description=settings.get_balance_payment_description(request.amount_kopeks),
+                amount_kopeks=settlement_amount_minor,
+                description=settings.get_balance_payment_description(settlement_amount_minor),
                 telegram_id=user.telegram_id,
                 language=getattr(user, 'language', None) or settings.DEFAULT_LANGUAGE,
             )
@@ -649,8 +748,8 @@ async def create_topup(
             result = await payment_service.create_freekassa_payment(
                 db=db,
                 user_id=user.id,
-                amount_kopeks=request.amount_kopeks,
-                description=settings.get_balance_payment_description(request.amount_kopeks),
+                amount_kopeks=settlement_amount_minor,
+                description=settings.get_balance_payment_description(settlement_amount_minor),
                 language=getattr(user, 'language', None) or settings.DEFAULT_LANGUAGE,
             )
 
@@ -674,8 +773,8 @@ async def create_topup(
             result = await payment_service.create_kassa_ai_payment(
                 db=db,
                 user_id=user.id,
-                amount_kopeks=request.amount_kopeks,
-                description=settings.get_balance_payment_description(request.amount_kopeks),
+                amount_kopeks=settlement_amount_minor,
+                description=settings.get_balance_payment_description(settlement_amount_minor),
                 email=getattr(user, 'email', None),
                 language=getattr(user, 'language', None) or settings.DEFAULT_LANGUAGE,
             )
@@ -698,7 +797,7 @@ async def create_topup(
 
             user_identifier = user.telegram_id or user.id
             payment_url = f'{settings.TRIBUTE_DONATE_LINK}&user_id={user_identifier}'
-            payment_id = f'tribute_{user_identifier}_{request.amount_kopeks}'
+            payment_id = f'tribute_{user_identifier}_{settlement_amount_minor}'
 
         else:
             # For other payment methods, redirect to bot
@@ -725,8 +824,17 @@ async def create_topup(
     return TopUpResponse(
         payment_id=payment_id or 'pending',
         payment_url=payment_url,
-        amount_kopeks=request.amount_kopeks,
+        amount_kopeks=requested_amount_minor,
         amount_rubles=amount_rubles,
+        amount_minor=requested_amount_minor,
+        currency=requested_currency,
+        settlement_amount_minor=settlement_amount_minor,
+        settlement_currency=settlement_currency,
+        amount_display=settings.format_price(
+            requested_amount_minor,
+            currency=requested_currency,
+            display_currency=getattr(user, 'display_currency', None),
+        ),
         status='pending',
         expires_at=None,
     )

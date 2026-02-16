@@ -972,6 +972,8 @@ class User(Base):
     status = Column(String(20), default=UserStatus.ACTIVE.value)
     language = Column(String(5), default='ru')
     balance_kopeks = Column(Integer, default=0)
+    balance_currency = Column(String(16), nullable=False, default='RUB')
+    display_currency = Column(String(16), nullable=True)
     used_promocodes = Column(Integer, default=0)
     has_had_paid_subscription = Column(Boolean, default=False, nullable=False)
     referred_by_id = Column(Integer, ForeignKey('users.id'), nullable=True)
@@ -1041,6 +1043,11 @@ class User(Base):
         return self.balance_kopeks / 100
 
     @property
+    def balance_minor(self) -> int:
+        """Canonical balance value in minor units."""
+        return int(self.balance_kopeks or 0)
+
+    @property
     def full_name(self) -> str:
         """Полное имя пользователя с поддержкой email-only юзеров."""
         parts = [self.first_name, self.last_name]
@@ -1094,12 +1101,16 @@ class User(Base):
             return 0
         return primary_group.get_discount_percent(category, period_days)
 
-    def add_balance(self, kopeks: int) -> None:
-        self.balance_kopeks += kopeks
+    def add_balance(self, amount_minor: int, currency: str | None = None) -> None:
+        if currency and self.balance_currency and currency.upper() != self.balance_currency.upper():
+            raise ValueError(f'Balance currency mismatch: expected {self.balance_currency}, got {currency}')
+        self.balance_kopeks += amount_minor
 
-    def subtract_balance(self, kopeks: int) -> bool:
-        if self.balance_kopeks >= kopeks:
-            self.balance_kopeks -= kopeks
+    def subtract_balance(self, amount_minor: int, currency: str | None = None) -> bool:
+        if currency and self.balance_currency and currency.upper() != self.balance_currency.upper():
+            raise ValueError(f'Balance currency mismatch: expected {self.balance_currency}, got {currency}')
+        if self.balance_kopeks >= amount_minor:
+            self.balance_kopeks -= amount_minor
             return True
         return False
 
@@ -1337,12 +1348,20 @@ class TrafficPurchase(Base):
 
 class Transaction(Base):
     __tablename__ = 'transactions'
+    __table_args__ = (
+        Index('ix_transactions_currency_created_at', 'currency', 'created_at'),
+        Index('ix_transactions_reporting_currency_created_at', 'reporting_currency', 'created_at'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
     type = Column(String(50), nullable=False)
     amount_kopeks = Column(Integer, nullable=False)
+    amount_minor = Column(Integer, nullable=True)
+    currency = Column(String(16), nullable=False, default='RUB')
+    reporting_currency = Column(String(16), nullable=False, default='RUB')
+    reporting_amount_minor = Column(Integer, nullable=True)
     description = Column(Text, nullable=True)
 
     payment_method = Column(String(50), nullable=True)
@@ -1362,6 +1381,10 @@ class Transaction(Base):
     @property
     def amount_rubles(self) -> float:
         return self.amount_kopeks / 100
+
+    @property
+    def amount_minor_value(self) -> int:
+        return int(self.amount_minor if self.amount_minor is not None else self.amount_kopeks or 0)
 
 
 class SubscriptionConversion(Base):
@@ -2728,9 +2751,127 @@ class PaymentMethodConfig(Base):
         secondary=payment_method_promo_groups,
         lazy='selectin',
     )
+    currency_limits = relationship(
+        'PaymentMethodCurrencyLimit',
+        back_populates='payment_method_config',
+        cascade='all, delete-orphan',
+        lazy='selectin',
+    )
 
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     def __repr__(self) -> str:
         return f"<PaymentMethodConfig method_id='{self.method_id}' order={self.sort_order} enabled={self.is_enabled}>"
+
+
+class PaymentMethodCurrencyLimit(Base):
+    """Currency-specific overrides for payment method limits and settlement currency."""
+
+    __tablename__ = 'payment_method_currency_limits'
+    __table_args__ = (
+        UniqueConstraint(
+            'payment_method_config_id',
+            'currency',
+            name='uq_payment_method_currency_limits_method_currency',
+        ),
+        Index('ix_payment_method_currency_limits_currency', 'currency'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    payment_method_config_id = Column(
+        Integer,
+        ForeignKey('payment_method_configs.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    currency = Column(String(16), nullable=False)
+    is_enabled = Column(Boolean, nullable=False, default=True)
+    min_amount_minor = Column(Integer, nullable=True)
+    max_amount_minor = Column(Integer, nullable=True)
+    settlement_currency = Column(String(16), nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    payment_method_config = relationship('PaymentMethodConfig', back_populates='currency_limits')
+
+    def __repr__(self) -> str:
+        return (
+            f"<PaymentMethodCurrencyLimit(method_id={self.payment_method_config_id}, "
+            f"currency='{self.currency}', enabled={self.is_enabled})>"
+        )
+
+
+class CurrencyRate(Base):
+    """Admin-managed currency conversion rate (from -> to)."""
+
+    __tablename__ = 'currency_rates'
+    __table_args__ = (
+        UniqueConstraint('from_currency', 'to_currency', name='uq_currency_rates_pair'),
+        Index('ix_currency_rates_from_to', 'from_currency', 'to_currency'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    from_currency = Column(String(16), nullable=False)
+    to_currency = Column(String(16), nullable=False)
+    rate = Column(Float, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    updated_by_user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    updated_by = relationship('User', foreign_keys=[updated_by_user_id])
+
+    def __repr__(self) -> str:
+        return (
+            f"<CurrencyRate(from='{self.from_currency}', to='{self.to_currency}', "
+            f"rate={self.rate}, active={self.is_active})>"
+        )
+
+
+class SubscriptionPeriodPrice(Base):
+    """Per-currency price for subscription period."""
+
+    __tablename__ = 'subscription_period_prices'
+    __table_args__ = (
+        UniqueConstraint('period_days', 'currency', name='uq_subscription_period_prices_period_currency'),
+        Index('ix_subscription_period_prices_currency', 'currency'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    period_days = Column(Integer, nullable=False, index=True)
+    currency = Column(String(16), nullable=False)
+    amount_minor = Column(Integer, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    def __repr__(self) -> str:
+        return (
+            f"<SubscriptionPeriodPrice(days={self.period_days}, currency='{self.currency}', "
+            f"amount_minor={self.amount_minor})>"
+        )
+
+
+class TrafficPackagePrice(Base):
+    """Per-currency price for traffic package size (GB)."""
+
+    __tablename__ = 'traffic_package_prices'
+    __table_args__ = (
+        UniqueConstraint('package_gb', 'currency', name='uq_traffic_package_prices_gb_currency'),
+        Index('ix_traffic_package_prices_currency', 'currency'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    package_gb = Column(Integer, nullable=False, index=True)
+    currency = Column(String(16), nullable=False)
+    amount_minor = Column(Integer, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    def __repr__(self) -> str:
+        return (
+            f"<TrafficPackagePrice(gb={self.package_gb}, currency='{self.currency}', "
+            f"amount_minor={self.amount_minor})>"
+        )

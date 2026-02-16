@@ -1440,7 +1440,11 @@ class BackupService:
             'faq_settings',
             'privacy_policies',
             'public_offers',
+            'payment_method_currency_limits',
             'payment_method_configs',
+            'currency_rates',
+            'subscription_period_prices',
+            'traffic_package_prices',
             # --- Original tables (preserved order) ---
             'support_audit_logs',
             'ticket_messages',

@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.models import User
 from app.services.payment_method_config_service import (
     _get_method_defaults,
+    delete_currency_limit,
     get_all_configs,
     get_all_promo_groups,
     get_config_by_method_id,
+    upsert_currency_limit,
     update_config,
     update_sort_order,
 )
@@ -49,6 +51,7 @@ class PaymentMethodConfigResponse(BaseModel):
     first_topup_filter: str
     promo_group_filter_mode: str
     allowed_promo_group_ids: list[int] = Field(default_factory=list)
+    currency_limits: list[dict] = Field(default_factory=list)
     is_provider_configured: bool
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -85,6 +88,21 @@ class PromoGroupSimple(BaseModel):
         from_attributes = True
 
 
+class PaymentMethodCurrencyLimitRequest(BaseModel):
+    is_enabled: bool = True
+    min_amount_minor: int | None = Field(default=None, ge=0)
+    max_amount_minor: int | None = Field(default=None, ge=0)
+    settlement_currency: str | None = None
+
+
+class PaymentMethodCurrencyLimitResponse(BaseModel):
+    currency: str
+    is_enabled: bool
+    min_amount_minor: int | None = None
+    max_amount_minor: int | None = None
+    settlement_currency: str | None = None
+
+
 # ============ Helpers ============
 
 
@@ -113,6 +131,16 @@ def _enrich_config(config, defaults: dict) -> PaymentMethodConfigResponse:
         first_topup_filter=config.first_topup_filter,
         promo_group_filter_mode=config.promo_group_filter_mode,
         allowed_promo_group_ids=[pg.id for pg in config.allowed_promo_groups],
+        currency_limits=[
+            {
+                'currency': item.currency,
+                'is_enabled': item.is_enabled,
+                'min_amount_minor': item.min_amount_minor,
+                'max_amount_minor': item.max_amount_minor,
+                'settlement_currency': item.settlement_currency,
+            }
+            for item in config.currency_limits
+        ],
         is_provider_configured=method_def.get('is_configured', False),
         created_at=config.created_at,
         updated_at=config.updated_at,
@@ -226,3 +254,80 @@ async def update_payment_method(
 
     defaults = _get_method_defaults()
     return _enrich_config(config, defaults)
+
+
+@router.get('/{method_id}/currency-limits', response_model=list[PaymentMethodCurrencyLimitResponse])
+async def get_payment_method_currency_limits(
+    method_id: str,
+    admin: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_cabinet_db),
+):
+    config = await get_config_by_method_id(db, method_id)
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'Payment method not found: {method_id}',
+        )
+
+    return [
+        PaymentMethodCurrencyLimitResponse(
+            currency=item.currency,
+            is_enabled=item.is_enabled,
+            min_amount_minor=item.min_amount_minor,
+            max_amount_minor=item.max_amount_minor,
+            settlement_currency=item.settlement_currency,
+        )
+        for item in config.currency_limits
+    ]
+
+
+@router.put('/{method_id}/currency-limits/{currency}', response_model=PaymentMethodCurrencyLimitResponse)
+async def put_payment_method_currency_limit(
+    method_id: str,
+    currency: str,
+    payload: PaymentMethodCurrencyLimitRequest,
+    admin: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_cabinet_db),
+):
+    row = await upsert_currency_limit(
+        db,
+        method_id=method_id,
+        currency=currency,
+        is_enabled=payload.is_enabled,
+        min_amount_minor=payload.min_amount_minor,
+        max_amount_minor=payload.max_amount_minor,
+        settlement_currency=payload.settlement_currency,
+    )
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'Payment method not found: {method_id}',
+        )
+
+    return PaymentMethodCurrencyLimitResponse(
+        currency=row.currency,
+        is_enabled=row.is_enabled,
+        min_amount_minor=row.min_amount_minor,
+        max_amount_minor=row.max_amount_minor,
+        settlement_currency=row.settlement_currency,
+    )
+
+
+@router.delete('/{method_id}/currency-limits/{currency}')
+async def remove_payment_method_currency_limit(
+    method_id: str,
+    currency: str,
+    admin: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_cabinet_db),
+):
+    deleted = await delete_currency_limit(
+        db,
+        method_id=method_id,
+        currency=currency,
+    )
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Currency limit not found',
+        )
+    return {'success': True}
