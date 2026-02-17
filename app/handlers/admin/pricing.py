@@ -16,7 +16,7 @@ from app.localization.texts import get_texts
 from app.services.system_settings_service import bot_configuration_service
 from app.states import PricingStates
 from app.utils.decorators import admin_required, error_handler
-from app.utils.money import major_to_minor, normalize_currency
+from app.utils.money import get_currency_meta, major_to_minor, normalize_currency
 
 
 logger = logging.getLogger(__name__)
@@ -95,6 +95,27 @@ def _traffic_gb_from_key(key: str) -> int | None:
 
 def _is_currency_table_price_key(key: str) -> bool:
     return _period_days_from_key(key) is not None or _traffic_gb_from_key(key) is not None
+
+
+def _get_price_input_currency(key: str, selected_pricing_currency: str) -> str:
+    """
+    Returns the currency that should be used to parse/display the editable numeric value.
+
+    Per-currency catalog prices (period/traffic) use the currently selected pricing currency.
+    Legacy/global price fields keep using default balance currency.
+    """
+    if settings.MULTI_CURRENCY_ENABLED and _is_currency_table_price_key(key):
+        return _normalize_pricing_currency(selected_pricing_currency)
+    return _default_pricing_currency()
+
+
+def _format_price_for_currency(amount_minor: int, currency: str) -> str:
+    normalized_currency = _normalize_pricing_currency(currency)
+    return settings.format_price(
+        int(amount_minor or 0),
+        currency=normalized_currency,
+        display_currency=normalized_currency,
+    )
 
 
 @dataclass(slots=True)
@@ -510,7 +531,7 @@ def _format_trial_summary(lang_code: str, pricing_currency: str) -> str:
     devices = settings.TRIAL_DEVICE_LIMIT
     price_note = ''
     if settings.is_trial_paid_activation_enabled():
-        price_note = f', 💳 {settings.format_price(settings.get_trial_activation_price(), currency=pricing_currency)}'
+        price_note = f', 💳 {_format_price_for_currency(settings.get_trial_activation_price(), pricing_currency)}'
 
     traffic_label = _format_traffic_label(traffic, lang_code, short=True)
     devices_label = f'{devices}📱' if lang_code == 'ru' else f'{devices}📱'
@@ -519,7 +540,7 @@ def _format_trial_summary(lang_code: str, pricing_currency: str) -> str:
 
 
 def _format_core_summary(lang_code: str, pricing_currency: str) -> str:
-    base_price = settings.format_price(settings.BASE_SUBSCRIPTION_PRICE, currency=pricing_currency)
+    base_price = _format_price_for_currency(settings.BASE_SUBSCRIPTION_PRICE, pricing_currency)
     device_limit = settings.DEFAULT_DEVICE_LIMIT
     traffic_limit = settings.DEFAULT_TRAFFIC_LIMIT_GB
     mode = settings.TRAFFIC_SELECTION_MODE.lower()
@@ -587,7 +608,7 @@ def _build_period_summary(items: Iterable[PriceItem], lang_code: str, fallback: 
         else:
             short_label = label
 
-        parts.append(f'{short_label}: {settings.format_price(price, currency=pricing_currency)}')
+        parts.append(f'{short_label}: {_format_price_for_currency(price, pricing_currency)}')
 
     return ', '.join(parts) if parts else fallback
 
@@ -608,7 +629,7 @@ def _build_traffic_summary(
     for package in enabled_packages:
         short_label = _format_traffic_label(package['gb'], lang_code, short=True)
         price = int(traffic_price_map.get(package['gb'], package['price'])) if traffic_price_map else int(package['price'])
-        parts.append(f'{short_label}: {settings.format_price(price, currency=pricing_currency)}')
+        parts.append(f'{short_label}: {_format_price_for_currency(price, pricing_currency)}')
 
     return ', '.join(parts) if parts else fallback
 
@@ -623,17 +644,19 @@ def _build_period_options_summary(lang_code: str) -> str:
 
 
 def _build_extra_summary(items: Iterable[PriceItem], fallback: str, pricing_currency: str) -> str:
-    parts = [f'{label}: {settings.format_price(price, currency=pricing_currency)}' for key, label, price in items]
+    parts = [f'{label}: {_format_price_for_currency(price, pricing_currency)}' for key, label, price in items]
     return ', '.join(parts) if parts else fallback
 
 
 def _build_settings_section(
     section: str,
     language: str,
+    pricing_currency: str,
 ) -> tuple[str, types.InlineKeyboardMarkup]:
     texts = get_texts(language)
     lang_code = _language_code(language)
     entries = SETTING_ENTRIES_BY_SECTION.get(section, ())
+    normalized_currency = _normalize_pricing_currency(pricing_currency)
 
     if section == 'trial':
         title = texts.t('ADMIN_PRICING_SECTION_TRIAL_TITLE', '🎁 Пробный период')
@@ -643,6 +666,8 @@ def _build_settings_section(
         title = texts.t('ADMIN_PRICING_SECTION_SETTINGS_GENERIC', '⚙️ Настройки')
 
     lines: list[str] = [title, '']
+    lines.append(f'🌍 {texts.t("ADMIN_PRICING_ACTIVE_CURRENCY", "Активная валюта цен")}: <b>{normalized_currency}</b>')
+    lines.append('')
     keyboard_rows: list[list[types.InlineKeyboardButton]] = []
 
     if entries:
@@ -715,15 +740,30 @@ def _build_settings_section(
     else:
         lines.append(texts.t('ADMIN_PRICING_SECTION_EMPTY', 'Нет параметров для изменения.'))
 
+    keyboard_rows.append(
+        [
+            types.InlineKeyboardButton(
+                text=texts.t(
+                    'ADMIN_PRICING_BUTTON_CURRENCY',
+                    '🌍 Валюта: {currency}',
+                ).format(currency=normalized_currency),
+                callback_data='admin_pricing_pick_currency',
+            )
+        ]
+    )
     keyboard_rows.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_pricing')])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
     return '\n'.join(lines).strip(), keyboard
 
 
-def _build_traffic_options_section(language: str) -> tuple[str, types.InlineKeyboardMarkup]:
+def _build_traffic_options_section(
+    language: str,
+    pricing_currency: str,
+) -> tuple[str, types.InlineKeyboardMarkup]:
     texts = get_texts(language)
     lang_code = _language_code(language)
     packages = _collect_traffic_packages()
+    normalized_currency = _normalize_pricing_currency(pricing_currency)
 
     title = texts.t(
         'ADMIN_PRICING_SECTION_TRAFFIC_OPTIONS_TITLE',
@@ -752,6 +792,8 @@ def _build_traffic_options_section(language: str) -> tuple[str, types.InlineKeyb
         )
 
     lines.append('')
+    lines.append(f'🌍 {texts.t("ADMIN_PRICING_ACTIVE_CURRENCY", "Активная валюта цен")}: <b>{normalized_currency}</b>')
+    lines.append('')
     lines.append(
         texts.t(
             'ADMIN_PRICING_SECTION_TRAFFIC_OPTIONS_PROMPT',
@@ -775,14 +817,29 @@ def _build_traffic_options_section(language: str) -> tuple[str, types.InlineKeyb
     for i in range(0, len(buttons), 3):
         keyboard_rows.append(buttons[i : i + 3])
 
+    keyboard_rows.append(
+        [
+            types.InlineKeyboardButton(
+                text=texts.t(
+                    'ADMIN_PRICING_BUTTON_CURRENCY',
+                    '🌍 Валюта: {currency}',
+                ).format(currency=normalized_currency),
+                callback_data='admin_pricing_pick_currency',
+            )
+        ]
+    )
     keyboard_rows.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_pricing')])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
     return '\n'.join(lines), keyboard
 
 
-def _build_period_options_section(language: str) -> tuple[str, types.InlineKeyboardMarkup]:
+def _build_period_options_section(
+    language: str,
+    pricing_currency: str,
+) -> tuple[str, types.InlineKeyboardMarkup]:
     texts = get_texts(language)
     lang_code = _language_code(language)
+    normalized_currency = _normalize_pricing_currency(pricing_currency)
     suffix = 'д' if lang_code == 'ru' else 'd'
 
     # Используем методы без фильтрации по ценам для админки
@@ -817,6 +874,8 @@ def _build_period_options_section(language: str) -> tuple[str, types.InlineKeybo
             'Нажмите на период, чтобы включить или выключить его отображение.',
         )
     )
+    lines.append('')
+    lines.append(f'🌍 {texts.t("ADMIN_PRICING_ACTIVE_CURRENCY", "Активная валюта цен")}: <b>{normalized_currency}</b>')
 
     keyboard_rows: list[list[types.InlineKeyboardButton]] = []
 
@@ -844,6 +903,17 @@ def _build_period_options_section(language: str) -> tuple[str, types.InlineKeybo
     for i in range(0, len(renew_buttons), 3):
         keyboard_rows.append(renew_buttons[i : i + 3])
 
+    keyboard_rows.append(
+        [
+            types.InlineKeyboardButton(
+                text=texts.t(
+                    'ADMIN_PRICING_BUTTON_CURRENCY',
+                    '🌍 Валюта: {currency}',
+                ).format(currency=normalized_currency),
+                callback_data='admin_pricing_pick_currency',
+            )
+        ]
+    )
     keyboard_rows.append([types.InlineKeyboardButton(text=texts.BACK, callback_data='admin_pricing')])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
     return '\n'.join(lines), keyboard
@@ -972,11 +1042,11 @@ def _build_section(
         items = _get_extra_items(lang_code)
         title = texts.t('ADMIN_PRICING_SECTION_EXTRA_TITLE', '➕ Дополнительные опции')
     elif section == 'traffic_options':
-        return _build_traffic_options_section(language)
+        return _build_traffic_options_section(language, normalized_currency)
     elif section in SETTING_ENTRIES_BY_SECTION:
-        return _build_settings_section(section, language)
+        return _build_settings_section(section, language, normalized_currency)
     elif section == 'period_options':
-        return _build_period_options_section(language)
+        return _build_period_options_section(language, normalized_currency)
     else:
         items = _get_extra_items(lang_code)
         title = texts.t('ADMIN_PRICING_SECTION_EXTRA_TITLE', '➕ Дополнительные опции')
@@ -987,7 +1057,7 @@ def _build_section(
 
     if items:
         for key, label, price in items:
-            lines.append(f'• {label} — {settings.format_price(price, currency=normalized_currency)}')
+            lines.append(f'• {label} — {_format_price_for_currency(price, normalized_currency)}')
         lines.append('')
         lines.append(texts.t('ADMIN_PRICING_SECTION_PROMPT', 'Выберите что изменить:'))
     else:
@@ -998,7 +1068,7 @@ def _build_section(
         keyboard_rows.append(
             [
                 types.InlineKeyboardButton(
-                    text=f'{label} • {settings.format_price(price, currency=normalized_currency)}',
+                    text=f'{label} • {_format_price_for_currency(price, normalized_currency)}',
                     callback_data=f'admin_pricing_edit:{section}:{key}',
                 )
             ]
@@ -1084,8 +1154,14 @@ async def _render_message_by_id(
 
 def _parse_price_input(text: str, currency: str) -> int:
     normalized_currency = _normalize_pricing_currency(currency)
-    normalized = text.replace('₽', '').replace('р', '').replace('RUB', '')
-    normalized = normalized.replace(' ', '').replace(',', '.').strip()
+    meta = get_currency_meta(normalized_currency)
+    normalized = (text or '').replace(' ', '').replace(',', '.').strip()
+    upper = normalized.upper()
+    for token in (normalized_currency.upper(), meta.symbol.upper()):
+        if token:
+            upper = upper.replace(token, '')
+    upper = upper.replace('₽', '').replace('Р', '')
+    normalized = upper.strip()
     if not normalized:
         raise ValueError('empty')
 
@@ -1164,8 +1240,7 @@ async def show_pricing_menu(
     db: AsyncSession,
     state: FSMContext,
 ) -> None:
-    existing = await state.get_data()
-    pricing_currency = _normalize_pricing_currency(existing.get('pricing_currency'))
+    pricing_currency = _default_pricing_currency()
     await state.clear()
     await state.update_data(
         pricing_currency=pricing_currency,
@@ -1225,6 +1300,7 @@ async def start_price_edit(
     label = _resolve_label(section, key, db_user.language)
     data = await state.get_data()
     pricing_currency = _normalize_pricing_currency(data.get('pricing_currency'))
+    value_currency = _get_price_input_currency(key, pricing_currency)
 
     await state.update_data(
         pricing_key=key,
@@ -1232,12 +1308,13 @@ async def start_price_edit(
         pricing_message_id=callback.message.message_id,
         pricing_mode='price',
         pricing_currency=pricing_currency,
+        pricing_value_currency=value_currency,
     )
     await state.set_state(PricingStates.waiting_for_value)
 
     current_minor = await _resolve_price_value_minor(db, key, pricing_currency)
-    current_price = settings.format_price(current_minor, currency=pricing_currency)
-    prompt = _build_price_prompt(texts, label, current_price, pricing_currency)
+    current_price = _format_price_for_currency(current_minor, value_currency)
+    prompt = _build_price_prompt(texts, label, current_price, value_currency)
 
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -1280,6 +1357,7 @@ async def start_setting_edit(
     mode = 'price' if entry and entry.action == 'price' else 'setting'
     existing = await state.get_data()
     pricing_currency = _normalize_pricing_currency(existing.get('pricing_currency'))
+    value_currency = _get_price_input_currency(key, pricing_currency)
 
     await state.update_data(
         pricing_key=key,
@@ -1288,6 +1366,7 @@ async def start_setting_edit(
         pricing_mode=mode,
         pricing_label=label,
         pricing_currency=pricing_currency,
+        pricing_value_currency=value_currency,
     )
     await state.set_state(PricingStates.waiting_for_value)
 
@@ -1295,8 +1374,8 @@ async def start_setting_edit(
         prompt = _build_price_prompt(
             texts,
             label,
-            settings.format_price(int(current_value or 0), currency=pricing_currency),
-            pricing_currency,
+            _format_price_for_currency(int(current_value or 0), value_currency),
+            value_currency,
         )
     else:
         description = guidance.get('description') or ''
@@ -1363,6 +1442,8 @@ async def process_pricing_input(
     mode = data.get('pricing_mode', 'price')
     stored_label = data.get('pricing_label')
     pricing_currency = _normalize_pricing_currency(data.get('pricing_currency'))
+    raw_value_currency = data.get('pricing_value_currency')
+    value_currency = _normalize_pricing_currency(raw_value_currency) if raw_value_currency else None
 
     texts = get_texts(db_user.language)
 
@@ -1399,7 +1480,8 @@ async def process_pricing_input(
 
     if mode == 'price':
         try:
-            new_value = _parse_price_input(raw_value, pricing_currency)
+            parse_currency = value_currency or _get_price_input_currency(key, pricing_currency)
+            new_value = _parse_price_input(raw_value, parse_currency)
         except ValueError:
             await message.answer(
                 texts.t(
@@ -1628,7 +1710,13 @@ async def toggle_traffic_package(
     )
     await callback.answer(status_text)
 
-    text, keyboard = _build_traffic_options_section(db_user.language)
+    data = await state.get_data()
+    pricing_currency = _normalize_pricing_currency(data.get('pricing_currency'))
+    await state.update_data(
+        pricing_currency=pricing_currency,
+        pricing_current_view='traffic_options',
+    )
+    text, keyboard = _build_traffic_options_section(db_user.language, pricing_currency)
     await _render_message(callback.message, text, keyboard)
 
 
@@ -1689,7 +1777,13 @@ async def toggle_period_option(
 
     await callback.answer(action_text)
 
-    text, keyboard = _build_period_options_section(db_user.language)
+    data = await state.get_data()
+    pricing_currency = _normalize_pricing_currency(data.get('pricing_currency'))
+    await state.update_data(
+        pricing_currency=pricing_currency,
+        pricing_current_view='period_options',
+    )
+    text, keyboard = _build_period_options_section(db_user.language, pricing_currency)
     await _render_message(callback.message, text, keyboard)
 
 

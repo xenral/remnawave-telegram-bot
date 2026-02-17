@@ -1,6 +1,7 @@
 """Управление тарифами в админ-панели."""
 
 import logging
+from decimal import Decimal, InvalidOperation
 
 from aiogram import Dispatcher, F, types
 from aiogram.exceptions import TelegramBadRequest
@@ -23,6 +24,7 @@ from app.database.models import Tariff, User
 from app.localization.texts import get_texts
 from app.states import AdminStates
 from app.utils.decorators import admin_required, error_handler
+from app.utils.money import get_currency_meta, major_to_minor, minor_to_major, normalize_currency
 
 
 logger = logging.getLogger(__name__)
@@ -37,12 +39,81 @@ def _format_traffic(gb: int, texts=None) -> str:
     return texts.t('ADMIN_TARIFF_TRAFFIC_GB').format(gb=gb) if texts else f'{gb} ГБ'
 
 
+def _tariff_currency() -> str:
+    return normalize_currency(getattr(settings, 'DEFAULT_BALANCE_CURRENCY', 'RUB'))
+
+
 def _format_price_kopeks(kopeks: int) -> str:
-    """Форматирует цену из копеек в рубли."""
-    rubles = kopeks / 100
-    if rubles == int(rubles):
-        return f'{int(rubles)} ₽'
-    return f'{rubles:.2f} ₽'
+    """Форматирует сумму в минимальных единицах текущей валюты баланса."""
+    currency = _tariff_currency()
+    return settings.format_price(
+        int(kopeks or 0),
+        currency=currency,
+        display_currency=currency,
+    )
+
+
+def _minor_to_input_amount(amount_minor: int, currency: str) -> str:
+    meta = get_currency_meta(currency)
+    major = minor_to_major(int(amount_minor or 0), currency)
+    if meta.exponent <= 0:
+        return f'{int(major)}'
+
+    normalized = f'{major:f}'
+    if '.' in normalized:
+        normalized = normalized.rstrip('0').rstrip('.')
+    return normalized
+
+
+def _parse_amount_to_minor(raw_value: str, currency: str) -> int:
+    raw = (raw_value or '').strip()
+    if not raw:
+        raise ValueError('empty amount')
+
+    compact = raw.replace(' ', '').replace(',', '.')
+    meta = get_currency_meta(currency)
+    upper = compact.upper()
+    for token in (currency.upper(), meta.symbol.upper()):
+        if token:
+            upper = upper.replace(token, '')
+    upper = upper.strip()
+    if not upper:
+        raise ValueError('empty amount')
+
+    if meta.exponent <= 0:
+        try:
+            value = int(Decimal(upper))
+        except (InvalidOperation, ValueError) as error:
+            raise ValueError('invalid amount') from error
+        if value < 0:
+            raise ValueError('negative amount')
+        return value
+
+    # Backward compatible:
+    # - decimal input is treated as major amount
+    # - integer <= 999 is treated as major amount
+    # - large integer (>= 1000) is treated as legacy minor amount
+    if '.' in upper:
+        try:
+            value = Decimal(upper)
+        except InvalidOperation as error:
+            raise ValueError('invalid amount') from error
+        if value < 0:
+            raise ValueError('negative amount')
+        return major_to_minor(value, currency)
+
+    try:
+        int_value = int(upper)
+    except ValueError as error:
+        raise ValueError('invalid amount') from error
+
+    if int_value < 0:
+        raise ValueError('negative amount')
+
+    if int_value <= 999:
+        return major_to_minor(Decimal(int_value), currency)
+
+    return int_value
 
 
 def _format_period(days: int) -> str:
@@ -58,10 +129,11 @@ def _format_period(days: int) -> str:
     return f'{days} дня'
 
 
-def _parse_period_prices(text: str) -> dict[str, int]:
+def _parse_period_prices(text: str, currency: str) -> dict[str, int]:
     """
     Парсит строку с ценами периодов.
-    Формат: "30:9900, 90:24900, 180:44900" или "30=9900; 90=24900"
+    Формат: "30:99, 90:249, 180:449" или "30=99; 90=249"
+    Значения интерпретируются в валюте баланса и сохраняются в minor units.
     """
     prices = {}
     text = text.replace(';', ',').replace('=', ':')
@@ -77,7 +149,7 @@ def _parse_period_prices(text: str) -> dict[str, int]:
         period_str, price_str = part.split(':', 1)
         try:
             period = int(period_str.strip())
-            price = int(price_str.strip())
+            price = _parse_amount_to_minor(price_str.strip(), currency)
             if period > 0 and price >= 0:
                 prices[str(period)] = price
         except ValueError:
@@ -100,14 +172,14 @@ def _format_period_prices_display(prices: dict[str, int]) -> str:
     return '\n'.join(lines)
 
 
-def _format_period_prices_for_edit(prices: dict[str, int]) -> str:
+def _format_period_prices_for_edit(prices: dict[str, int], currency: str) -> str:
     """Форматирует цены периодов для редактирования."""
     if not prices:
-        return '30:9900, 90:24900, 180:44900'
+        return '30:99, 90:249, 180:449'
 
     parts = []
     for period_str in sorted(prices.keys(), key=int):
-        parts.append(f'{period_str}:{prices[period_str]}')
+        parts.append(f'{period_str}:{_minor_to_input_amount(prices[period_str], currency)}')
 
     return ', '.join(parts)
 
@@ -643,9 +715,10 @@ async def toggle_daily_tariff(
     """Переключает суточный режим тарифа."""
     tariff_id = int(callback.data.split(':')[1])
     tariff = await get_tariff_by_id(db, tariff_id)
+    texts = get_texts(db_user.language)
 
     if not tariff:
-        await callback.answer(get_texts(db_user.language).t('ADMIN_TARIFF_NOT_FOUND'), show_alert=True)
+        await callback.answer(texts.t('ADMIN_TARIFF_NOT_FOUND'), show_alert=True)
         return
 
     is_daily = getattr(tariff, 'is_daily', False)
@@ -653,11 +726,15 @@ async def toggle_daily_tariff(
     if is_daily:
         # Отключаем суточный режим
         tariff = await update_tariff(db, tariff, is_daily=False, daily_price_kopeks=0)
-        await callback.answer(get_texts(db_user.language).t('ADMIN_TARIFF_DAILY_MODE_DISABLED'), show_alert=True)
+        await callback.answer(texts.t('ADMIN_TARIFF_DAILY_MODE_DISABLED'), show_alert=True)
     else:
-        # Включаем суточный режим (с ценой по умолчанию)
-        tariff = await update_tariff(db, tariff, is_daily=True, daily_price_kopeks=5000)  # 50 руб по умолчанию
-        await callback.answer(get_texts(db_user.language).t('ADMIN_TARIFF_DAILY_MODE_ENABLED_DEFAULT'), show_alert=True)
+        # Включаем суточный режим (с дефолтной ценой для дальнейшей ручной настройки)
+        default_daily_minor = 5000
+        tariff = await update_tariff(db, tariff, is_daily=True, daily_price_kopeks=default_daily_minor)
+        await callback.answer(
+            texts.t('ADMIN_TARIFF_DAILY_MODE_ENABLED_DEFAULT').format(price=_format_price_kopeks(default_daily_minor)),
+            show_alert=True,
+        )
 
     subs_count = await get_tariff_subscriptions_count(db, tariff_id)
 
@@ -688,14 +765,19 @@ async def start_edit_daily_price(
 
     current_price = getattr(tariff, 'daily_price_kopeks', 0)
     current_price / 100 if current_price else 0
+    currency = _tariff_currency()
+    currency_label = texts.t('ADMIN_PRICING_EDIT_CURRENCY', 'Валюта')
 
     await state.set_state(AdminStates.editing_tariff_daily_price)
     await state.update_data(tariff_id=tariff_id, language=db_user.language)
 
     await callback.message.edit_text(
-        texts.t('ADMIN_TARIFF_EDIT_DAILY_PRICE_PROMPT').format(
-            name=tariff.name,
-            current_price=_format_price_kopeks(current_price),
+        (
+            texts.t('ADMIN_TARIFF_EDIT_DAILY_PRICE_PROMPT').format(
+                name=tariff.name,
+                current_price=_format_price_kopeks(current_price),
+            )
+            + f'\n\n{currency_label}: <b>{currency}</b>'
         ),
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=texts.CANCEL, callback_data=f'admin_tariff_view:{tariff_id}')]]
@@ -717,14 +799,13 @@ async def process_daily_price_input(
     texts = get_texts(db_user.language)
     data = await state.get_data()
     tariff_id = data.get('tariff_id')
+    currency = _tariff_currency()
 
     # Парсим цену
     try:
-        price_rubles = float(message.text.strip().replace(',', '.'))
-        if price_rubles <= 0:
+        price_kopeks = _parse_amount_to_minor(message.text.strip(), currency)
+        if price_kopeks <= 0:
             raise ValueError('Цена должна быть положительной')
-
-        price_kopeks = int(price_rubles * 100)
     except ValueError:
         await message.answer(
             texts.t('ADMIN_TARIFF_INVALID_DAILY_PRICE'),
@@ -975,14 +1056,18 @@ async def select_tariff_type_periodic(
     await state.set_state(AdminStates.creating_tariff_prices)
 
     traffic_display = _format_traffic(data['tariff_traffic'])
+    currency = _tariff_currency()
+    currency_label = texts.t('ADMIN_PRICING_EDIT_CURRENCY', 'Валюта')
+    prompt = texts.t('ADMIN_TARIFF_CREATE_STEP6_PERIODIC').format(
+        name=data['tariff_name'],
+        traffic=traffic_display,
+        devices=data['tariff_devices'],
+        tier=data['tariff_tier'],
+    )
+    prompt = f'{prompt}\n\n{currency_label}: <b>{currency}</b>'
 
     await callback.message.edit_text(
-        texts.t('ADMIN_TARIFF_CREATE_STEP6_PERIODIC').format(
-            name=data['tariff_name'],
-            traffic=traffic_display,
-            devices=data['tariff_devices'],
-            tier=data['tariff_tier'],
-        ),
+        prompt,
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=texts.CANCEL, callback_data='admin_tariffs')]]
         ),
@@ -1009,14 +1094,18 @@ async def select_tariff_type_daily(
     await state.set_state(AdminStates.editing_tariff_daily_price)
 
     traffic_display = _format_traffic(data['tariff_traffic'])
+    currency = _tariff_currency()
+    currency_label = texts.t('ADMIN_PRICING_EDIT_CURRENCY', 'Валюта')
+    prompt = texts.t('ADMIN_TARIFF_CREATE_STEP6_DAILY').format(
+        name=data['tariff_name'],
+        traffic=traffic_display,
+        devices=data['tariff_devices'],
+        tier=data['tariff_tier'],
+    )
+    prompt = f'{prompt}\n\n{currency_label}: <b>{currency}</b>'
 
     await callback.message.edit_text(
-        texts.t('ADMIN_TARIFF_CREATE_STEP6_DAILY').format(
-            name=data['tariff_name'],
-            traffic=traffic_display,
-            devices=data['tariff_devices'],
-            tier=data['tariff_tier'],
-        ),
+        prompt,
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=texts.CANCEL, callback_data='admin_tariffs')]]
         ),
@@ -1034,7 +1123,7 @@ async def process_tariff_prices(
     state: FSMContext,
 ):
     """Обрабатывает цены тарифа."""
-    prices = _parse_period_prices(message.text.strip())
+    prices = _parse_period_prices(message.text.strip(), _tariff_currency())
 
     if not prices:
         await message.answer(
@@ -1443,11 +1532,19 @@ async def start_edit_tariff_prices(
     await state.set_state(AdminStates.editing_tariff_prices)
     await state.update_data(tariff_id=tariff_id, language=db_user.language)
 
-    current_prices = _format_period_prices_for_edit(tariff.period_prices or {})
+    currency = _tariff_currency()
+    currency_label = texts.t('ADMIN_PRICING_EDIT_CURRENCY', 'Валюта')
+    current_prices = _format_period_prices_for_edit(tariff.period_prices or {}, currency)
     prices_display = _format_period_prices_display(tariff.period_prices or {})
 
     await callback.message.edit_text(
-        texts.t('ADMIN_TARIFF_EDIT_PRICES_PROMPT').format(prices_display=prices_display, current_prices=current_prices),
+        (
+            texts.t('ADMIN_TARIFF_EDIT_PRICES_PROMPT').format(
+                prices_display=prices_display,
+                current_prices=current_prices,
+            )
+            + f'\n\n{currency_label}: <b>{currency}</b>'
+        ),
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=texts.CANCEL, callback_data=f'admin_tariff_view:{tariff_id}')]]
         ),
@@ -1474,7 +1571,7 @@ async def process_edit_tariff_prices(
         await state.clear()
         return
 
-    prices = _parse_period_prices(message.text.strip())
+    prices = _parse_period_prices(message.text.strip(), _tariff_currency())
     if not prices:
         await message.answer(
             get_texts(db_user.language).t('ADMIN_TARIFF_PRICES_PARSE_ERROR_EDIT'),
@@ -1524,9 +1621,14 @@ async def start_edit_tariff_device_price(
         current_price = _format_price_kopeks(device_price) + '/мес'
     else:
         current_price = texts.t('ADMIN_TARIFF_DEVICE_PRICE_UNAVAILABLE')
+    currency = _tariff_currency()
+    currency_label = texts.t('ADMIN_PRICING_EDIT_CURRENCY', 'Валюта')
 
     await callback.message.edit_text(
-        texts.t('ADMIN_TARIFF_EDIT_DEVICE_PRICE_PROMPT').format(current_price=current_price),
+        (
+            texts.t('ADMIN_TARIFF_EDIT_DEVICE_PRICE_PROMPT').format(current_price=current_price)
+            + f'\n\n{currency_label}: <b>{currency}</b>'
+        ),
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=texts.CANCEL, callback_data=f'admin_tariff_view:{tariff_id}')]]
         ),
@@ -1554,12 +1656,13 @@ async def process_edit_tariff_device_price(
         return
 
     text = message.text.strip()
+    currency = _tariff_currency()
 
     if text == '-' or text == '0':
         device_price = None
     else:
         try:
-            device_price = int(text)
+            device_price = _parse_amount_to_minor(text, currency)
             if device_price < 0:
                 raise ValueError
         except ValueError:
@@ -1768,10 +1871,10 @@ async def process_edit_tariff_trial_days(
 # ============ РЕДАКТИРОВАНИЕ ДОКУПКИ ТРАФИКА ============
 
 
-def _parse_traffic_topup_packages(text: str) -> dict[int, int]:
+def _parse_traffic_topup_packages(text: str, currency: str) -> dict[int, int]:
     """
     Парсит строку с пакетами докупки трафика.
-    Формат: "5:5000, 10:9000, 20:15000" (ГБ:цена_в_копейках)
+    Формат: "5:50, 10:90, 20:150" (ГБ:цена в валюте баланса)
     """
     packages = {}
     text = text.replace(';', ',').replace('=', ':')
@@ -1787,7 +1890,7 @@ def _parse_traffic_topup_packages(text: str) -> dict[int, int]:
         gb_str, price_str = part.split(':', 1)
         try:
             gb = int(gb_str.strip())
-            price = int(price_str.strip())
+            price = _parse_amount_to_minor(price_str.strip(), currency)
             if gb > 0 and price > 0:
                 packages[gb] = price
         except ValueError:
@@ -1796,14 +1899,14 @@ def _parse_traffic_topup_packages(text: str) -> dict[int, int]:
     return packages
 
 
-def _format_traffic_topup_packages_for_edit(packages: dict[int, int]) -> str:
+def _format_traffic_topup_packages_for_edit(packages: dict[int, int], currency: str) -> str:
     """Форматирует пакеты докупки для редактирования."""
     if not packages:
-        return '5:5000, 10:9000, 20:15000'
+        return '5:50, 10:90, 20:150'
 
     parts = []
     for gb in sorted(packages.keys()):
-        parts.append(f'{gb}:{packages[gb]}')
+        parts.append(f'{gb}:{_minor_to_input_amount(packages[gb], currency)}')
 
     return ', '.join(parts)
 
@@ -2033,8 +2136,10 @@ async def start_edit_traffic_topup_packages(
     await state.set_state(AdminStates.editing_tariff_traffic_topup_packages)
     await state.update_data(tariff_id=tariff_id, language=db_user.language)
 
+    currency = _tariff_currency()
+    currency_label = texts.t('ADMIN_PRICING_EDIT_CURRENCY', 'Валюта')
     packages = tariff.get_traffic_topup_packages() if hasattr(tariff, 'get_traffic_topup_packages') else {}
-    current_packages = _format_traffic_topup_packages_for_edit(packages)
+    current_packages = _format_traffic_topup_packages_for_edit(packages, currency)
 
     if packages:
         packages_display = '\n'.join(
@@ -2044,10 +2149,13 @@ async def start_edit_traffic_topup_packages(
         packages_display = texts.t('ADMIN_TARIFF_NOT_CONFIGURED')
 
     await callback.message.edit_text(
-        texts.t('ADMIN_TARIFF_TOPUP_PACKAGES_PROMPT').format(
-            name=tariff.name,
-            packages_display=packages_display,
-            current_packages=current_packages,
+        (
+            texts.t('ADMIN_TARIFF_TOPUP_PACKAGES_PROMPT').format(
+                name=tariff.name,
+                packages_display=packages_display,
+                current_packages=current_packages,
+            )
+            + f'\n\n{currency_label}: <b>{currency}</b>'
         ),
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
@@ -2084,7 +2192,7 @@ async def process_edit_traffic_topup_packages(
         )
         return
 
-    packages = _parse_traffic_topup_packages(message.text.strip())
+    packages = _parse_traffic_topup_packages(message.text.strip(), _tariff_currency())
 
     if not packages:
         await message.answer(
@@ -2273,7 +2381,7 @@ async def confirm_delete_tariff(
     db: AsyncSession,
 ):
     """Запрашивает подтверждение удаления тарифа."""
-    get_texts(db_user.language)
+    texts = get_texts(db_user.language)
     tariff_id = int(callback.data.split(':')[1])
     tariff = await get_tariff_by_id(db, tariff_id)
 

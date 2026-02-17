@@ -191,6 +191,35 @@ class BotConfigurationService:
         'BAN_NOTIFICATIONS': 'Тексты уведомлений о блокировках, которые отправляются пользователям.',
     }
 
+    # These keys must stay editable from admin even if they are present in .env,
+    # otherwise pricing/currency UI appears to "save" values that never apply.
+    _runtime_override_keys: set[str] = {
+        'AVAILABLE_SUBSCRIPTION_PERIODS',
+        'AVAILABLE_RENEWAL_PERIODS',
+        'TRAFFIC_PACKAGES_CONFIG',
+        'MULTI_CURRENCY_ENABLED',
+        'DEFAULT_BALANCE_CURRENCY',
+        'DEFAULT_DISPLAY_CURRENCY',
+        'DEFAULT_REPORTING_CURRENCY',
+        'SUPPORTED_BALANCE_CURRENCIES',
+        'SUPPORTED_DISPLAY_CURRENCIES',
+        'DEFAULT_DEVICE_LIMIT',
+        'DEFAULT_TRAFFIC_LIMIT_GB',
+        'MAX_DEVICES_LIMIT',
+        'RESET_TRAFFIC_ON_PAYMENT',
+        'DEFAULT_TRAFFIC_RESET_STRATEGY',
+        'TRAFFIC_SELECTION_MODE',
+        'FIXED_TRAFFIC_LIMIT_GB',
+        'BASE_SUBSCRIPTION_PRICE',
+        'PRICE_PER_DEVICE',
+        'BASE_PROMO_GROUP_PERIOD_DISCOUNTS_ENABLED',
+        'BASE_PROMO_GROUP_PERIOD_DISCOUNTS',
+    }
+    _runtime_override_prefixes: tuple[str, ...] = (
+        'PRICE_',
+        'TRIAL_',
+    )
+
     @staticmethod
     def _format_dynamic_copy(category_key: str | None, value: str) -> str:
         if not value:
@@ -969,7 +998,16 @@ class BotConfigurationService:
 
     @classmethod
     def _is_env_override(cls, key: str) -> bool:
-        return key in cls._env_override_keys
+        if key not in cls._env_override_keys:
+            return False
+
+        upper_key = key.upper()
+        if upper_key in cls._runtime_override_keys:
+            return False
+        if any(upper_key.startswith(prefix) for prefix in cls._runtime_override_prefixes):
+            return False
+
+        return True
 
     @classmethod
     def _format_numeric_with_unit(cls, key: str, value: float) -> str | None:
